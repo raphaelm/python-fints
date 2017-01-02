@@ -56,6 +56,7 @@ class FinTS3Client:
         dialog.init()
 
         msg = self._create_statement_message(dialog, account, start_date, end_date, None)
+        logger.debug('Send message: {}'.format(msg))
         resp = dialog.send(msg)
         touchdowns = resp.get_touchdowns(msg)
         responses = [resp]
