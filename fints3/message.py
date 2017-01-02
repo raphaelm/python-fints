@@ -1,7 +1,7 @@
 import random
 import re
 
-from fints3.segments.message import HNHBK, HNSHK, HNVSK, HNVSD, HNSHA, HNHBS
+from fints3.segments.message import HNHBK, HNHBS, HNSHA, HNSHK, HNVSD, HNVSK
 
 
 class FinTSMessage:

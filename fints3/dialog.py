@@ -1,6 +1,7 @@
 import logging
 
 from fints3.segments.auth import HKIDN, HKSYN, HKVVB
+
 from .message import FinTSMessage, FinTSResponse
 from .segments.dialog import HKEND
 
