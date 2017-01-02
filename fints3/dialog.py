@@ -58,13 +58,13 @@ class FinTSDialog:
     def init(self):
         logger.info('Initialize Dialog')
 
-        seg_identification = HKIDN(3, self.blz, self.username, 0)
+        seg_identification = HKIDN(3, self.blz, self.username, self.systemid)
         seg_prepare = HKVVB(4)
 
         msg_init = FinTSMessage(self.blz, self.username, self.pin, self.systemid, self.dialogid, self.msgno, [
             seg_identification,
             seg_prepare,
-        ])
+        ], self.tan_mechs)
         logger.debug('Sending INIT: {}'.format(msg_init))
         resp = self.send(msg_init)
         logger.debug('Got INIT response: {}'.format(resp))

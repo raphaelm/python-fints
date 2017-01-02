@@ -37,12 +37,11 @@ class HNSHK(FinTS3Segment):
     SECURITY_FUNC = 999
     SECURITY_BOUNDARY = 1  # SHM
     SECURITY_SUPPLIER_ROLE = 1  # ISS
-    PINTAN_VERSION = 1  # 1-step
 
-    def __init__(self, segno, secref, blz, username, systemid):
+    def __init__(self, segno, secref, blz, username, systemid, profile_version, security_function=SECURITY_FUNC):
         data = [
-            ':'.join(['PIN', str(self.PINTAN_VERSION)]),
-            self.SECURITY_FUNC,
+            ':'.join(['PIN', str(profile_version)]),
+            security_function,
             secref,
             self.SECURITY_BOUNDARY,
             self.SECURITY_SUPPLIER_ROLE,
@@ -66,11 +65,10 @@ class HNVSK(FinTS3Segment):
 
     COMPRESSION_NONE = 0
     SECURITY_SUPPLIER_ROLE = 1  # ISS
-    PINTAN_VERSION = 1  # 1-step
 
-    def __init__(self, segno, blz, username, systemid):
+    def __init__(self, segno, blz, username, systemid, profile_version):
         data = [
-            ':'.join(['PIN', str(self.PINTAN_VERSION)]),
+            ':'.join(['PIN', str(profile_version)]),
             998,
             self.SECURITY_SUPPLIER_ROLE,
             ':'.join(['1', '', str(systemid)]),

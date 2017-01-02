@@ -5,7 +5,7 @@ from fints3.segments.message import HNHBK, HNSHK, HNVSK, HNVSD, HNSHA, HNHBS
 
 
 class FinTSMessage:
-    def __init__(self, blz, username, pin, systemid, dialogid, msgno, encrypted_segments):
+    def __init__(self, blz, username, pin, systemid, dialogid, msgno, encrypted_segments, tan_mechs=None):
         self.blz = blz
         self.username = username
         self.pin = pin
@@ -14,6 +14,13 @@ class FinTSMessage:
         self.msgno = msgno
         self.segments = []
         self.encrypted_segments = []
+
+        if tan_mechs and '999' not in tan_mechs:
+            self.profile_version = 2
+            self.security_function = tan_mechs[0]
+        else:
+            self.profile_version = 1
+            self.security_function = '999'
 
         sig_head = self.build_signature_head()
         enc_head = self.build_encryption_head()
@@ -39,10 +46,11 @@ class FinTSMessage:
     def build_signature_head(self):
         rand = random.SystemRandom()
         self.secref = rand.randint(1000000, 9999999)
-        return HNSHK(2, self.secref, self.blz, self.username, self.systemid)
+        return HNSHK(2, self.secref, self.blz, self.username, self.systemid, self.profile_version,
+                     self.security_function)
 
     def build_encryption_head(self):
-        return HNVSK(998, self.blz, self.username, self.systemid)
+        return HNVSK(998, self.blz, self.username, self.systemid, self.profile_version)
 
     def build_header(self):
         l = sum([len(str(s)) for s in self.segments])
@@ -133,7 +141,7 @@ class FinTSResponse:
                 if id == "3920":
                     m = self.RE_TANMECH.search(msg)
                     if m:
-                        return m.group(0)
+                        return [m.group(0)]
         return False
 
     def _get_segment_max_version(self, name):

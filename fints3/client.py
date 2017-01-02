@@ -60,5 +60,6 @@ class FinTS3PinTanClient(FinTS3Client):
         return dialog
 
     def _new_message(self, dialog: FinTSDialog, segments):
-        return FinTSMessage(self.blz, self.username, self.pin, dialog.systemid, dialog.dialogid, dialog.msgno, segments)
+        return FinTSMessage(self.blz, self.username, self.pin, dialog.systemid, dialog.dialogid, dialog.msgno,
+                            segments, dialog.tan_mechs)
 
