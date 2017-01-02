@@ -179,7 +179,7 @@ class FinTSResponse:
         return self._find_segments(name, True)
 
     def _find_segments(self, name, one=False):
-        found = []
+        found = [] if not one else ''
         for s in self.segments:
             spl = s.split(':', 1)
             if spl[0] == name:

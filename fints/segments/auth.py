@@ -34,7 +34,7 @@ class HKVVB(FinTS3Segment):
     PRODUCT_NAME = 'pyfints'
     PRODUCT_VERSION = '0.1'
 
-    def __init__(self, segmentno, lang=LANG_EN):
+    def __init__(self, segmentno, lang=LANG_DE):
         data = [
             0, 0, lang, self.PRODUCT_NAME, self.PRODUCT_VERSION
         ]

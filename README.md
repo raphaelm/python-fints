@@ -11,6 +11,13 @@ Limitations
 * Only PIN/TAN authentication is supported, no signature cards
 * Only a number of reading operations are currently supported
 
+Banks tested:
+
+* GLS Bank eG
+* Triodos Bank
+* BBBank eG
+* Postbank
+
 Usage
 -----
 
