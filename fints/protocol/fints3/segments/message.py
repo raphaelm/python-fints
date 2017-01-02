@@ -1,40 +1,141 @@
-# See FinTS_3.0_Security_Sicherheitsverfahren_HBCI_Rel_20130718_final_version.pdf
-from collections import OrderedDict
-
+import time
 from . import FinTS3Segment
 
 
-# See B.5.2
-class FinTS3Header(FinTS3Segment):
-    def __init__(self, version=300):
-        self.elements = OrderedDict([
-            ('head', OrderedDict([
-                ('identifier', 'HNHBK'),
-                ('counter', 0),
-                ('version', 3)
-            ])),
-            ('size', 0),
-            ('version', version),
-            ('dialog', 0),
-            ('msg', 0)
-        ])
+class HNHBK(FinTS3Segment):
+    """
+    HNHBK (Nachrichtenkopf)
+    Section B.5.2
+    """
+    type = 'HNHBK'
+    version = 3
 
-    def set_size(self, size):
-        selfSize = len(self.to_ascii()) + 1
-        self.elements['size'] = size + selfSize
+    HEADER_LENGTH = 29
 
-    def to_ascii(self):
-        self.elements['size'] = str(self.elements['size']).zfill(12)
-        return super(FinTS3Header, self).to_ascii()
+    def __init__(self, msglen, dialogid, msgno):
+
+        if len(str(msglen)) != 12:
+            msglen = str(int(msglen) + self.HEADER_LENGTH + len(str(dialogid)) + len(str(msgno))).zfill(12)
+
+        data = [
+            msglen,
+            300,
+            dialogid,
+            msgno
+        ]
+        super().__init__(1, data)
 
 
-# See B.5.3
-class FinTS3Footer(FinTS3Segment):
-    def __init__(self):
-        self.elements = OrderedDict([
-            ('head', OrderedDict([
-                ('identifier', 'HNHBS'),
-                ('counter', 0),
-                ('version', 1)
-            ])),
-        ])
+class HNSHK(FinTS3Segment):
+    """
+    HNSHK (Signaturkopf)
+    Section B.5.1
+    """
+    type = 'HNSHK'
+    version = 4
+
+    SECURITY_FUNC = 999
+    SECURITY_BOUNDARY = 1  # SHM
+    SECURITY_SUPPLIER_ROLE = 1  # ISS
+    PINTAN_VERSION = 1  # 1-step
+
+    def __init__(self, segno, secref, blz, username, systemid):
+        data = [
+            ':'.join(['PIN', str(self.PINTAN_VERSION)]),
+            self.SECURITY_FUNC,
+            secref,
+            self.SECURITY_BOUNDARY,
+            self.SECURITY_SUPPLIER_ROLE,
+            ':'.join(['1', '', str(systemid)]),
+            1,
+            ':'.join(['1', time.strftime('%Y%m%d'), time.strftime('%H%M%S')]),
+            ':'.join(['1', '999', '1']),  # Negotiate hash algorithm
+            ':'.join(['6', '10', '16']),  # RSA mode
+            ':'.join([str(self.country_code), blz, username, 'S', '0', '0']),
+        ]
+        super().__init__(segno, data)
+
+
+class HNVSK(FinTS3Segment):
+    """
+    HNVSK (Verschlüsslungskopf)
+    Section B.5.3
+    """
+    type = 'HNVSK'
+    version = 3
+
+    COMPRESSION_NONE = 0
+    SECURITY_SUPPLIER_ROLE = 1  # ISS
+    PINTAN_VERSION = 1  # 1-step
+
+    def __init__(self, segno, blz, username, systemid):
+        data = [
+            ':'.join(['PIN', str(self.PINTAN_VERSION)]),
+            998,
+            self.SECURITY_SUPPLIER_ROLE,
+            ':'.join(['1', '', str(systemid)]),
+            ':'.join(['1', time.strftime('%Y%m%d'), time.strftime('%H%M%S')]),
+            ':'.join(['2', '2', '13', '@8@00000000', '5', '1']),  # Crypto algorithm
+            ':'.join([str(self.country_code), blz, username, 'S', '0', '0']),
+            self.COMPRESSION_NONE
+        ]
+        super().__init__(segno, data)
+
+
+class HNVSD(FinTS3Segment):
+    """
+    HNVSD (Verschlüsselte Daten)
+    Section B.5.4
+    """
+    type = 'HNVSD'
+    version = 1
+
+    def __init__(self, segno, encoded_data):
+        self.encoded_data = encoded_data
+        data = [
+            '@{}@{}'.format(len(encoded_data), encoded_data)
+        ]
+        super().__init__(segno, data)
+
+    def set_data(self, encoded_data):
+        self.encoded_data = encoded_data
+        self.data = [
+            '@{}@{}'.format(len(encoded_data), encoded_data)
+        ]
+
+
+class HNSHA(FinTS3Segment):
+    """
+    HNSHA (Signaturabschluss)
+    Section B.5.2
+    """
+    type = 'HNSHA'
+    version = 2
+
+    SECURITY_FUNC = 999
+    SECURITY_BOUNDARY = 1  # SHM
+    SECURITY_SUPPLIER_ROLE = 1  # ISS
+    PINTAN_VERSION = 1  # 1-step
+
+    def __init__(self, segno, secref, pin):
+        data = [
+            secref,
+            '',
+            pin
+        ]
+        super().__init__(segno, data)
+
+
+class HNHBS(FinTS3Segment):
+    """
+    HNHBS (Nachrichtenabschluss)
+    Section B.5.3
+    """
+    type = 'HNHBS'
+    version = 1
+
+    def __init__(self, segno, msgno):
+        data = [
+            str(msgno)
+        ]
+        super().__init__(segno, data)
