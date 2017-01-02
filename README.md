@@ -25,8 +25,17 @@ Usage
         'https://mybank.com/…'  # endpoint, e.g.: https://hbci-pintan.gad.de/cgi-bin/hbciservlet
     )
 
-    print(f.get_sepa_accounts())
+    accounts = f.get_sepa_accounts()
+    print(accounts)
+    # [SEPAAccount(iban='DE12345678901234567890', bic='ABCDEFGH1DEF', accountnumber='123456790', subaccount='',
+    #              blz='123456789')]
 
+    statement = f.get_statement(accounts[0], date(2016, 12, 1), date.today())
+    print([t.data for t in statement])
+    # The statement is a list of transaction objects as parsed by the mt940 parser, see
+    # https://mt940.readthedocs.io/en/latest/mt940.html#mt940.models.Transaction
+    # for documentation. Most information is contained in a dict accessible via their
+    # ``data`` property
 
 Credits and License
 -------------------

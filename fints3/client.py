@@ -1,10 +1,14 @@
 import logging
 
-from .segments.accounts import HKSPA
+import re
+
 from .connection import FinTSHTTPSConnection
 from .dialog import FinTSDialog
 from .message import FinTSMessage
 from .models import SEPAAccount
+from .segments.accounts import HKSPA
+from .segments.statement import HKKAZ
+from .utils import mt940_to_array
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +48,71 @@ class FinTS3Client:
             ))
 
         return self.accounts
+
+    def get_statement(self, account, start_date, end_date):
+        logger.info('Start fetching from {} to {}'.format(start_date, end_date))
+
+        dialog = self._new_dialog()
+        dialog.sync()
+        dialog.init()
+
+        msg = self._create_statement_message(dialog, account, start_date, end_date, None)
+        resp = dialog.send(msg)
+        touchdowns = resp.get_touchdowns(msg)
+        responses = [resp]
+        touchdown_counter = 1
+
+        while HKKAZ.type in touchdowns:
+            logger.info('Fetching more results ({})...'.format(touchdown_counter))
+            msg = self._create_statement_message(dialog, account, start_date, end_date, touchdowns[HKKAZ.type])
+
+            resp = dialog.send(msg)
+            responses.append(resp)
+            touchdowns = resp.get_touchdowns(msg)
+
+            touchdown_counter += 1
+
+        logger.info('Fetching done.')
+
+        re_data = re.compile(r'[^@]*@([0-9]+)@(.+)', flags=re.MULTILINE | re.DOTALL)
+        statement = []
+        for resp in responses:
+            seg = resp._find_segment('HIKAZ')
+            if seg:
+                m = re_data.match(seg)
+                if m:
+                    statement += mt940_to_array(m.group(2))
+
+        logger.debug('Statement: {}'.format(statement))
+
+        dialog.end()
+        return statement
+
+    def _create_statement_message(self, dialog: FinTSDialog, account: SEPAAccount, start_date, end_date, touchdown):
+        hversion = dialog.hkkazversion
+
+        if hversion in (4, 5, 6):
+            acc = ':'.join([
+                account.accountnumber, account.subaccount, str(280), account.blz
+            ])
+        elif hversion == 7:
+            acc = ':'.join([
+                account.iban, account.bic, account.accountnumber, account.subaccount, str(280), account.blz
+            ])
+        else:
+            raise ValueError('Unsupported HKKAZ version {}'.format(hversion))
+
+        return self._new_message(dialog, [
+            HKKAZ(
+                3,
+                hversion,
+                acc,
+                start_date,
+                end_date,
+                touchdown
+            )
+        ])
+
 
 
 class FinTS3PinTanClient(FinTS3Client):

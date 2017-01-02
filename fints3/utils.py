@@ -1,13 +1,7 @@
-def segments_to_ascii(segments, counter=1):
-    ascii = ''
+import mt940
 
-    for segment in segments:
-        # do only set counter if is 0; see B.8
-        if segment.get_counter() == 0:
-            counter += 1
-            segment.set_counter(counter)
 
-        s = segment.to_ascii()
-        ascii += s + "'"
-
-    return counter, ascii
+def mt940_to_array(data):
+    data = data.replace("@@", "\r\n")
+    transactions = mt940.models.Transactions()
+    return transactions.parse(data)

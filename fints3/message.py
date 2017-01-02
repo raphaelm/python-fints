@@ -144,6 +144,26 @@ class FinTSResponse:
                         return [m.group(0)]
         return False
 
+    def _find_segment_for_reference(self, name, ref):
+        segs = self._find_segments(name)
+        for seg in segs:
+            segsplit = seg.split('+')[0].split(':')
+            if segsplit[3] == str(ref.segmentno):
+                return seg
+
+    def get_touchdowns(self, msg: FinTSMessage):
+        touchdown = {}
+        for msgseg in msg.encrypted_segments:
+            seg = self._find_segment_for_reference('HIRMS', msgseg)
+            if seg:
+                parts = seg.split('+')[1:]
+                for p in parts:
+                    psplit = p.split(':')
+                    if psplit[0] == "3040":
+                        td = psplit[3]
+                        touchdown[msgseg.type] = td
+        return touchdown
+
     def _get_segment_max_version(self, name):
         v = 3
         segs = self._find_segments(name)
