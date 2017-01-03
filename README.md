@@ -17,6 +17,7 @@ Banks tested:
 * Triodos Bank
 * BBBank eG
 * Postbank
+* [1822direkt](https://www.1822direkt.de/service/zugang-zum-konto/softwarebanking-mit-hbci/)
 
 Usage
 -----
