@@ -1,13 +1,17 @@
 import logging
 import re
+import datetime
 
 from .connection import FinTSHTTPSConnection
 from .dialog import FinTSDialog
 from .message import FinTSMessage
 from .models import SEPAAccount
+from .models import Saldo
 from .segments.accounts import HKSPA
 from .segments.statement import HKKAZ
+from .segments.saldo import HKSAL
 from .utils import mt940_to_array
+from mt940.models import Balance
 
 logger = logging.getLogger(__name__)
 
@@ -113,7 +117,52 @@ class FinTS3Client:
             )
         ])
 
+    def get_balance(self, account):
+        # init dialog
+        dialog = self._new_dialog()
+        dialog.sync()
+        dialog.init()
 
+        # execute job
+        msg = self._create_balance_message(dialog, account)
+        logger.debug('Sending HKSAL: {}'.format(msg))
+        resp = dialog.send(msg)
+        logger.debug('Got HKSAL response: {}'.format(resp))
+        
+        # end dialog
+        dialog.end()
+
+        # find segment and split up to balance part
+        seg = resp._find_segment('HISAL')
+        arr = seg.split('+')[4].split(':')
+   
+        # get balance date
+        date = datetime.datetime.strptime(arr[3], "%Y%m%d").date()
+    
+        # return balance
+        return Balance(arr[0], arr[1], date, currency=arr[2])
+
+    def _create_balance_message(self, dialog: FinTSDialog, account: SEPAAccount):
+        hversion = dialog.hksalversion
+
+        if hversion in (1, 2, 3, 4, 5, 6):
+            acc = ':'.join([
+                account.accountnumber, account.subaccount, str(280), account.blz
+            ])
+        elif hversion == 7:
+            acc = ':'.join([
+                account.iban, account.bic, account.accountnumber, account.subaccount, str(280), account.blz
+            ])
+        else:
+            raise ValueError('Unsupported HKSAL version {}'.format(hversion))
+
+        return self._new_message(dialog, [
+            HKSAL(
+                3,
+                hversion,
+                acc
+            )
+        ])
 
 class FinTS3PinTanClient(FinTS3Client):
     def __init__(self, blz, username, pin, server):
