@@ -2,7 +2,7 @@ import base64
 
 import requests
 
-from .message import FinTSMessage
+from message import FinTSMessage
 
 
 class FinTSConnectionError(Exception):

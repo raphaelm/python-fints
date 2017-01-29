@@ -1,8 +1,8 @@
 import logging
 
-from .message import FinTSMessage, FinTSResponse
-from .segments.auth import HKIDN, HKSYN, HKVVB
-from .segments.dialog import HKEND
+from message import FinTSMessage, FinTSResponse
+from segments.auth import HKIDN, HKSYN, HKVVB
+from segments.dialog import HKEND
 
 logger = logging.getLogger(__name__)
 
