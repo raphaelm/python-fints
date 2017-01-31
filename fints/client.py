@@ -2,15 +2,15 @@ import logging
 import re
 import datetime
 
-from connection import FinTSHTTPSConnection
-from dialog import FinTSDialog
-from message import FinTSMessage
-from models import SEPAAccount
-from models import Saldo
-from segments.accounts import HKSPA
-from segments.statement import HKKAZ
-from segments.saldo import HKSAL
-from utils import mt940_to_array
+from .connection import FinTSHTTPSConnection
+from .dialog import FinTSDialog
+from .message import FinTSMessage
+from .models import SEPAAccount
+from .models import Saldo
+from .segments.accounts import HKSPA
+from .segments.statement import HKKAZ
+from .segments.saldo import HKSAL
+from .utils import mt940_to_array
 from mt940.models import Balance
 
 logger = logging.getLogger(__name__)
