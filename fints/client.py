@@ -10,7 +10,8 @@ from .models import Saldo
 from .segments.accounts import HKSPA
 from .segments.statement import HKKAZ
 from .segments.saldo import HKSAL
-from .utils import mt940_to_array
+from .segments.depot import HKWPD
+from .utils import mt940_to_array, print_segments, MT535_Miniparser
 from mt940.models import Balance
 
 logger = logging.getLogger(__name__)
@@ -161,6 +162,58 @@ class FinTS3Client:
                 3,
                 hversion,
                 acc
+            )
+        ])
+
+
+    def get_holdings(self, account):
+        # init dialog
+        dialog = self._new_dialog()
+        dialog.sync()
+        dialog.init()
+
+        # execute job
+        msg = self._create_get_holdings_message(dialog, account)
+        logger.debug('Sending HKWPD: {}'.format(msg))
+        resp = dialog.send(msg)
+        logger.debug('Got HIWPD response: {}'.format(resp))
+
+        # end dialog
+        dialog.end()
+
+        # find segment and split up to balance part
+        seg = resp._find_segment('HIWPD')
+        if seg:
+            mt535_lines = str.splitlines(seg)
+            # The first line contains a FinTS HIWPD header - drop it.
+            del mt535_lines[0]
+            mt535 = MT535_Miniparser()
+            return mt535.parse(mt535_lines)
+        else:
+            logger.debug('No HIWPD response segment found - maybe account has no holdings?')
+            return []
+
+
+    def _create_get_holdings_message(self, dialog: FinTSDialog, account: SEPAAccount):
+        hversion = dialog.hksalversion
+
+
+        if hversion in (1, 2, 3, 4, 5, 6):
+            acc = ':'.join([
+              account.accountnumber, account.subaccount, str(280), account.blz
+            ])
+        elif hversion == 7:
+            acc = ':'.join([
+                account.iban, account.bic, account.accountnumber, account.subaccount, str(280), account.blz
+            ])
+        else:
+            raise ValueError('Unsupported HKSAL version {}'.format(hversion))
+
+        return self._new_message(dialog, [
+            HKWPD(
+                3,
+                hversion,
+                acc,
             )
         ])
 
