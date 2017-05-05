@@ -17,9 +17,10 @@ Banks tested:
 * Triodos Bank
 * BBBank eG
 * Postbank
-* [1822direkt](https://www.1822direkt.de/service/zugang-zum-konto/softwarebanking-mit-hbci/)
+* [1822direkt](https://www.1822direkt.de/service/zugang-zum-konto/softwarebanking-mit-hbci/), including access to holding accounts
 * Sparkasse
 * Ing-Diba
+* CortalConsors, including access to holding accounts
 
 Usage
 -----
@@ -48,6 +49,12 @@ print([t.data for t in statement])
 # https://mt940.readthedocs.io/en/latest/mt940.html#mt940.models.Transaction
 # for documentation. Most information is contained in a dict accessible via their
 # ``data`` property
+
+# for retrieving the holdings of an account:
+holdings = f.get_holdings()
+# holdings contains a list of namedtuple values containing ISIN, name,
+# market_value, pieces, total_value and valuation_date as parsed from
+# the MT535 message.
 ```
 
 Credits and License
