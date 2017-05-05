@@ -6,12 +6,11 @@ from .connection import FinTSHTTPSConnection
 from .dialog import FinTSDialog
 from .message import FinTSMessage
 from .models import SEPAAccount
-from .models import Saldo
 from .segments.accounts import HKSPA
 from .segments.statement import HKKAZ
 from .segments.saldo import HKSAL
 from .segments.depot import HKWPD
-from .utils import mt940_to_array, print_segments, MT535_Miniparser
+from .utils import mt940_to_array, MT535_Miniparser
 from mt940.models import Balance
 
 logger = logging.getLogger(__name__)
@@ -129,17 +128,17 @@ class FinTS3Client:
         logger.debug('Sending HKSAL: {}'.format(msg))
         resp = dialog.send(msg)
         logger.debug('Got HKSAL response: {}'.format(resp))
-        
+
         # end dialog
         dialog.end()
 
         # find segment and split up to balance part
         seg = resp._find_segment('HISAL')
         arr = seg.split('+')[4].split(':')
-   
+
         # get balance date
         date = datetime.datetime.strptime(arr[3], "%Y%m%d").date()
-    
+
         # return balance
         return Balance(arr[0], arr[1], date, currency=arr[2])
 
@@ -164,7 +163,6 @@ class FinTS3Client:
                 acc
             )
         ])
-
 
     def get_holdings(self, account):
         # init dialog
@@ -193,10 +191,8 @@ class FinTS3Client:
             logger.debug('No HIWPD response segment found - maybe account has no holdings?')
             return []
 
-
     def _create_get_holdings_message(self, dialog: FinTSDialog, account: SEPAAccount):
         hversion = dialog.hksalversion
-
 
         if hversion in (1, 2, 3, 4, 5, 6):
             acc = ':'.join([
@@ -217,7 +213,9 @@ class FinTS3Client:
             )
         ])
 
+
 class FinTS3PinTanClient(FinTS3Client):
+
     def __init__(self, blz, username, pin, server):
         self.username = username
         self.blz = blz

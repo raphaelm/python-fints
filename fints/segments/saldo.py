@@ -1,5 +1,6 @@
 from . import FinTS3Segment
 
+
 class HKSAL(FinTS3Segment):
     """
     HKSAL (Konto Saldo anfordern)

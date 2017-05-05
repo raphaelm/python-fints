@@ -52,7 +52,7 @@ print([t.data for t in statement])
 
 # for retrieving the holdings of an account:
 holdings = f.get_holdings()
-# holdings contains an array of NamedType values containing ISIN, name,
+# holdings contains a list of namedtuple values containing ISIN, name,
 # market_value, pieces, total_value and valuation_date as parsed from
 # the MT535 message.
 ```

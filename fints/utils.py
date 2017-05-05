@@ -10,20 +10,22 @@ def mt940_to_array(data):
     transactions = mt940.models.Transactions()
     return transactions.parse(data)
 
+
 def print_segments(message):
     segments = str(message).split("'")
     for idx, seg in enumerate(segments):
         print(u"{}: {}".format(idx, seg.encode('utf-8')))
 
+
 class MT535_Miniparser:
+    re_identification = re.compile(r"^:35B:ISIN\s(.*)\|(.*)\|(.*)$")
+    re_marketprice = re.compile(r"^:90B::MRKT\/\/ACTU\/([A-Z]{3})(\d*),{1}(\d*)$")
+    re_pricedate = re.compile(r"^:98A::PRIC\/\/(\d*)$")
+    re_pieces = re.compile(r"^:93B::AGGR\/\/UNIT\/(\d*),(\d*)$")
+    re_totalvalue = re.compile(r"^:19A::HOLD\/\/([A-Z]{3})(\d*),{1}(\d*)$")
 
     def parse(self, lines):
         retval = []
-        re_identification = re.compile(r"^:35B:ISIN\s(.*)\|(.*)\|(.*)$")
-        re_marketprice = re.compile(r"^:90B::MRKT\/\/ACTU\/([A-Z]{3})(\d*),{1}(\d*)$")
-        re_pricedate = re.compile(r"^:98A::PRIC\/\/(\d*)$")
-        re_pieces = re.compile(r"^:93B::AGGR\/\/UNIT\/(\d*),(\d*)$")
-        re_totalvalue = re.compile(r"^:19A::HOLD\/\/([A-Z]{3})(\d*),{1}(\d*)$")
         # First: Collapse multiline clauses into one clause
         clauses = self.collapse_multilines(lines)
         # Second: Scan sequence of clauses for financial instrument
@@ -35,40 +37,38 @@ class MT535_Miniparser:
             for clause in finseg:
                 # identification of instrument
                 # e.g. ':35B:ISIN LU0635178014|/DE/ETF127|COMS.-MSCI EM.M.T.U.ETF I'
-                m = re_identification.match(clause)
+                m = self.re_identification.match(clause)
                 if m:
                     isin = m.group(1)
                     name = m.group(3)
                 # current market price
                 # e.g. ':90B::MRKT//ACTU/EUR38,82'
-                m = re_marketprice.match(clause)
+                m = self.re_marketprice.match(clause)
                 if m:
                     price_symbol = m.group(1)
                     market_price = float(m.group(2) + "." + m.group(3))
                 # date of market price
                 # e.g. ':98A::PRIC//20170428'
-                m = re_pricedate.match(clause)
+                m = self.re_pricedate.match(clause)
                 if m:
-                    price_date = datetime.strptime(m.group(1),
-                        "%Y%m%d").date()
+                    price_date = datetime.strptime(m.group(1), "%Y%m%d").date()
                 # number of pieces
                 # e.g. ':93B::AGGR//UNIT/16,8211'
-                m = re_pieces.match(clause)
+                m = self.re_pieces.match(clause)
                 if m:
                     pieces = float(m.group(1) + "." + m.group(2))
                 # total value of holding
                 # e.g. ':19A::HOLD//EUR970,17'
-                m = re_totalvalue.match(clause)
+                m = self.re_totalvalue.match(clause)
                 if m:
                     total_value = float(m.group(2) + "." + m.group(3))
             # processed all clauses
-            retval.append(Holding(ISIN=isin, name=name, 
-              market_value = market_price, value_symbol=price_symbol, 
-              valuation_date=price_date, pieces=pieces, total_value =
-              total_value))
+            retval.append(
+                Holding(
+                    ISIN=isin, name=name, market_value=market_price,
+                    value_symbol=price_symbol, valuation_date=price_date,
+                    pieces=pieces, total_value=total_value))
         return retval
-
-
 
     def collapse_multilines(self, lines):
         clauses = []

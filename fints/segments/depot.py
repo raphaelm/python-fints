@@ -1,5 +1,6 @@
 from . import FinTS3Segment
 
+
 class HKWPD(FinTS3Segment):
     """
     HKWPD (Depotaufstellung anfordern)
@@ -12,8 +13,11 @@ class HKWPD(FinTS3Segment):
         self.version = version
         data = [
             account
-            #'EUR'        # Währung der Depotaufstellung"
-            #2             # Kursqualität
+            # The spec allows the specification of currency and
+            # quality of valuations, as shown in the docstring above.
+            # However, both 1822direkt and CortalConsors reject the
+            # call if these two are present, claiming an invalid input.
+            # 'EUR'        # Währung der Depotaufstellung"
+            # 2             # Kursqualität
         ]
         super().__init__(segno, data)
-
