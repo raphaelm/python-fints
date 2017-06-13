@@ -4,10 +4,99 @@ from .models import Holding
 from datetime import datetime
 
 
+# https://www.db-bankline.deutsche-bank.com/download/MT940_Deutschland_Structure2002.pdf
+DETAIL_KEYS = {
+    '': 'Geschäftsvorfall-Code',
+    '00': 'Buchungstext',
+    '10': 'Primanota',
+    '20': 'Verwendungszweck',
+    '30': 'Auftraggeber BLZ',
+    '31': 'Auftraggeber Kontonummer',
+    '32': 'Auftraggeber Name',
+    '34': 'Rücklastschriften',
+    '35': 'Empfänger: Name',
+    '60': 'Zusätzl. Verwendungszweckangaben',
+}
+
+# https://www.hettwer-beratung.de/sepa-spezialwissen/sepa-technische-anforderungen/sepa-geschäftsvorfallcodes-gvc-mt-940/
+VERWENDUNGSZWECK_KEYS = {
+    '': 'Verwendungszweck',
+    'IBAN': 'Auftraggeber IBAN',
+    'BIC': 'Auftraggeber BIC',
+    'EREF': 'End to End Referenz',
+    'MREF': 'Mandatsreferenz',
+    'CRED': 'Auftraggeber Creditor ID',
+    'PURP': 'Purpose Code',
+    'SVWZ': 'Verwendungszweck',
+    'MDAT': 'Mandatsdatum',
+    'ABWA': 'Abweichender Auftraggeber',
+    'ABWE': 'Abweichender Empfänger',
+    'SQTP': 'FRST / ONE / OFF /RECC',
+    'ORCR': 'SEPA Mandatsänderung: alte SEPA CI',
+    'ORMR': 'SEPA Mandatsänderung: alte SEPA Mandatsreferenz',
+    'DDAT': 'SEPA Settlement Tag für R- Message',
+    'KREF': 'Kundenreferenz',
+    'DEBT': 'Debtor Identifier bei SEPA Überweisung',
+    'COAM': 'Compensation Amount',
+    'OAMT': 'Original Amount',
+}
+
+
+def parse_transaction_details(self, tag, tag_dict, result):
+    detail_str = ''.join(d.strip() for d in tag_dict['transaction_details'].splitlines())
+    result = {}
+    for key, value in DETAIL_KEYS.items():
+        result[value] = None
+    for key, value in VERWENDUNGSZWECK_KEYS.items():
+        result[value] = None
+    pre_result = {}
+    segment = ''
+    segment_type = ''
+    for index, char in enumerate(detail_str):
+        if char != '?':
+            segment += char
+            continue
+        pre_result[segment_type] = segment if not segment_type else segment[2:]
+        segment_type = detail_str[index+1] + detail_str[index+2]
+        segment = ''
+    for key, value in pre_result.items():
+        if key in DETAIL_KEYS:
+            result[DETAIL_KEYS[key]] = value
+        else:
+            if key == '33':
+                result[DETAIL_KEYS['32']] += value
+            elif key.startswith('2'):
+                result[DETAIL_KEYS['20']] += value
+            else:
+                raise ValueError('Found Key ?{}, which is not documented'.format(key))
+    post_result = {}
+    segment_type = None
+    text = ''
+    for index, char in enumerate(result['Verwendungszweck']):
+        if char == '+' and result['Verwendungszweck'][index-4:index] in VERWENDUNGSZWECK_KEYS:
+            if segment_type:
+                post_result[segment_type] = text[:-4]
+                text = ''
+            else:
+                text = ''
+            segment_type = result['Verwendungszweck'][index-4:index]
+        else:
+            text += char
+    if segment_type:
+        post_result[segment_type] = text
+    else:
+        post_result[''] = text
+    for key, value in post_result.items():
+        result[VERWENDUNGSZWECK_KEYS[key]] = value
+    return result
+
+
 def mt940_to_array(data):
     data = data.replace("@@", "\r\n")
     data = data.replace("-0000", "+0000")
-    transactions = mt940.models.Transactions()
+    transactions = mt940.models.Transactions(
+        {'post_transaction_details': [parse_transaction_details]}
+    )
     return transactions.parse(data)
 
 
