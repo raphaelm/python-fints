@@ -1,5 +1,6 @@
 import time
 
+from fints.utils import fints_escape
 from . import FinTS3Segment
 
 
@@ -120,7 +121,7 @@ class HNSHA(FinTS3Segment):
         data = [
             secref,
             '',
-            pin
+            fints_escape(pin)
         ]
         super().__init__(segno, data)
 

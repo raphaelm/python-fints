@@ -1,3 +1,4 @@
+from fints.utils import fints_escape
 from . import FinTS3Segment
 
 
@@ -12,7 +13,7 @@ class HKIDN(FinTS3Segment):
     def __init__(self, segmentno, blz, username, systemid=0, customerid=1):
         data = [
             '{}:{}'.format(self.country_code, blz),
-            username,
+            fints_escape(username),
             systemid,
             customerid
         ]
@@ -36,7 +37,7 @@ class HKVVB(FinTS3Segment):
 
     def __init__(self, segmentno, lang=LANG_DE):
         data = [
-            0, 0, lang, self.PRODUCT_NAME, self.PRODUCT_VERSION
+            0, 0, lang, fints_escape(self.PRODUCT_NAME), fints_escape(self.PRODUCT_VERSION)
         ]
         super().__init__(segmentno, data)
 

@@ -89,7 +89,7 @@ class FinTSResponse:
         return True
 
     def _get_segment_index(self, idx, seg):
-        seg = seg.split('+')
+        seg = split_for_data_groups(seg)
         if len(seg) > idx - 1:
             return seg[idx - 1]
         return None
@@ -104,9 +104,9 @@ class FinTSResponse:
     def get_bank_name(self):
         seg = self._find_segment('HIBPA')
         if seg:
-            seg = seg.split('+')
-            if len(seg) > 3:
-                return seg[3]
+            parts = split_for_data_groups(seg)
+            if len(parts) > 3:
+                return parts[3]
 
     def get_systemid(self):
         seg = self._find_segment('HISYN')
@@ -121,9 +121,9 @@ class FinTSResponse:
 
         res = {}
         seg = self._find_segment(name)
-        seg = seg.split('+')[1:]
-        for de in seg:
-            de = de.split(':')
+        parts = split_for_data_groups(seg)[1:]
+        for de in parts:
+            de = split_for_data_elements(de)
             res[de[0]] = de[2]
         return res
 
@@ -136,7 +136,7 @@ class FinTSResponse:
     def get_supported_tan_mechanisms(self):
         segs = self._find_segments('HIRMS')
         for s in segs:
-            seg = s.split('+')[1:]
+            seg = split_for_data_groups(s)[1:]
             for s in seg:
                 id, msg = s.split('::', 1)
                 if id == "3920":
@@ -148,7 +148,7 @@ class FinTSResponse:
     def _find_segment_for_reference(self, name, ref):
         segs = self._find_segments(name)
         for seg in segs:
-            segsplit = seg.split('+')[0].split(':')
+            segsplit = split_for_data_elements(split_for_data_groups(seg)[0])
             if segsplit[3] == str(ref.segmentno):
                 return seg
 
