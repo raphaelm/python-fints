@@ -10,6 +10,7 @@ Limitations
 * Only FinTS 3.0 is supported
 * Only PIN/TAN authentication is supported, no signature cards
 * Only a number of reading operations are currently supported
+* Supports Python 3.4+
 
 Banks tested:
 
