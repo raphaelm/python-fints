@@ -1,6 +1,7 @@
 import random
 import re
 
+from fints.utils import split_for_data_groups, split_for_data_elements, fints_unescape
 from .segments.message import HNHBK, HNHBS, HNSHA, HNSHK, HNVSD, HNVSK
 
 
@@ -156,20 +157,20 @@ class FinTSResponse:
         for msgseg in msg.encrypted_segments:
             seg = self._find_segment_for_reference('HIRMS', msgseg)
             if seg:
-                parts = seg.split('+')[1:]
+                parts = split_for_data_groups(seg)[1:]
                 for p in parts:
-                    psplit = p.split(':')
+                    psplit = split_for_data_elements(p)
                     if psplit[0] == "3040":
                         td = psplit[3]
-                        touchdown[msgseg.type] = td
+                        touchdown[msgseg.type] = fints_unescape(td)
         return touchdown
 
     def _get_segment_max_version(self, name):
         v = 3
         segs = self._find_segments(name)
         for s in segs:
-            parts = s.split('+')
-            segheader = parts[0].split(':')
+            parts = split_for_data_groups(s)
+            segheader = split_for_data_elements(parts[0])
             curver = int(segheader[2])
             if curver > v:
                 v = curver

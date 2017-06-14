@@ -17,6 +17,28 @@ def print_segments(message):
         print(u"{}: {}".format(idx, seg.encode('utf-8')))
 
 
+def fints_escape(content):
+    """
+    Escape strings
+
+    Ref:  https://www.hbci-zka.de/dokumente/spezifikation_deutsch/fintsv3/FinTS_3.0_Formals_2017-05-11_final_version.pdf
+    Section  H.1.1
+    """
+    return content.replace('?', '??').replace('+', '?+').replace(':', '?:').replace("'", "?'")
+
+
+def fints_unescape(content):
+    return content.replace('??', '?').replace("?'", "'").replace('?+', '+').replace('?:', ':')
+
+
+def split_for_data_groups(seg):
+    return re.split('\+(?<!\?\+)', seg)
+
+
+def split_for_data_elements(deg):
+    return re.split(':(?<!\?:)', deg)
+
+
 class MT535_Miniparser:
     re_identification = re.compile(r"^:35B:ISIN\s(.*)\|(.*)\|(.*)$")
     re_marketprice = re.compile(r"^:90B::MRKT\/\/ACTU\/([A-Z]{3})(\d*),{1}(\d*)$")

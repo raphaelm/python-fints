@@ -10,7 +10,7 @@ from .segments.accounts import HKSPA
 from .segments.statement import HKKAZ
 from .segments.saldo import HKSAL
 from .segments.depot import HKWPD
-from .utils import mt940_to_array, MT535_Miniparser
+from .utils import mt940_to_array, MT535_Miniparser, split_for_data_groups, split_for_data_elements
 from mt940.models import Balance
 
 logger = logging.getLogger(__name__)
@@ -69,6 +69,7 @@ class FinTS3Client:
         while HKKAZ.type in touchdowns:
             logger.info('Fetching more results ({})...'.format(touchdown_counter))
             msg = self._create_statement_message(dialog, account, start_date, end_date, touchdowns[HKKAZ.type])
+            logger.debug('Send message: {}'.format(msg))
 
             resp = dialog.send(msg)
             responses.append(resp)
@@ -134,7 +135,7 @@ class FinTS3Client:
 
         # find segment and split up to balance part
         seg = resp._find_segment('HISAL')
-        arr = seg.split('+')[4].split(':')
+        arr = split_for_data_elements(split_for_data_groups(seg)[4])
 
         # get balance date
         date = datetime.datetime.strptime(arr[3], "%Y%m%d").date()
