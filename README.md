@@ -22,6 +22,7 @@ Banks tested:
 * Sparkasse
 * Ing-Diba
 * CortalConsors, including access to holding accounts
+* DKB
 
 Usage
 -----
