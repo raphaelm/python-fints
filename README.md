@@ -23,6 +23,7 @@ Banks tested:
 * Ing-Diba
 * CortalConsors, including access to holding accounts
 * DKB
+* NIBC Direct
 
 Usage
 -----
