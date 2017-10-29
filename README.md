@@ -24,6 +24,7 @@ Banks tested:
 * CortalConsors, including access to holding accounts
 * DKB
 * NIBC Direct
+* Wüstenrot
 
 Usage
 -----
