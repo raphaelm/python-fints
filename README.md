@@ -40,6 +40,7 @@ f = FinTS3PinTanClient(
     'myusername',
     'mypin',
     'https://mybank.com/…'  # endpoint, e.g.: https://hbci-pintan.gad.de/cgi-bin/hbciservlet
+                            # for German banks, see http://www.hbci-zka.de/institute/institut_auswahl.htm
 )
 
 accounts = f.get_sepa_accounts()
