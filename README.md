@@ -25,6 +25,7 @@ Banks tested:
 * DKB
 * NIBC Direct
 * Wüstenrot
+* comdirekt
 
 Usage
 -----
