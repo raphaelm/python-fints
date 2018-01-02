@@ -10,7 +10,7 @@ from .segments.accounts import HKSPA
 from .segments.statement import HKKAZ
 from .segments.saldo import HKSAL
 from .segments.depot import HKWPD
-from .utils import mt940_to_array, MT535_Miniparser, split_for_data_groups, split_for_data_elements
+from .utils import mt940_to_array, MT535_Miniparser, split_for_data_groups, split_for_data_elements, Password
 from mt940.models import Balance
 
 logger = logging.getLogger(__name__)
@@ -33,11 +33,15 @@ class FinTS3Client:
         dialog.sync()
         dialog.init()
 
-        msg_spa = self._new_message(dialog, [
-            HKSPA(3, None, None, None)
-        ])
-        logger.debug('Sending HKSPA: {}'.format(msg_spa))
-        resp = dialog.send(msg_spa)
+        def _get_msg():
+            return self._new_message(dialog, [
+                HKSPA(3, None, None, None)
+            ])
+
+        with self.pin.protect():
+            logger.debug('Sending HKSPA: {}'.format(_get_msg()))
+
+        resp = dialog.send(_get_msg())
         logger.debug('Got HKSPA response: {}'.format(resp))
         dialog.end()
 
@@ -59,8 +63,13 @@ class FinTS3Client:
         dialog.sync()
         dialog.init()
 
-        msg = self._create_statement_message(dialog, account, start_date, end_date, None)
-        logger.debug('Send message: {}'.format(msg))
+        def _get_msg():
+            return self._create_statement_message(dialog, account, start_date, end_date, None)
+
+        with self.pin.protect():
+            logger.debug('Send message: {}'.format(_get_msg()))
+
+        msg = _get_msg()
         resp = dialog.send(msg)
         touchdowns = resp.get_touchdowns(msg)
         responses = [resp]
@@ -68,9 +77,15 @@ class FinTS3Client:
 
         while HKKAZ.type in touchdowns:
             logger.info('Fetching more results ({})...'.format(touchdown_counter))
-            msg = self._create_statement_message(dialog, account, start_date, end_date, touchdowns[HKKAZ.type])
-            logger.debug('Send message: {}'.format(msg))
 
+            # TODO: do not create functions in a loop
+            def _get_msg():
+                return self._create_statement_message(dialog, account, start_date, end_date, touchdowns[HKKAZ.type])
+
+            with self.pin.protect():
+                logger.debug('Send message: {}'.format(_get_msg()))
+
+            msg = _get_msg()
             resp = dialog.send(msg)
             responses.append(resp)
             touchdowns = resp.get_touchdowns(msg)
@@ -125,9 +140,13 @@ class FinTS3Client:
         dialog.init()
 
         # execute job
-        msg = self._create_balance_message(dialog, account)
-        logger.debug('Sending HKSAL: {}'.format(msg))
-        resp = dialog.send(msg)
+        def _get_msg():
+            return self._create_balance_message(dialog, account)
+
+        with self.pin.protect():
+            logger.debug('Sending HKSAL: {}'.format(_get_msg()))
+
+        resp = dialog.send(_get_msg())
         logger.debug('Got HKSAL response: {}'.format(resp))
 
         # end dialog
@@ -172,9 +191,13 @@ class FinTS3Client:
         dialog.init()
 
         # execute job
-        msg = self._create_get_holdings_message(dialog, account)
-        logger.debug('Sending HKWPD: {}'.format(msg))
-        resp = dialog.send(msg)
+        def _get_msg():
+            return self._create_get_holdings_message(dialog, account)
+
+        with self.pin.protect():
+            logger.debug('Sending HKWPD: {}'.format(_get_msg()))
+
+        resp = dialog.send(_get_msg())
         logger.debug('Got HIWPD response: {}'.format(resp))
 
         # end dialog
@@ -220,7 +243,7 @@ class FinTS3PinTanClient(FinTS3Client):
     def __init__(self, blz, username, pin, server):
         self.username = username
         self.blz = blz
-        self.pin = pin
+        self.pin = Password(pin)
         self.connection = FinTSHTTPSConnection(server)
         self.systemid = 0
         super().__init__()
