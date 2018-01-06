@@ -78,14 +78,12 @@ class FinTS3Client:
         while HKKAZ.type in touchdowns:
             logger.info('Fetching more results ({})...'.format(touchdown_counter))
 
-            # TODO: do not create functions in a loop
-            def _get_msg():
-                return self._create_statement_message(dialog, account, start_date, end_date, touchdowns[HKKAZ.type])
-
             with self.pin.protect():
-                logger.debug('Send message: {}'.format(_get_msg()))
+                logger.debug('Send message: {}'.format(
+                    self._create_statement_message(dialog, account, start_date, end_date, touchdowns[HKKAZ.type])
+                ))
 
-            msg = _get_msg()
+            msg = self._create_statement_message(dialog, account, start_date, end_date, touchdowns[HKKAZ.type])
             resp = dialog.send(msg)
             responses.append(resp)
             touchdowns = resp.get_touchdowns(msg)
