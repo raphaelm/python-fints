@@ -2,6 +2,7 @@ import mt940
 import re
 from .models import Holding
 from datetime import datetime
+from contextlib import contextmanager
 
 
 def mt940_to_array(data):
@@ -126,3 +127,31 @@ class MT535_Miniparser:
                 if within_financial_instrument:
                     stack.append(clause)
         return retval
+
+
+class Password(str):
+    protected = False
+
+    def __init__(self, value):
+        self.value = value
+
+    @classmethod
+    @contextmanager
+    def protect(cls):
+        try:
+            cls.protected = True
+            yield None
+        finally:
+            cls.protected = False
+
+    def __str__(self):
+        return '***' if self.protected else self.value
+
+    def __repr__(self):
+        return self.__str__().__repr__()
+
+    def __add__(self, other):
+        return self.__str__().__add__(other)
+
+    def replace(self, *args, **kwargs):
+        return self.__str__().replace(*args, **kwargs)

@@ -24,21 +24,38 @@ class FinTSDialog:
         self.hkkazversion = 6
         self.tan_mechs = []
 
-    def sync(self):
-        logger.info('Initialize SYNC')
-
+    def _get_msg_sync(self):
         seg_identification = HKIDN(3, self.blz, self.username, 0)
         seg_prepare = HKVVB(4)
         seg_sync = HKSYN(5)
 
-        msg_sync = FinTSMessage(self.blz, self.username, self.pin, self.systemid, self.dialogid, self.msgno, [
+        return FinTSMessage(self.blz, self.username, self.pin, self.systemid, self.dialogid, self.msgno, [
             seg_identification,
             seg_prepare,
             seg_sync
         ])
 
-        logger.debug('Sending SYNC: {}'.format(msg_sync))
-        resp = self.send(msg_sync)
+    def _get_msg_init(self):
+        seg_identification = HKIDN(3, self.blz, self.username, self.systemid)
+        seg_prepare = HKVVB(4)
+
+        return FinTSMessage(self.blz, self.username, self.pin, self.systemid, self.dialogid, self.msgno, [
+            seg_identification,
+            seg_prepare,
+        ], self.tan_mechs)
+
+    def _get_msg_end(self):
+        return FinTSMessage(self.blz, self.username, self.pin, self.systemid, self.dialogid, self.msgno, [
+            HKEND(3, self.dialogid)
+        ])
+
+    def sync(self):
+        logger.info('Initialize SYNC')
+
+        with self.pin.protect():
+            logger.debug('Sending SYNC: {}'.format(self._get_msg_sync()))
+
+        resp = self.send(self._get_msg_sync())
         logger.debug('Got SYNC response: {}'.format(resp))
         self.systemid = resp.get_systemid()
         self.dialogid = resp.get_dialog_id()
@@ -58,15 +75,10 @@ class FinTSDialog:
     def init(self):
         logger.info('Initialize Dialog')
 
-        seg_identification = HKIDN(3, self.blz, self.username, self.systemid)
-        seg_prepare = HKVVB(4)
+        with self.pin.protect():
+            logger.debug('Sending INIT: {}'.format(self._get_msg_init()))
 
-        msg_init = FinTSMessage(self.blz, self.username, self.pin, self.systemid, self.dialogid, self.msgno, [
-            seg_identification,
-            seg_prepare,
-        ], self.tan_mechs)
-        logger.debug('Sending INIT: {}'.format(msg_init))
-        resp = self.send(msg_init)
+        resp = self.send(self._get_msg_init())
         logger.debug('Got INIT response: {}'.format(resp))
 
         self.dialogid = resp.get_dialog_id()
@@ -77,11 +89,10 @@ class FinTSDialog:
     def end(self):
         logger.info('Initialize END')
 
-        msg_end = FinTSMessage(self.blz, self.username, self.pin, self.systemid, self.dialogid, self.msgno, [
-            HKEND(3, self.dialogid)
-        ])
-        logger.debug('Sending END: {}'.format(msg_end))
-        resp = self.send(msg_end)
+        with self.pin.protect():
+            logger.debug('Sending END: {}'.format(self._get_msg_end()))
+
+        resp = self.send(self._get_msg_end())
         logger.debug('Got END response: {}'.format(resp))
         logger.info('Resetting dialog ID and message number count')
         self.dialogid = 0
