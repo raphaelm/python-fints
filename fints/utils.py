@@ -45,6 +45,7 @@ class MT535_Miniparser:
     re_pricedate = re.compile(r"^:98A::PRIC\/\/(\d*)$")
     re_pieces = re.compile(r"^:93B::AGGR\/\/UNIT\/(\d*),(\d*)$")
     re_totalvalue = re.compile(r"^:19A::HOLD\/\/([A-Z]{3})(\d*),{1}(\d*)$")
+    re_acquisitionprice = re.compile(r"^:70E::HOLD\/\/\d*STK\|2(\d*?),{1}(\d*?)\+([A-Z]{3})$")
 
     def parse(self, lines):
         retval = []
@@ -55,7 +56,7 @@ class MT535_Miniparser:
         finsegs = self.grab_financial_instrument_segments(clauses)
         # Third: Extract financial instrument data
         for finseg in finsegs:
-            isin, name, market_price, price_symbol, price_date, pieces = (None,)*6
+            isin, name, market_price, price_symbol, price_date, pieces, einstandspreis = (None,)*7
             for clause in finseg:
                 # identification of instrument
                 # e.g. ':35B:ISIN LU0635178014|/DE/ETF127|COMS.-MSCI EM.M.T.U.ETF I'
@@ -84,12 +85,19 @@ class MT535_Miniparser:
                 m = self.re_totalvalue.match(clause)
                 if m:
                     total_value = float(m.group(2) + "." + m.group(3))
+                # Acquisition price
+                # e.g ':70E::HOLD//1STK23,968293+EUR'
+                m = self.re_acquisitionprice.match(clause)
+                if m:
+                    acquisitionprice = float(m.group(1) + '.' + m.group(2))
+
             # processed all clauses
             retval.append(
                 Holding(
                     ISIN=isin, name=name, market_value=market_price,
                     value_symbol=price_symbol, valuation_date=price_date,
-                    pieces=pieces, total_value=total_value))
+                    pieces=pieces, total_value=total_value,
+                    acquisitionprice=acquisitionprice))
         return retval
 
     def collapse_multilines(self, lines):
