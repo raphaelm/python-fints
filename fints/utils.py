@@ -56,7 +56,7 @@ class MT535_Miniparser:
         finsegs = self.grab_financial_instrument_segments(clauses)
         # Third: Extract financial instrument data
         for finseg in finsegs:
-            isin, name, market_price, price_symbol, price_date, pieces, einstandspreis = (None,)*7
+            isin, name, market_price, price_symbol, price_date, pieces, acquisitionprice = (None,)*7
             for clause in finseg:
                 # identification of instrument
                 # e.g. ':35B:ISIN LU0635178014|/DE/ETF127|COMS.-MSCI EM.M.T.U.ETF I'
