@@ -25,7 +25,7 @@ Banks tested:
 * DKB
 * NIBC Direct
 * Wüstenrot
-* comdirekt
+* comdirect, including access to holding accounts
 
 Usage
 -----
