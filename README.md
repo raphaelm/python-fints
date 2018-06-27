@@ -26,6 +26,8 @@ Banks tested:
 * NIBC Direct
 * Wüstenrot
 * comdirect, including access to holding accounts
+* Volksbank (using Fiducia IT)
+* netbank
 
 Usage
 -----
