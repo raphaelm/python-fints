@@ -35,13 +35,14 @@ Usage
 ```python
 import logging
 from datetime import date
+import getpass
 from fints.client import FinTS3PinTanClient
 
 logging.basicConfig(level=logging.DEBUG)
 f = FinTS3PinTanClient(
     '123456789',  # Your bank's BLZ
     'myusername',
-    'mypin',
+    getpass.getpass('PIN:'),
     'https://mybank.com/…'  # endpoint, e.g.: https://hbci-pintan.gad.de/cgi-bin/hbciservlet
                             # for German banks, see http://www.hbci-zka.de/institute/institut_auswahl.htm
 )
