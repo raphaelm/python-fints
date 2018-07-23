@@ -115,16 +115,21 @@ class FinTSResponse:
             raise ValueError('Could not find systemid')
         return m.group(1)
 
-    def get_summary_by_segment(self, name):
-        if name not in ('HIRMS', 'HIRMG'):
+    def get_summary_by_segment(self, name=None):
+        if name and name not in ('HIRMS', 'HIRMG'):
             raise ValueError('Unsupported segment for message summary')
+        if name:
+            names = [name]
+        else:
+            names = ('HIRMS', 'HIRMG')
 
         res = {}
-        seg = self._find_segment(name)
-        parts = split_for_data_groups(seg)[1:]
-        for de in parts:
-            de = split_for_data_elements(de)
-            res[de[0]] = de[2]
+        for name in names:
+            seg = self._find_segment(name)
+            parts = split_for_data_groups(seg)[1:]
+            for de in parts:
+                de = split_for_data_elements(de)
+                res[de[0]] = de[2]
         return res
 
     def get_hkkaz_max_version(self):

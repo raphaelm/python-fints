@@ -108,7 +108,9 @@ class FinTSDialog:
         try:
             resp = FinTSResponse(self.connection.send(msg))
             if not resp.is_success():
-                raise FinTSDialogError(resp.get_summary_by_segment('HIRMG'))
+                raise FinTSDialogError(
+                    resp.get_summary_by_segment()
+                )
             self.msgno += 1
             return resp
         except:
