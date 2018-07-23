@@ -5,7 +5,7 @@ import datetime
 from .connection import FinTSHTTPSConnection
 from .dialog import FinTSDialog
 from .message import FinTSMessage
-from .models import SEPAAccount
+from .models import SEPAAccount, TANMethod5, TANMethod6
 from .segments.auth import HKTAN, HKTAB
 from .segments.accounts import HKSPA
 from .segments.statement import HKKAZ
@@ -313,25 +313,28 @@ class FinTS3Client:
 
         # Get parameters for tan methods
         seg = res._find_segments('HITANS')
-        verfahren = []
-        for t in tan_methods:
-            for s in seg:
-                ct = s.find(t)
-                c0 = s[ct:].find(':00:')  # Initialisierungsverfahren mit Klartext-PIN ohne TAN
-                if ct != -1 and c0 != -1:
-                    deg = s[ct:ct + c0 + 7]
-                    de = split_for_data_elements(deg)
+        methods = []
+        for s in seg:
+            spl = split_for_data_elements(s)
+            if spl[2] == '5':
+                model = TANMethod5
+            elif spl[2] == '6':
+                model = TANMethod6
+            else:
+                raise NotImplementedError(
+                    "HITANS segment version {} is currently not implemented".format(
+                        spl[2]
+                    )
+                )
 
-                    v = {}
-                    if de[3] == 'HHDOPT1':
-                        v['Bezeichnung'] = de[5]
-                    else:
-                        v['Bezeichnung'] = de[2]
-                    v['Code'] = de[0]
-                    v['TAN-erf'] = de[len(de) - 2]
-                    verfahren.append(v)
+            step = len(model._fields)
+            for i in range(len(spl) // step):
+                part = spl[6 + i * step:6 + (i + 1) * step]
+                method = model(*part)
+                if method.security_feature in tan_methods:
+                    methods.append(method)
 
-        return verfahren
+        return methods
 
     def get_tan_description(self):
         dialog = self._new_dialog()
