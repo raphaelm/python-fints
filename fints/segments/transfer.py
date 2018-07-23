@@ -13,7 +13,6 @@ class HKCCS(FinTS3Segment):
         self.version = 1
         sepa_descriptor = 'urn?:iso?:std?:iso?:20022?:tech?:xsd?:pain.001.001.03'
         pain_msg = self.create_pain(account, arg)
-        length = '@{}@'.format(len(pain_msg))
         msg = ':'.join([
             account.iban,
             account.bic
