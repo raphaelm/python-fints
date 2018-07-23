@@ -6,14 +6,12 @@ from .connection import FinTSHTTPSConnection
 from .dialog import FinTSDialog
 from .message import FinTSMessage
 from .models import SEPAAccount
+from .segments.auth import HKTAN, HKTAB
 from .segments.accounts import HKSPA
 from .segments.statement import HKKAZ
 from .segments.saldo import HKSAL
 from .segments.depot import HKWPD
-from .segments.sepaueb import HKCCS
-from .segments.sepaueb import HKTAN
-from .segments.sepaueb import HKTAB
-from .segments.message import HNHBK
+from .segments.transfer import HKCCS
 from .message import FinTSResponse
 from .utils import mt940_to_array, MT535_Miniparser, split_for_data_groups, split_for_data_elements, Password
 from mt940.models import Balance
@@ -223,7 +221,7 @@ class FinTS3Client:
 
         if hversion in (1, 2, 3, 4, 5, 6):
             acc = ':'.join([
-              account.accountnumber, account.subaccount, str(280), account.blz
+                account.accountnumber, account.subaccount, str(280), account.blz
             ])
         elif hversion == 7:
             acc = ':'.join([
@@ -240,9 +238,7 @@ class FinTS3Client:
             )
         ])
 
-    # D. Nowak
-    def put_sepa_tan(self, arg):
-
+    def send_tan(self, arg):
         data = str(arg['response'])
 
         res = FinTSResponse(data)
@@ -269,8 +265,7 @@ class FinTS3Client:
 
         return 'Ok'
 
-    # D. Nowak
-    def put_sepa_ueberweisung(self, account, arg):
+    def create_sepa_transfer(self, account, arg):
         # Diese Funktion erstellt eine neue SEPA-Überweisung
         self.tan_bezeichnung = arg['TAN-Bezeichnung']
         dialog = self._new_dialog()
@@ -292,8 +287,6 @@ class FinTS3Client:
         with self.pin.protect():
             logger.debug('Sending HKCCS: {}'.format(_get_msg()))
 
-
-        resp = None
         resp = dialog.send(_get_msg())
         logger.debug('Got HKCCS response: {}'.format(resp))
 
@@ -303,30 +296,28 @@ class FinTS3Client:
 
         return response
 
-    # D. Nowak
-    def get_tan_verfahren(self):
-        # Diese Funktion ermittelt die zugelassenen TAN-Verfahren und deren Parameter
+    def get_tan_methods(self):
         dialog = self._new_dialog()
         dialog.init()
 
-        # TAN-Verfahren ermitteln
-        res = FinTSResponse(str(dialog.bpd)        )
+        # Get tan methods
+        res = FinTSResponse(str(dialog.bpd))
         seg = res._find_segment('HIRMS')
         deg = split_for_data_groups(seg)
+        tan_methods = []
         for de in deg:
             if de[0:4] == '3920':
-                tan_verf = []
                 d = split_for_data_elements(de)
-                for i in range (3, len(d)):
-                    tan_verf.append(d[i])
+                for i in range(3, len(d)):
+                    tan_methods.append(d[i])
 
-        # Parameter der TAN-Verfahren ermitteln
+        # Get parameters for tan methods
         seg = res._find_segments('HITANS')
         verfahren = []
-        for t in tan_verf:
+        for t in tan_methods:
             for s in seg:
                 ct = s.find(t)
-                c0 = s[ct:].find(':00:')     # Initialisierungsverfahren mit Klartext-PIN ohne TAN
+                c0 = s[ct:].find(':00:')  # Initialisierungsverfahren mit Klartext-PIN ohne TAN
                 if ct != -1 and c0 != -1:
                     deg = s[ct:ct + c0 + 7]
                     de = split_for_data_elements(deg)
@@ -342,8 +333,7 @@ class FinTS3Client:
 
         return verfahren
 
-    # D. Nowak
-    def get_tan_bezeichnung(self):
+    def get_tan_description(self):
         dialog = self._new_dialog()
         dialog.sync()
         dialog.init()
