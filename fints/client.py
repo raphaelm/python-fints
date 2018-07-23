@@ -10,6 +10,11 @@ from .segments.accounts import HKSPA
 from .segments.statement import HKKAZ
 from .segments.saldo import HKSAL
 from .segments.depot import HKWPD
+from .segments.sepaueb import HKCCS
+from .segments.sepaueb import HKTAN
+from .segments.sepaueb import HKTAB
+from .segments.message import HNHBK
+from .message import FinTSResponse
 from .utils import mt940_to_array, MT535_Miniparser, split_for_data_groups, split_for_data_elements, Password
 from mt940.models import Balance
 
@@ -234,6 +239,131 @@ class FinTS3Client:
                 acc,
             )
         ])
+
+    # D. Nowak
+    def put_sepa_tan(self, arg):
+
+        data = str(arg['response'])
+
+        res = FinTSResponse(data)
+        seg = res._find_segment('HITAN')
+        seg = split_for_data_groups(seg)
+        aref = seg[3]
+        segTAN = HKTAN(3, 2, aref, '')
+
+        self.blz = arg['dialog'].blz
+        self.username = arg['dialog'].username
+        self.pin = arg['dialog'].pin
+        self.systemid = arg['dialog'].systemid
+        self.dialogid = arg['dialog'].dialogid
+        self.msgno = arg['dialog'].msgno
+        self.tan_mechs = []
+        self.tan_mechs = [arg['TAN-Verfahren']]
+        self.pintan = ':'.join([self.pin, arg['tan']])
+        msg = FinTSMessage(self.blz, self.username, self.pintan, self.systemid, self.dialogid, self.msgno, [
+            segTAN
+        ], self.tan_mechs)
+
+        res = arg['dialog'].send(msg)
+        arg['dialog'].end()
+
+        return 'Ok'
+
+    # D. Nowak
+    def put_sepa_ueberweisung(self, account, arg):
+        # Diese Funktion erstellt eine neue SEPA-Überweisung
+        self.tan_bezeichnung = arg['TAN-Bezeichnung']
+        dialog = self._new_dialog()
+        dialog.sync()
+
+        # TAN-Verfahren für Dialoginitialisierung ändern
+        dialog.tan_mechs = [arg['TAN-Verfahren']]
+
+        dialog.init()
+
+        def _get_msg():
+            segHKCCS = HKCCS(3, account, arg)
+            segHKTAN = HKTAN(4, 4, '', self.tan_bezeichnung)
+            return self._new_message(dialog, [
+                segHKCCS,
+                segHKTAN
+            ])
+
+        with self.pin.protect():
+            logger.debug('Sending HKCCS: {}'.format(_get_msg()))
+
+
+        resp = None
+        resp = dialog.send(_get_msg())
+        logger.debug('Got HKCCS response: {}'.format(resp))
+
+        response = {}
+        response['response'] = resp
+        response['dialog'] = dialog
+
+        return response
+
+    # D. Nowak
+    def get_tan_verfahren(self):
+        # Diese Funktion ermittelt die zugelassenen TAN-Verfahren und deren Parameter
+        dialog = self._new_dialog()
+        dialog.init()
+
+        # TAN-Verfahren ermitteln
+        res = FinTSResponse(str(dialog.bpd)        )
+        seg = res._find_segment('HIRMS')
+        deg = split_for_data_groups(seg)
+        for de in deg:
+            if de[0:4] == '3920':
+                tan_verf = []
+                d = split_for_data_elements(de)
+                for i in range (3, len(d)):
+                    tan_verf.append(d[i])
+
+        # Parameter der TAN-Verfahren ermitteln
+        seg = res._find_segments('HITANS')
+        verfahren = []
+        for t in tan_verf:
+            for s in seg:
+                ct = s.find(t)
+                c0 = s[ct:].find(':00:')     # Initialisierungsverfahren mit Klartext-PIN ohne TAN
+                if ct != -1 and c0 != -1:
+                    deg = s[ct:ct + c0 + 7]
+                    de = split_for_data_elements(deg)
+
+                    v = {}
+                    if de[3] == 'HHDOPT1':
+                        v['Bezeichnung'] = de[5]
+                    else:
+                        v['Bezeichnung'] = de[2]
+                    v['Code'] = de[0]
+                    v['TAN-erf'] = de[len(de) - 2]
+                    verfahren.append(v)
+
+        return verfahren
+
+    # D. Nowak
+    def get_tan_bezeichnung(self):
+        dialog = self._new_dialog()
+        dialog.sync()
+        dialog.init()
+
+        def _get_msg():
+            return self._new_message(dialog, [
+                HKTAB(3)
+            ])
+
+        with self.pin.protect():
+            logger.debug('Sending HKTAB: {}'.format(_get_msg()))
+
+        resp = dialog.send(_get_msg())
+        logger.debug('Got HKTAB response: {}'.format(resp))
+        dialog.end()
+
+        seg = resp._find_segment('HITAB')
+        deg = split_for_data_groups(seg)
+
+        return deg[2]
 
 
 class FinTS3PinTanClient(FinTS3Client):

@@ -84,6 +84,9 @@ class FinTSDialog:
         self.dialogid = resp.get_dialog_id()
         logger.info('Received dialog ID: {}'.format(self.dialogid))
 
+        # D. Nowak: BPD sichern
+        self.bpd = resp
+
         return self.dialogid
 
     def end(self):
