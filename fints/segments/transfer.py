@@ -1,6 +1,7 @@
 from . import FinTS3Segment
 import datetime
 
+
 class HKCCS(FinTS3Segment):
     """
     HKCCS (SEPA Überweisung übertragen)
@@ -10,17 +11,17 @@ class HKCCS(FinTS3Segment):
 
     def __init__(self, segno, account, arg):
         self.version = 1
-        sepadescriptor = 'urn?:iso?:std?:iso?:20022?:tech?:xsd?:pain.001.001.03'
-        painmsg = self.create_pain(account, arg)
-        laenge = '@' + str(len(painmsg)) + '@'
+        sepa_descriptor = 'urn?:iso?:std?:iso?:20022?:tech?:xsd?:pain.001.001.03'
+        pain_msg = self.create_pain(account, arg)
+        length = '@{}@'.format(len(pain_msg))
         msg = ':'.join([
             account.iban,
             account.bic
         ])
         data = [
             msg,
-            sepadescriptor,
-            '@{}@{}'.format(len(painmsg), painmsg)
+            sepa_descriptor,
+            '@{}@{}'.format(len(pain_msg), pain_msg)
         ]
         super().__init__(segno, data)
 
@@ -35,7 +36,7 @@ class HKCCS(FinTS3Segment):
         pain += '<CreDtTm>' + datetime.datetime.now().replace(microsecond=0).isoformat() + '</CreDtTm>'
         pain += '<NbOfTxs>1</NbOfTxs>'
         pain += '<CtrlSum>' + arg['CtrlSum'] + '</CtrlSum>'
-        pain += '<InitgPty><Nm>' + arg['Nm']+ '</Nm></InitgPty>'
+        pain += '<InitgPty><Nm>' + arg['Nm'] + '</Nm></InitgPty>'
         pain += '</GrpHdr>'
         pain += '<PmtInf>'
         pain += '<PmtInfId>' + datetime.datetime.now().isoformat()[:-2] + '</PmtInfId>'
@@ -60,41 +61,3 @@ class HKCCS(FinTS3Segment):
         pain += '</Document>'
 
         return pain
-
-class HKTAN(FinTS3Segment):
-    """
-    HKTAN (TAN-Verfahren festlegen)
-    Section C.2.1.2
-    """
-    type = 'HKTAN'
-
-    def __init__(self, segno, prozess, aref, medium):
-        self.version = 3
-        if prozess == 4:
-            if medium == '':
-                data = [
-                    prozess
-                ]
-            else:
-                data = [
-                    prozess,'','','','','','','', medium
-            ]
-        else:
-            data = [
-                prozess,'', aref, '', 'N'
-            ]
-        super().__init__(segno, data)
-
-class HKTAB(FinTS3Segment):
-    """
-    HKTAB (Verfügbarre TAN-Medien ermitteln)
-    Section C.2.1.2
-    """
-    type = 'HKTAB'
-
-    def __init__(self, segno):
-        self.version = 4
-        data = [
-            '0','A'
-        ]
-        super().__init__(segno, data)

@@ -23,6 +23,7 @@ class FinTSDialog:
         self.hksalversion = 6
         self.hkkazversion = 6
         self.tan_mechs = []
+        self.bpd = None  # Bank Parameter Data
 
     def _get_msg_sync(self):
         seg_identification = HKIDN(3, self.blz, self.username, 0)
@@ -78,14 +79,11 @@ class FinTSDialog:
         with self.pin.protect():
             logger.debug('Sending INIT: {}'.format(self._get_msg_init()))
 
-        resp = self.send(self._get_msg_init())
-        logger.debug('Got INIT response: {}'.format(resp))
+        self.bpd = self.send(self._get_msg_init())
+        logger.debug('Got INIT response: {}'.format(self.bpd))
 
-        self.dialogid = resp.get_dialog_id()
+        self.dialogid = self.bpd.get_dialog_id()
         logger.info('Received dialog ID: {}'.format(self.dialogid))
-
-        # D. Nowak: BPD sichern
-        self.bpd = resp
 
         return self.dialogid
 
