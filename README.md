@@ -69,7 +69,9 @@ holdings = f.get_holdings(accounts[0])
 Credits and License
 -------------------
 
-Author: Raphael Michel <mail@raphaelmichel.de>
+Maintainer: Raphael Michel <mail@raphaelmichel.de>
+
+Big thanks to Daniel Nowak for implementing outgoing transfers.
 
 License: LGPL
 
