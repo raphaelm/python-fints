@@ -1,23 +1,23 @@
+import datetime
 import logging
 import re
-import datetime
-
 from decimal import Decimal
+
+from mt940.models import Balance
+from sepaxml import SepaTransfer
 
 from .connection import FinTSHTTPSConnection
 from .dialog import FinTSDialog
 from .message import FinTSMessage
-from .models import SEPAAccount, TANMethod5, TANMethod6
-from .segments.auth import HKTAN, HKTAB
-from .segments.accounts import HKSPA
-from .segments.statement import HKKAZ
-from .segments.saldo import HKSAL
-from .segments.depot import HKWPD
-from .segments.transfer import HKCCS
 from .message import FinTSResponse
+from .models import SEPAAccount, TANMethod
+from .segments.accounts import HKSPA
+from .segments.auth import HKTAN, HKTAB
+from .segments.depot import HKWPD
+from .segments.saldo import HKSAL
+from .segments.statement import HKKAZ
+from .segments.transfer import HKCCS
 from .utils import mt940_to_array, MT535_Miniparser, split_for_data_groups, split_for_data_elements, Password
-from mt940.models import Balance
-from sepaxml import SepaTransfer
 
 logger = logging.getLogger(__name__)
 
@@ -320,58 +320,24 @@ class FinTS3Client:
 
     def get_tan_methods(self):
         dialog = self._new_dialog()
+        dialog.sync()
         dialog.init()
+        return dialog.tan_mechs
 
-        # Get tan methods
-        res = FinTSResponse(str(dialog.bpd))
-        seg = res._find_segment('HIRMS')
-        deg = split_for_data_groups(seg)
-        tan_methods = []
-        for de in deg:
-            if de[0:4] == '3920':
-                d = split_for_data_elements(de)
-                for i in range(3, len(d)):
-                    tan_methods.append(d[i])
-
-        # Get parameters for tan methods
-        seg = res._find_segments('HITANS')
-        methods = []
-        for s in seg:
-            spl = split_for_data_elements(s)
-            if spl[2] == '5':
-                model = TANMethod5
-            elif spl[2] == '6':
-                model = TANMethod6
-            else:
-                raise NotImplementedError(
-                    "HITANS segment version {} is currently not implemented".format(
-                        spl[2]
-                    )
-                )
-
-            step = len(model._fields)
-            for i in range(len(spl) // step):
-                part = spl[6 + i * step:6 + (i + 1) * step]
-                method = model(*part)
-                if method.security_feature in tan_methods:
-                    methods.append(method)
-
-        return methods
+    def _create_get_tan_description_message(self, dialog: FinTSDialog):
+        return self._new_message(dialog, [
+            HKTAB(3)
+        ])
 
     def get_tan_description(self):
         dialog = self._new_dialog()
         dialog.sync()
         dialog.init()
 
-        def _get_msg():
-            return self._new_message(dialog, [
-                HKTAB(3)
-            ])
-
         with self.pin.protect():
-            logger.debug('Sending HKTAB: {}'.format(_get_msg()))
+            logger.debug('Sending HKTAB: {}'.format(self._create_get_tan_description_message(dialog)))
 
-        resp = dialog.send(_get_msg())
+        resp = dialog.send(self._create_get_tan_description_message(dialog))
         logger.debug('Got HKTAB response: {}'.format(resp))
         dialog.end()
 

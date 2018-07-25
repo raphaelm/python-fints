@@ -1,6 +1,7 @@
 import random
 import re
 
+from fints.models import TANMethod5, TANMethod6
 from fints.utils import split_for_data_groups, split_for_data_elements, fints_unescape
 from .segments.message import HNHBK, HNHBS, HNSHA, HNSHK, HNVSD, HNVSK
 
@@ -16,9 +17,9 @@ class FinTSMessage:
         self.segments = []
         self.encrypted_segments = []
 
-        if tan_mechs and '999' not in tan_mechs:
+        if tan_mechs and '999' not in [t.security_feature for t in tan_mechs]:
             self.profile_version = 2
-            self.security_function = tan_mechs[0]
+            self.security_function = tan_mechs[0].security_feature
         else:
             self.profile_version = 1
             self.security_function = '999'
@@ -140,15 +141,39 @@ class FinTSResponse:
 
     def get_supported_tan_mechanisms(self):
         segs = self._find_segments('HIRMS')
-        for s in segs:
-            seg = split_for_data_groups(s)[1:]
-            for s in seg:
-                id, msg = s.split('::', 1)
-                if id == "3920":
-                    m = self.RE_TANMECH.search(msg)
-                    if m:
-                        return [m.group(0)]
-        return False
+        tan_methods = []
+        for seg in segs:
+            deg = split_for_data_groups(seg)
+            for de in deg:
+                if de[0:4] == '3920':
+                    d = split_for_data_elements(de)
+                    for i in range(3, len(d)):
+                        tan_methods.append(d[i])
+
+        # Get parameters for tan methods
+        seg = self._find_segments('HITANS')
+        methods = []
+        for s in seg:
+            spl = split_for_data_elements(s)
+            if spl[2] == '5':
+                model = TANMethod5
+            elif spl[2] == '6':
+                model = TANMethod6
+            else:
+                raise NotImplementedError(
+                    "HITANS segment version {} is currently not implemented".format(
+                        spl[2]
+                    )
+                )
+
+            step = len(model.args)
+            for i in range(len(spl) // step):
+                part = spl[6 + i * step:6 + (i + 1) * step]
+                method = model(*part)
+                if method.security_feature in tan_methods:
+                    methods.append(method)
+
+        return methods
 
     def _find_segment_for_reference(self, name, ref):
         segs = self._find_segments(name)

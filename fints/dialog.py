@@ -23,7 +23,6 @@ class FinTSDialog:
         self.hksalversion = 6
         self.hkkazversion = 6
         self.tan_mechs = []
-        self.bpd = None  # Bank Parameter Data
 
     def _get_msg_sync(self):
         seg_identification = HKIDN(3, self.blz, self.username, 0)
@@ -70,7 +69,7 @@ class FinTSDialog:
         logger.debug('Dialog ID: {}'.format(self.dialogid))
         logger.debug('HKKAZ max version: {}'.format(self.hkkazversion))
         logger.debug('HKSAL max version: {}'.format(self.hksalversion))
-        logger.debug('TAN mechanisms: {}'.format(', '.join(self.tan_mechs)))
+        logger.debug('TAN mechanisms: {}'.format(', '.join(str(t) for t in self.tan_mechs)))
         self.end()
 
     def init(self):
@@ -79,10 +78,10 @@ class FinTSDialog:
         with self.pin.protect():
             logger.debug('Sending INIT: {}'.format(self._get_msg_init()))
 
-        self.bpd = self.send(self._get_msg_init())
-        logger.debug('Got INIT response: {}'.format(self.bpd))
+        res = self.send(self._get_msg_init())
+        logger.debug('Got INIT response: {}'.format(res))
 
-        self.dialogid = self.bpd.get_dialog_id()
+        self.dialogid = res.get_dialog_id()
         logger.info('Received dialog ID: {}'.format(self.dialogid))
 
         return self.dialogid
