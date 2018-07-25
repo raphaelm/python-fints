@@ -62,6 +62,7 @@ class FinTSDialog:
         self.bankname = resp.get_bank_name()
         self.hksalversion = resp.get_hksal_max_version()
         self.hkkazversion = resp.get_hkkaz_max_version()
+        self.hktanversion = resp._get_segment_max_version('HKTAN')
         self.tan_mechs = resp.get_supported_tan_mechanisms()
 
         logger.debug('Bank name: {}'.format(self.bankname))
@@ -69,6 +70,7 @@ class FinTSDialog:
         logger.debug('Dialog ID: {}'.format(self.dialogid))
         logger.debug('HKKAZ max version: {}'.format(self.hkkazversion))
         logger.debug('HKSAL max version: {}'.format(self.hksalversion))
+        logger.debug('HKTAN max version: {}'.format(self.hktanversion))
         logger.debug('TAN mechanisms: {}'.format(', '.join(str(t) for t in self.tan_mechs)))
         self.end()
 
