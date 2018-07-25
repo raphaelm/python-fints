@@ -376,6 +376,6 @@ class FinTS3PinTanClient(FinTS3Client):
         dialog = FinTSDialog(self.blz, self.username, self.pin, self.systemid, self.connection)
         return dialog
 
-    def _new_message(self, dialog: FinTSDialog, segments):
-        return FinTSMessage(self.blz, self.username, self.pin, dialog.systemid, dialog.dialogid, dialog.msgno,
-                            segments, dialog.tan_mechs)
+    def _new_message(self, dialog: FinTSDialog, segments, tan=None):
+        return FinTSMessage(self.blz, self.username, pin, dialog.systemid, dialog.dialogid, dialog.msgno,
+                            segments, dialog.tan_mechs, tan)

@@ -7,10 +7,11 @@ from .segments.message import HNHBK, HNHBS, HNSHA, HNSHK, HNVSD, HNVSK
 
 
 class FinTSMessage:
-    def __init__(self, blz, username, pin, systemid, dialogid, msgno, encrypted_segments, tan_mechs=None):
+    def __init__(self, blz, username, pin, systemid, dialogid, msgno, encrypted_segments, tan_mechs=None, tan=None):
         self.blz = blz
         self.username = username
         self.pin = pin
+        self.tan = tan
         self.systemid = systemid
         self.dialogid = dialogid
         self.msgno = msgno
@@ -37,7 +38,7 @@ class FinTSMessage:
 
         cur_count = len(encrypted_segments) + 3
 
-        sig_end = HNSHA(cur_count, self.secref, self.pin)
+        sig_end = HNSHA(cur_count, self.secref, self.pin, self.tan)
         self.append_enc_segment(sig_end)
         self.segments.append(HNHBS(cur_count + 1, msgno))
 
