@@ -64,25 +64,37 @@ class HKSYN(FinTS3Segment):
 class HKTAN(FinTS3Segment):
     """
     HKTAN (TAN-Verfahren festlegen)
-    Section C.2.1.2
+    Section B.5.1
     """
     type = 'HKTAN'
 
-    def __init__(self, segno, process, aref, medium):
-        self.version = 3
-        if process == 4:
-            if medium == '':
-                data = [
-                    process
-                ]
+    def __init__(self, segno, process, aref, medium, version):
+        self.version = version
+
+        if process not in ('2', '4'):
+            raise NotImplementedError("HKTAN process {} currently not implemented.".format(process))
+        if version not in (3, 4, 5, 6):
+            raise NotImplementedError("HKTAN version {} currently not implemented.".format(version))
+
+        if process == '4':
+            if medium:
+                if version == 3:
+                    data = [process, '', '', '', '', '', '', '', medium]
+                elif version == 4:
+                    data = [process, '', '', '', '', '', '', '', '', medium]
+                elif version == 5:
+                    data = [process, '', '', '', '', '', '', '', '', '', '', medium]
+                elif version == 6:
+                    data = [process, '', '', '', '', '', '', '', '', '', medium]
             else:
-                data = [
-                    process, '', '', '', '', '', '', '', medium
-                ]
-        else:
-            data = [
-                process, '', aref, '', 'N'
-            ]
+                data = [process]
+        elif process == '2':
+            if version == 6:
+                data = [process, '', '', '', aref, 'N']
+            elif version == 5:
+                data = [process, '', '', '', aref, '', 'N']
+            elif version in (3, 4):
+                data = [process, '', aref, '', 'N']
         super().__init__(segno, data)
 
 
@@ -94,7 +106,7 @@ class HKTAB(FinTS3Segment):
     type = 'HKTAB'
 
     def __init__(self, segno):
-        self.version = 4
+        self.version = 5
         data = [
             '0', 'A'
         ]

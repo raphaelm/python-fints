@@ -49,7 +49,9 @@ class TANMethod6(TANMethod):
 
 
 class TANChallenge(DataClass):
-    pass
+    def __init__(self, dialog, *args, **kwargs):
+        self.dialog = dialog
+        super().__init__(*args, **kwargs)
 
 
 class TANChallenge3(TANChallenge):

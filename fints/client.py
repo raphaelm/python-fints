@@ -10,7 +10,7 @@ from .connection import FinTSHTTPSConnection
 from .dialog import FinTSDialog
 from .message import FinTSMessage
 from .message import FinTSResponse
-from .models import SEPAAccount, TANMethod, TANChallenge6, TANChallenge5, TANChallenge3, TANChallenge4
+from .models import SEPAAccount, TANMethod, TANChallenge6, TANChallenge5, TANChallenge3, TANChallenge4, TANChallenge
 from .segments.accounts import HKSPA
 from .segments.auth import HKTAN, HKTAB
 from .segments.depot import HKWPD
@@ -31,7 +31,7 @@ class FinTS3Client:
     def _new_dialog(self):
         raise NotImplemented()
 
-    def _new_message(self, dialog: FinTSDialog, segments):
+    def _new_message(self, dialog: FinTSDialog, segments, tan=None):
         raise NotImplemented()
 
     def get_sepa_accounts(self):
@@ -241,32 +241,25 @@ class FinTS3Client:
             )
         ])
 
-    def send_tan(self, arg):
-        data = str(arg['response'])
+    def _create_send_tan_message(self, dialog: FinTSDialog, challenge: TANChallenge, tan):
+        return self._new_message(dialog, [
+            HKTAN(3, '2', challenge.reference, '', challenge.version)
+        ], tan)
 
-        res = FinTSResponse(data)
-        seg = res._find_segment('HITAN')
-        seg = split_for_data_groups(seg)
-        aref = seg[3]
-        segTAN = HKTAN(3, 2, aref, '')
+    def send_tan(self, challenge: TANChallenge, tan: str):
+        if challenge.tan_process != '4':
+            raise NotImplementedError("TAN process {} currently not implemented".format(challenge.tan_process))
+        with self.pin.protect():
+            logger.debug('Sending HKTAN: {}'.format(self._create_send_tan_message(
+                challenge.dialog, challenge, tan
+            )))
 
-        self.blz = arg['dialog'].blz
-        self.username = arg['dialog'].username
-        self.pin = arg['dialog'].pin
-        self.systemid = arg['dialog'].systemid
-        self.dialogid = arg['dialog'].dialogid
-        self.msgno = arg['dialog'].msgno
-        self.tan_mechs = []
-        self.tan_mechs = [arg['TAN-Verfahren']]
-        self.pintan = ':'.join([self.pin, arg['tan']])
-        msg = FinTSMessage(self.blz, self.username, self.pintan, self.systemid, self.dialogid, self.msgno, [
-            segTAN
-        ], self.tan_mechs)
+        resp = challenge.dialog.send(self._create_send_tan_message(
+            challenge.dialog, challenge, tan
+        ))
+        logger.debug('Got HKTAN response: {}'.format(resp))
 
-        res = arg['dialog'].send(msg)
-        arg['dialog'].end()
-
-        return 'Ok'
+        challenge.dialog.end()
 
     def start_simple_sepa_transfer(self, account: SEPAAccount, tan_method: TANMethod, iban: str, bic: str,
                                    recipient_name: str, amount: Decimal, account_name: str, reason: str,
@@ -292,9 +285,10 @@ class FinTS3Client:
         xml = sepa.export().decode()
         return self.start_sepa_transfer(account, xml, tan_method, tan_description)
 
-    def _get_start_sepa_transfer_message(self, dialog, account: SEPAAccount, pain_message: str, tan_description):
+    def _get_start_sepa_transfer_message(self, dialog, account: SEPAAccount, pain_message: str, tan_method,
+                                         tan_description):
         segHKCCS = HKCCS(3, account, pain_message)
-        segHKTAN = HKTAN(4, 4, '', tan_description)
+        segHKTAN = HKTAN(4, '4', '', tan_description, tan_method.version)
         return self._new_message(dialog, [
             segHKCCS,
             segHKTAN
@@ -308,10 +302,12 @@ class FinTS3Client:
 
         with self.pin.protect():
             logger.debug('Sending HKCCS: {}'.format(self._get_start_sepa_transfer_message(
-                dialog, account, pain_message, tan_description
+                dialog, account, pain_message, tan_method, tan_description
             )))
 
-        resp = dialog.send(self._get_start_sepa_transfer_message(dialog, account, pain_message, tan_description))
+        resp = dialog.send(self._get_start_sepa_transfer_message(
+            dialog, account, pain_message, tan_method, tan_description
+        ))
         logger.debug('Got HKCCS response: {}'.format(resp))
 
         seg = resp._find_segment('HITAN')
@@ -337,6 +333,7 @@ class FinTS3Client:
         dialog = self._new_dialog()
         dialog.sync()
         dialog.init()
+        dialog.end()
         return dialog.tan_mechs
 
     def _create_get_tan_description_message(self, dialog: FinTSDialog):
@@ -377,5 +374,5 @@ class FinTS3PinTanClient(FinTS3Client):
         return dialog
 
     def _new_message(self, dialog: FinTSDialog, segments, tan=None):
-        return FinTSMessage(self.blz, self.username, pin, dialog.systemid, dialog.dialogid, dialog.msgno,
+        return FinTSMessage(self.blz, self.username, self.pin, dialog.systemid, dialog.dialogid, dialog.msgno,
                             segments, dialog.tan_mechs, tan)
