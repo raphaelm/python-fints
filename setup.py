@@ -35,7 +35,7 @@ setup(
 
     keywords='hbci banking fints',
     install_requires=[
-        'requests', 'mt-940',
+        'requests', 'mt-940', 'sepaxml==2.0.*'
     ],
 
     packages=find_packages(include=['fints', 'fints.*']),

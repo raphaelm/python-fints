@@ -2,6 +2,8 @@ import logging
 import re
 import datetime
 
+from decimal import Decimal
+
 from .connection import FinTSHTTPSConnection
 from .dialog import FinTSDialog
 from .message import FinTSMessage
@@ -15,6 +17,7 @@ from .segments.transfer import HKCCS
 from .message import FinTSResponse
 from .utils import mt940_to_array, MT535_Miniparser, split_for_data_groups, split_for_data_elements, Password
 from mt940.models import Balance
+from sepaxml import SepaTransfer
 
 logger = logging.getLogger(__name__)
 
@@ -265,20 +268,40 @@ class FinTS3Client:
 
         return 'Ok'
 
-    def create_sepa_transfer(self, account, arg):
-        # Diese Funktion erstellt eine neue SEPA-Überweisung
-        self.tan_bezeichnung = arg['TAN-Bezeichnung']
+    def start_simple_sepa_transfer(self, account: SEPAAccount, tan_method, iban: str, bic: str, recipient_name: str,
+                                   amount: Decimal, account_name: str, reason: str, endtoend_id='NOTPROVIDED',
+                                   tan_description=''):
+        config = {
+            "name": account_name,
+            "IBAN": account.iban,
+            "BIC": account.bic,
+            "batch": False,
+            "currency": "EUR",
+        }
+        sepa = SepaTransfer(config, 'pain.001.001.03')
+        payment = {
+            "name": recipient_name,
+            "IBAN": iban,
+            "BIC": bic,
+            "amount": int(Decimal(amount) * 100),  # in cents
+            "execution_date": datetime.date.today(),
+            "description": reason,
+            "endtoend_id": endtoend_id,
+        }
+        sepa.add_payment(payment)
+        xml = sepa.export().decode()
+        self.start_sepa_transfer(account, xml, tan_method, tan_description)
+
+    def start_sepa_transfer(self, account: SEPAAccount, pain_message: str, tan_method, tan_description=''):
         dialog = self._new_dialog()
         dialog.sync()
 
-        # TAN-Verfahren für Dialoginitialisierung ändern
-        dialog.tan_mechs = [arg['TAN-Verfahren']]
-
+        dialog.tan_mechs = [tan_method.security_feature]
         dialog.init()
 
         def _get_msg():
-            segHKCCS = HKCCS(3, account, arg)
-            segHKTAN = HKTAN(4, 4, '', self.tan_bezeichnung)
+            segHKCCS = HKCCS(3, account, pain_message)
+            segHKTAN = HKTAN(4, 4, '', tan_description)
             return self._new_message(dialog, [
                 segHKCCS,
                 segHKTAN
@@ -293,7 +316,6 @@ class FinTS3Client:
         response = {}
         response['response'] = resp
         response['dialog'] = dialog
-
         return response
 
     def get_tan_methods(self):
