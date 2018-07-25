@@ -6,6 +6,7 @@ from decimal import Decimal
 from mt940.models import Balance
 from sepaxml import SepaTransfer
 
+from fints.segments.debit import HKDSE, HKDME
 from .connection import FinTSHTTPSConnection
 from .dialog import FinTSDialog
 from .message import FinTSMessage
@@ -313,6 +314,40 @@ class FinTS3Client:
             )))
 
         resp = dialog.send(self._get_start_sepa_transfer_message(
+            dialog, account, pain_message, tan_method, tan_description, multiple, control_sum, currency,
+            book_as_single
+        ))
+        logger.debug('Got response: {}'.format(resp))
+        return self._tan_requiring_response(dialog, resp)
+
+    def _get_start_sepa_debit_message(self, dialog, account: SEPAAccount, pain_message: str, tan_method,
+                                      tan_description, multiple, control_sum, currency, book_as_single):
+        if multiple:
+            if not control_sum:
+                raise ValueError("Control sum required.")
+            segreq = HKDME(3, account, pain_message, control_sum, currency, book_as_single)
+        else:
+            segreq = HKDSE(3, account, pain_message)
+        segtan = HKTAN(4, '4', '', tan_description, tan_method.version)
+        return self._new_message(dialog, [
+            segreq,
+            segtan
+        ])
+
+    def start_sepa_debit(self, account: SEPAAccount, pain_message: str, tan_method, tan_description='',
+                         multiple=False, control_sum=None, currency='EUR', book_as_single=False):
+        dialog = self._new_dialog()
+        dialog.sync()
+        dialog.tan_mechs = [tan_method]
+        dialog.init()
+
+        with self.pin.protect():
+            logger.debug('Sending: {}'.format(self._get_start_sepa_debit_message(
+                dialog, account, pain_message, tan_method, tan_description, multiple, control_sum, currency,
+                book_as_single
+            )))
+
+        resp = dialog.send(self._get_start_sepa_debit_message(
             dialog, account, pain_message, tan_method, tan_description, multiple, control_sum, currency,
             book_as_single
         ))
