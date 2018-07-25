@@ -9,25 +9,29 @@ Limitations
 
 * Only FinTS 3.0 is supported
 * Only PIN/TAN authentication is supported, no signature cards
-* Only a number of reading operations are currently supported
+* Only the following operations are supported:
+  * Fetching bank statements
+  * Fetching balances
+  * Fetching holdings
+  * SEPA transfers (only with required TAN and with specific TAN methods)
 * Supports Python 3.4+
 
 Banks tested:
 
-* GLS Bank eG
-* Triodos Bank
-* BBBank eG
-* Postbank
-* [1822direkt](https://www.1822direkt.de/service/zugang-zum-konto/softwarebanking-mit-hbci/), including access to holding accounts
-* Sparkasse
-* Ing-Diba
-* CortalConsors, including access to holding accounts
-* DKB
-* NIBC Direct
-* Wüstenrot
-* comdirect, including access to holding accounts
-* Volksbank (using Fiducia IT)
-* netbank
+* GLS Bank eG (statements, transfers)
+* Triodos Bank (statements)
+* BBBank eG (statements)
+* Postbank (statements)
+* [1822direkt](https://www.1822direkt.de/service/zugang-zum-konto/softwarebanking-mit-hbci/)  (statements, holdings)
+* Sparkasse (statements)
+* Ing-Diba (statements)
+* CortalConsors (statements, holdings)
+* DKB (statements)
+* NIBC Direct (statements)
+* Wüstenrot (statements)
+* comdirect  (holdings)
+* Volksbank using Fiducia IT (statements)
+* netbank (statements)
 
 Usage
 -----
