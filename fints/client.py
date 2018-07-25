@@ -10,7 +10,7 @@ from .connection import FinTSHTTPSConnection
 from .dialog import FinTSDialog
 from .message import FinTSMessage
 from .message import FinTSResponse
-from .models import SEPAAccount, TANMethod
+from .models import SEPAAccount, TANMethod, TANChallenge6, TANChallenge5, TANChallenge3, TANChallenge4
 from .segments.accounts import HKSPA
 from .segments.auth import HKTAN, HKTAB
 from .segments.depot import HKWPD
@@ -268,9 +268,9 @@ class FinTS3Client:
 
         return 'Ok'
 
-    def start_simple_sepa_transfer(self, account: SEPAAccount, tan_method, iban: str, bic: str, recipient_name: str,
-                                   amount: Decimal, account_name: str, reason: str, endtoend_id='NOTPROVIDED',
-                                   tan_description=''):
+    def start_simple_sepa_transfer(self, account: SEPAAccount, tan_method: TANMethod, iban: str, bic: str,
+                                   recipient_name: str, amount: Decimal, account_name: str, reason: str,
+                                   endtoend_id='NOTPROVIDED', tan_description=''):
         config = {
             "name": account_name,
             "IBAN": account.iban,
@@ -290,33 +290,48 @@ class FinTS3Client:
         }
         sepa.add_payment(payment)
         xml = sepa.export().decode()
-        self.start_sepa_transfer(account, xml, tan_method, tan_description)
+        return self.start_sepa_transfer(account, xml, tan_method, tan_description)
+
+    def _get_start_sepa_transfer_message(self, dialog, account: SEPAAccount, pain_message: str, tan_description):
+        segHKCCS = HKCCS(3, account, pain_message)
+        segHKTAN = HKTAN(4, 4, '', tan_description)
+        return self._new_message(dialog, [
+            segHKCCS,
+            segHKTAN
+        ])
 
     def start_sepa_transfer(self, account: SEPAAccount, pain_message: str, tan_method, tan_description=''):
         dialog = self._new_dialog()
         dialog.sync()
-
-        dialog.tan_mechs = [tan_method.security_feature]
+        dialog.tan_mechs = [tan_method]
         dialog.init()
 
-        def _get_msg():
-            segHKCCS = HKCCS(3, account, pain_message)
-            segHKTAN = HKTAN(4, 4, '', tan_description)
-            return self._new_message(dialog, [
-                segHKCCS,
-                segHKTAN
-            ])
-
         with self.pin.protect():
-            logger.debug('Sending HKCCS: {}'.format(_get_msg()))
+            logger.debug('Sending HKCCS: {}'.format(self._get_start_sepa_transfer_message(
+                dialog, account, pain_message, tan_description
+            )))
 
-        resp = dialog.send(_get_msg())
+        resp = dialog.send(self._get_start_sepa_transfer_message(dialog, account, pain_message, tan_description))
         logger.debug('Got HKCCS response: {}'.format(resp))
 
-        response = {}
-        response['response'] = resp
-        response['dialog'] = dialog
-        return response
+        seg = resp._find_segment('HITAN')
+        s = split_for_data_groups(seg)
+        spl = split_for_data_elements(s[0])
+        if spl[2] == '3':
+            model = TANChallenge3
+        elif spl[2] == '4':
+            model = TANChallenge4
+        elif spl[2] == '5':
+            model = TANChallenge5
+        elif spl[2] == '6':
+            model = TANChallenge6
+        else:
+            raise NotImplementedError(
+                "HITAN segment version {} is currently not implemented".format(
+                    spl[2]
+                )
+            )
+        return model(dialog, *s[1:1 + len(model.args)])
 
     def get_tan_methods(self):
         dialog = self._new_dialog()

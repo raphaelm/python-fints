@@ -66,7 +66,6 @@ class FinTSResponse:
     RE_UNWRAP = re.compile('HNVSD:\d+:\d+\+@\d+@(.+)\'\'')
     RE_SEGMENTS = re.compile("'(?=[A-Z]{4,}:\d|')")
     RE_SYSTEMID = re.compile("HISYN:\d+:\d+:\d+\+(.+)")
-    RE_TANMECH = re.compile('\d{3}')
 
     def __init__(self, data):
         self.response = self._unwrap(data)
