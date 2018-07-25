@@ -16,7 +16,7 @@ from .segments.auth import HKTAN, HKTAB
 from .segments.depot import HKWPD
 from .segments.saldo import HKSAL
 from .segments.statement import HKKAZ
-from .segments.transfer import HKCCS
+from .segments.transfer import HKCCS, HKCCM
 from .utils import mt940_to_array, MT535_Miniparser, split_for_data_groups, split_for_data_elements, Password
 
 logger = logging.getLogger(__name__)
@@ -286,29 +286,40 @@ class FinTS3Client:
         return self.start_sepa_transfer(account, xml, tan_method, tan_description)
 
     def _get_start_sepa_transfer_message(self, dialog, account: SEPAAccount, pain_message: str, tan_method,
-                                         tan_description):
-        segHKCCS = HKCCS(3, account, pain_message)
-        segHKTAN = HKTAN(4, '4', '', tan_description, tan_method.version)
+                                         tan_description, multiple, control_sum, currency, book_as_single):
+        if multiple:
+            if not control_sum:
+                raise ValueError("Control sum required.")
+            segreq = HKCCM(3, account, pain_message, control_sum, currency, book_as_single)
+        else:
+            segreq = HKCCS(3, account, pain_message)
+        segtan = HKTAN(4, '4', '', tan_description, tan_method.version)
         return self._new_message(dialog, [
-            segHKCCS,
-            segHKTAN
+            segreq,
+            segtan
         ])
 
-    def start_sepa_transfer(self, account: SEPAAccount, pain_message: str, tan_method, tan_description=''):
+    def start_sepa_transfer(self, account: SEPAAccount, pain_message: str, tan_method, tan_description='',
+                            multiple=False, control_sum=None, currency='EUR', book_as_single=False):
         dialog = self._new_dialog()
         dialog.sync()
         dialog.tan_mechs = [tan_method]
         dialog.init()
 
         with self.pin.protect():
-            logger.debug('Sending HKCCS: {}'.format(self._get_start_sepa_transfer_message(
-                dialog, account, pain_message, tan_method, tan_description
+            logger.debug('Sending: {}'.format(self._get_start_sepa_transfer_message(
+                dialog, account, pain_message, tan_method, tan_description, multiple, control_sum, currency,
+                book_as_single
             )))
 
         resp = dialog.send(self._get_start_sepa_transfer_message(
-            dialog, account, pain_message, tan_method, tan_description))
-        logger.debug('Got HKCCS response: {}'.format(resp))
+            dialog, account, pain_message, tan_method, tan_description, multiple, control_sum, currency,
+            book_as_single
+        ))
+        logger.debug('Got response: {}'.format(resp))
+        return self._tan_requiring_response(dialog, resp)
 
+    def _tan_requiring_response(self, dialog, resp):
         seg = resp._find_segment('HITAN')
         s = split_for_data_groups(seg)
         spl = split_for_data_elements(s[0])
