@@ -277,7 +277,7 @@ class FinTS3Client:
             "IBAN": iban,
             "BIC": bic,
             "amount": int(Decimal(amount) * 100),  # in cents
-            "execution_date": datetime.date.today(),
+            "execution_date": datetime.date(1999, 1, 1),
             "description": reason,
             "endtoend_id": endtoend_id,
         }
@@ -306,8 +306,7 @@ class FinTS3Client:
             )))
 
         resp = dialog.send(self._get_start_sepa_transfer_message(
-            dialog, account, pain_message, tan_method, tan_description
-        ))
+            dialog, account, pain_message, tan_method, tan_description))
         logger.debug('Got HKCCS response: {}'.format(resp))
 
         seg = resp._find_segment('HITAN')
