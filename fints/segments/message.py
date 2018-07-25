@@ -117,11 +117,14 @@ class HNSHA(FinTS3Segment):
     SECURITY_SUPPLIER_ROLE = 1  # ISS
     PINTAN_VERSION = 1  # 1-step
 
-    def __init__(self, segno, secref, pin):
+    def __init__(self, segno, secref, pin, tan=None):
+        pintan = fints_escape(pin)
+        if tan:
+            pintan += ':' + fints_escape(tan)
         data = [
             secref,
             '',
-            fints_escape(pin)
+            pintan,
         ]
         super().__init__(segno, data)
 
