@@ -28,6 +28,30 @@ class TANMethod(DataClass):
 
 
 class TANMethod5(TANMethod):
+    """
+    :param security_feature:
+    :param tan_process:
+    :param tech_id:
+    :param zka_id:
+    :param zka_version:
+    :param name:
+    :param max_length_input:
+    :param allowed_format:
+    :param text_returnvalue:
+    :param max_length_returnvalue:
+    :param number_of_supported_lists:
+    :param multiple_tans_allowed:
+    :param tan_time_dialog_association:
+    :param tan_list_number_required:
+    :param cancel_allowed:
+    :param sms_charge_account_required:
+    :param principal_account_required:
+    :param challenge_class_required:
+    :param challenge_value_required:
+    :param initialization_mode:
+    :param description_required:
+    :param supported_media_number:
+    """
     # Source: PIN/TAN docs – Verfahrensparameter Zwei-Schritt-Verfahren, Elementversion #5
     version = 5
     args = ['security_feature', 'tan_process', 'tech_id', 'zka_id', 'zka_version', 'name', 'max_length_input',
@@ -39,6 +63,30 @@ class TANMethod5(TANMethod):
 
 class TANMethod6(TANMethod):
     # Source: PIN/TAN docs – Verfahrensparameter Zwei-Schritt-Verfahren, Elementversion #6
+    """
+    :param security_feature:
+    :param tan_process:
+    :param tech_id:
+    :param zka_id:
+    :param zka_version:
+    :param name:
+    :param max_length_input:
+    :param allowed_format:
+    :param text_returnvalue:
+    :param max_length_returnvalue:
+    :param number_of_supported_lists:
+    :param multiple_tans_allowed:
+    :param tan_time_dialog_association:
+    :param cancel_allowed:
+    :param sms_charge_account_required:
+    :param principal_account_required:
+    :param challenge_class_required:
+    :param challenge_value_required:
+    :param initialization_mode:
+    :param description_required:
+    :param hhd_uc_required:
+    :param supported_media_number:
+    """
     version = 6
     args = ['security_feature', 'tan_process', 'tech_id', 'zka_id', 'zka_version', 'name', 'max_length_input',
             'allowed_format', 'text_returnvalue', 'max_length_returnvalue', 'multiple_tans_allowed',
@@ -55,24 +103,65 @@ class TANChallenge(DataClass):
 
 
 class TANChallenge3(TANChallenge):
+    """
+    :param tan_process:
+    :param request_hash:
+    :param reference:
+    :param challenge:
+    :param challenge_datetime:
+    :param tan_list_number:
+    :param ben:
+    :param medium_description:
+    """
     version = 3
     args = ['tan_process', 'request_hash', 'reference', 'challenge', 'challenge_datetime',
             'tan_list_number', 'ben', 'medium_description']
 
 
 class TANChallenge4(TANChallenge):
+    """
+    :param tan_process:
+    :param request_hash:
+    :param reference:
+    :param challenge:
+    :param challenge_hhd_uc:
+    :param challenge_datetime:
+    :param tan_list_number:
+    :param ben:
+    :param medium_description:
+    """
     version = 4
     args = ['tan_process', 'request_hash', 'reference', 'challenge', 'challenge_hhd_uc', 'challenge_datetime',
             'tan_list_number', 'ben', 'medium_description']
 
 
 class TANChallenge5(TANChallenge):
+    """
+    :param tan_process:
+    :param request_hash:
+    :param reference:
+    :param challenge:
+    :param challenge_hhd_uc:
+    :param challenge_datetime:
+    :param tan_list_number:
+    :param ben:
+    :param medium_description:
+    """
     version = 5
     args = ['tan_process', 'request_hash', 'reference', 'challenge', 'challenge_hhd_uc', 'challenge_datetime',
             'tan_list_number', 'ben', 'medium_description']
 
 
 class TANChallenge6(TANChallenge):
+    """
+    :param tan_process:
+    :param request_hash:
+    :param reference:
+    :param challenge:
+    :param challenge_hhd_uc:
+    :param challenge_datetime:
+    :param medium_description:
+    """
     version = 6
     args = ['tan_process', 'request_hash', 'reference', 'challenge', 'challenge_hhd_uc', 'challenge_datetime',
             'medium_description']
