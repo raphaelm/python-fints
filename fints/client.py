@@ -10,7 +10,6 @@ from fints.segments.debit import HKDSE, HKDME
 from .connection import FinTSHTTPSConnection
 from .dialog import FinTSDialog
 from .message import FinTSMessage
-from .message import FinTSResponse
 from .models import SEPAAccount, TANMethod, TANChallenge6, TANChallenge5, TANChallenge3, TANChallenge4, TANChallenge
 from .segments.accounts import HKSPA
 from .segments.auth import HKTAN, HKTAB
@@ -36,6 +35,11 @@ class FinTS3Client:
         raise NotImplemented()
 
     def get_sepa_accounts(self):
+        """
+        Returns a list of SEPA accounts
+
+        :return: List of SEPAAccount objects.
+        """
         dialog = self._new_dialog()
         dialog.sync()
         dialog.init()
@@ -63,7 +67,15 @@ class FinTS3Client:
 
         return self.accounts
 
-    def get_statement(self, account, start_date, end_date):
+    def get_statement(self, account: SEPAAccount, start_date: datetime.datetime, end_date: datetime.date):
+        """
+        Fetches the statement of a bank account in a certain timeframe.
+
+        :param account: SEPA
+        :param start_date: First day to fetch
+        :param end_date: Last day to fetch
+        :return: A list of mt940.models.Transaction objects
+        """
         logger.info('Start fetching from {} to {}'.format(start_date, end_date))
 
         dialog = self._new_dialog()
@@ -138,7 +150,13 @@ class FinTS3Client:
             )
         ])
 
-    def get_balance(self, account):
+    def get_balance(self, account: SEPAAccount):
+        """
+        Fetches an accounts current balance.
+
+        :param account: SEPA account to fetch the balance
+        :return: A mt940.models.Balance object
+        """
         # init dialog
         dialog = self._new_dialog()
         dialog.sync()
@@ -189,7 +207,13 @@ class FinTS3Client:
             )
         ])
 
-    def get_holdings(self, account):
+    def get_holdings(self, account: SEPAAccount):
+        """
+        Retrieve holdings of an account.
+
+        :param account: SEPAAccount to retrieve holdings for.
+        :return: List of Holding objects
+        """
         # init dialog
         dialog = self._new_dialog()
         dialog.sync()
@@ -248,6 +272,13 @@ class FinTS3Client:
         ], tan)
 
     def send_tan(self, challenge: TANChallenge, tan: str):
+        """
+        Sends a TAN to confirm a pending operation.
+
+        :param challenge: TANChallenge to respond to
+        :param tan: TAN value
+        :return: Currently no response
+        """
         if challenge.tan_process != '4':
             raise NotImplementedError("TAN process {} currently not implemented".format(challenge.tan_process))
         with self.pin.protect():
@@ -265,6 +296,21 @@ class FinTS3Client:
     def start_simple_sepa_transfer(self, account: SEPAAccount, tan_method: TANMethod, iban: str, bic: str,
                                    recipient_name: str, amount: Decimal, account_name: str, reason: str,
                                    endtoend_id='NOTPROVIDED', tan_description=''):
+        """
+        Start a simple SEPA transfer.
+
+        :param account: SEPAAccount to start the transfer from.
+        :param tan_method: TANMethod object to use.
+        :param iban: Recipient's IBAN
+        :param bic: Recipient's BIC
+        :param recipient_name: Recipient name
+        :param amount: Amount as a ``Decimal``
+        :param account_name: Sender account name
+        :param reason: Transfer reason
+        :param endtoend_id: End-to-end-Id (defaults to ``NOTPROVIDED``)
+        :param tan_description: TAN medium description (if required)
+        :return: Returns a TANChallenge object
+        """
         config = {
             "name": account_name,
             "IBAN": account.iban,
@@ -302,6 +348,19 @@ class FinTS3Client:
 
     def start_sepa_transfer(self, account: SEPAAccount, pain_message: str, tan_method, tan_description='',
                             multiple=False, control_sum=None, currency='EUR', book_as_single=False):
+        """
+        Start a custom SEPA transfer.
+
+        :param account: SEPAAccount to send the transfer from.
+        :param pain_message: SEPA PAIN message containing the transfer details.
+        :param tan_method: TANMethod object to use.
+        :param tan_description: TAN medium description (if required)
+        :param multiple: Whether this message contains multiple transfers.
+        :param control_sum: Sum of all transfers (required if there are multiple)
+        :param currency: Transfer currency
+        :param book_as_single: Kindly ask the bank to put multiple transactions as separate lines on the bank statement (defaults to ``False``)
+        :return: Returns a TANChallenge object
+        """
         dialog = self._new_dialog()
         dialog.sync()
         dialog.tan_mechs = [tan_method]
@@ -336,6 +395,19 @@ class FinTS3Client:
 
     def start_sepa_debit(self, account: SEPAAccount, pain_message: str, tan_method, tan_description='',
                          multiple=False, control_sum=None, currency='EUR', book_as_single=False):
+        """
+        Start a custom SEPA debit.
+
+        :param account: SEPAAccount to send the debit from.
+        :param pain_message: SEPA PAIN message containing the debit details.
+        :param tan_method: TANMethod object to use.
+        :param tan_description: TAN medium description (if required)
+        :param multiple: Whether this message contains multiple debits.
+        :param control_sum: Sum of all debits (required if there are multiple)
+        :param currency: Debit currency
+        :param book_as_single: Kindly ask the bank to put multiple transactions as separate lines on the bank statement (defaults to ``False``)
+        :return: Returns a TANChallenge object
+        """
         dialog = self._new_dialog()
         dialog.sync()
         dialog.tan_mechs = [tan_method]
@@ -375,6 +447,11 @@ class FinTS3Client:
         return model(dialog, *s[1:1 + len(model.args)])
 
     def get_tan_methods(self):
+        """
+        Returns a list of TAN methods.
+
+        :return: List of TANMethod objects
+        """
         dialog = self._new_dialog()
         dialog.sync()
         dialog.init()
@@ -387,6 +464,11 @@ class FinTS3Client:
         ])
 
     def get_tan_description(self):
+        """
+        TAN method meta data, currently unparsed
+
+        :return: str
+        """
         dialog = self._new_dialog()
         dialog.sync()
         dialog.init()

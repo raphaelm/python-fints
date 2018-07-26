@@ -31,6 +31,8 @@ def parse(code):
 
 
 def clean(code):
+    if code.startswith('@'):
+        code = code[res.challenge_hhd_uc.index('@', 2) + 1:]
     code = code.replace(" ", "").strip()
     if "CHLGUC" in code and "CHLGTEXT" in code:
         # Sometimes, HHD 1.3 codes are not transfered in the challenge field but in the free text,
@@ -233,9 +235,20 @@ class Startcode(DE):
 
 
 def terminal_flicker_unix(code, field_width=3, space_width=3, height=1, clear=False, wait=0.05):
+    """
+    Re-encodes a flicker code and prints it on a unix terminal.
+
+    :param code: Challenge value
+    :param field_width: Width of fields in characters (default: 3).
+    :param space_width: Width of spaces in characters (default: 3).
+    :param height: Height of fields in characters (default: 1).
+    :param clear: Clear terminal after every line (default: ``False``).
+    :param wait: Waiting interval between lines (default: 0.05).
+    """
     # Inspired by Andreas Schiermeier
     # https://git.ccc-ffm.de/?p=smartkram.git;a=blob_plain;f=chiptan/flicker/flicker.sh;h
     # =7066293b4e790c2c4c1f6cbdab703ed9976ffe1f;hb=refs/heads/master
+    code = parse(code).render()
     data = swap_bytes(code)
     high = '\033[48;05;15m'
     low = '\033[48;05;0m'
