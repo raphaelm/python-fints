@@ -1,7 +1,7 @@
 import random
 import re
 
-from fints.models import TANMethod5, TANMethod6
+from fints.models import TANMethod1, TANMethod2, TANMethod3, TANMethod4, TANMethod5, TANMethod6
 from fints.utils import split_for_data_groups, split_for_data_elements, fints_unescape
 from .segments.message import HNHBK, HNHBS, HNSHA, HNSHK, HNVSD, HNVSK
 
@@ -155,7 +155,15 @@ class FinTSResponse:
         methods = []
         for s in seg:
             spl = split_for_data_elements(s)
-            if spl[2] == '5':
+            if spl[2] == '1':
+                model = TANMethod1
+            elif spl[2] == '2':
+                model = TANMethod2
+            elif spl[2] == '3':
+                model = TANMethod3
+            elif spl[2] == '4':
+                model = TANMethod4
+            elif spl[2] == '5':
                 model = TANMethod5
             elif spl[2] == '6':
                 model = TANMethod6
