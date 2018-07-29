@@ -20,6 +20,14 @@ used by the bank:
 .. autoclass:: fints.client.FinTS3Client
    :members: get_tan_methods
 
+.. autoclass:: fints.models.TANMethod1
+
+.. autoclass:: fints.models.TANMethod2
+
+.. autoclass:: fints.models.TANMethod3
+
+.. autoclass:: fints.models.TANMethod4
+
 .. autoclass:: fints.models.TANMethod5
 
 .. autoclass:: fints.models.TANMethod6
