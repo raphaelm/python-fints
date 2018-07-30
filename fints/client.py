@@ -17,7 +17,7 @@ from .segments.depot import HKWPD
 from .segments.saldo import HKSAL
 from .segments.statement import HKKAZ
 from .segments.transfer import HKCCS, HKCCM
-from .utils import mt940_to_array, MT535_Miniparser, split_for_data_groups, split_for_data_elements, Password
+from .utils import mt940_to_array, MT535_Miniparser, Password
 
 logger = logging.getLogger(__name__)
 
@@ -56,11 +56,9 @@ class FinTS3Client:
         logger.debug('Got HKSPA response: {}'.format(resp))
         dialog.end()
 
-        accounts = resp._find_segment('HISPA')
-        accountlist = accounts.split('+')[1:]
+        seg = resp._find_segment('HISPA')
         self.accounts = []
-        for acc in accountlist:
-            arr = acc.split(':')
+        for arr in seg[1:]:
             self.accounts.append(SEPAAccount(
                 iban=arr[1], bic=arr[2], accountnumber=arr[3], subaccount=arr[4], blz=arr[6]
             ))
@@ -111,14 +109,11 @@ class FinTS3Client:
 
         logger.info('Fetching done.')
 
-        re_data = re.compile(r'[^@]*@([0-9]+)@(.+)', flags=re.MULTILINE | re.DOTALL)
         statement = []
         for resp in responses:
             seg = resp._find_segment('HIKAZ')
-            if seg:
-                m = re_data.match(seg)
-                if m:
-                    statement += mt940_to_array(m.group(2))
+            ## FIXME What is the encoding of MT940 messages?
+            statement += mt940_to_array(seg[1].decode('iso-8859-1'))
 
         logger.debug('Statement: {}'.format(statement))
 
@@ -130,11 +125,11 @@ class FinTS3Client:
 
         if hversion in (4, 5, 6):
             acc = ':'.join([
-                account.accountnumber, account.subaccount, str(280), account.blz
+                account.accountnumber, account.subaccount or '', str(280), account.blz
             ])
         elif hversion == 7:
             acc = ':'.join([
-                account.iban, account.bic, account.accountnumber, account.subaccount, str(280), account.blz
+                account.iban, account.bic, account.accountnumber, account.subaccount or '', str(280), account.blz
             ])
         else:
             raise ValueError('Unsupported HKKAZ version {}'.format(hversion))
@@ -177,7 +172,7 @@ class FinTS3Client:
 
         # find segment and split up to balance part
         seg = resp._find_segment('HISAL')
-        arr = split_for_data_elements(split_for_data_groups(seg)[4])
+        arr = seg[4]
 
         # get balance date
         date = datetime.datetime.strptime(arr[3], "%Y%m%d").date()
@@ -190,11 +185,11 @@ class FinTS3Client:
 
         if hversion in (1, 2, 3, 4, 5, 6):
             acc = ':'.join([
-                account.accountnumber, account.subaccount, str(280), account.blz
+                account.accountnumber, account.subaccount or '', str(280), account.blz
             ])
         elif hversion == 7:
             acc = ':'.join([
-                account.iban, account.bic, account.accountnumber, account.subaccount, str(280), account.blz
+                account.iban, account.bic, account.accountnumber, account.subaccount or '', str(280), account.blz
             ])
         else:
             raise ValueError('Unsupported HKSAL version {}'.format(hversion))
@@ -232,6 +227,8 @@ class FinTS3Client:
         # end dialog
         dialog.end()
 
+
+        ## FIXME BROKEN
         # find segment and split up to balance part
         seg = resp._find_segment('HIWPD')
         if seg:
@@ -249,11 +246,11 @@ class FinTS3Client:
 
         if hversion in (1, 2, 3, 4, 5, 6):
             acc = ':'.join([
-                account.accountnumber, account.subaccount, str(280), account.blz
+                account.accountnumber, account.subaccount or '', str(280), account.blz
             ])
         elif hversion == 7:
             acc = ':'.join([
-                account.iban, account.bic, account.accountnumber, account.subaccount, str(280), account.blz
+                account.iban, account.bic, account.accountnumber, account.subaccount or '', str(280), account.blz
             ])
         else:
             raise ValueError('Unsupported HKSAL version {}'.format(hversion))
@@ -428,20 +425,18 @@ class FinTS3Client:
 
     def _tan_requiring_response(self, dialog, resp):
         seg = resp._find_segment('HITAN')
-        s = split_for_data_groups(seg)
-        spl = split_for_data_elements(s[0])
-        if spl[2] == '3':
+        if seg[0][2] == '3':
             model = TANChallenge3
-        elif spl[2] == '4':
+        elif seg[0][2] == '4':
             model = TANChallenge4
-        elif spl[2] == '5':
+        elif seg[0][2] == '5':
             model = TANChallenge5
-        elif spl[2] == '6':
+        elif seg[0][2] == '6':
             model = TANChallenge6
         else:
             raise NotImplementedError(
                 "HITAN segment version {} is currently not implemented".format(
-                    spl[2]
+                    seg[0][2]
                 )
             )
         return model(dialog, *s[1:1 + len(model.args)])
@@ -481,9 +476,8 @@ class FinTS3Client:
         dialog.end()
 
         seg = resp._find_segment('HITAB')
-        deg = split_for_data_groups(seg)
 
-        return deg[2]
+        return seg[2]
 
 
 class FinTS3PinTanClient(FinTS3Client):

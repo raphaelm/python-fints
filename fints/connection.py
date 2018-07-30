@@ -19,4 +19,4 @@ class FinTSHTTPSConnection:
         )
         if r.status_code < 200 or r.status_code > 299:
             raise FinTSConnectionError('Bad status code {}'.format(r.status_code))
-        return base64.b64decode(r.content.decode('iso-8859-1')).decode('iso-8859-1')
+        return base64.b64decode(r.content.decode('iso-8859-1'))
