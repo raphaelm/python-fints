@@ -120,7 +120,8 @@ class FinTS3Parser:
             try:
                 val = next(data)
             except StopIteration:
-                pass
+                if field.required:
+                    raise ValueError("Required field {}.{} was not present".format(clazz.__name__, name))
             else:
                 deg = self.parse_n_deg(field, val)
                 setattr(seg, name, deg)

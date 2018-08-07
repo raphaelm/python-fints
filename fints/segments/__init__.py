@@ -66,7 +66,7 @@ class HNVSK3(FinTS3Segment):
     encryption_algorithm = DataElementGroupField(type=EncryptionAlgorithm)
     key_name = DataElementGroupField(type=KeyName)
     compression_function = DataElementField(type='code', max_length=3)
-    certificate = DataElementGroupField(type=Certificate)
+    certificate = DataElementGroupField(type=Certificate, required=False)
 
 class HNSHK4(FinTS3Segment):
     security_profile = DataElementGroupField(type=SecurityProfile)
@@ -80,7 +80,7 @@ class HNSHK4(FinTS3Segment):
     hash_algorithm = DataElementGroupField(type=HashAlgorithm)
     signature_algorithm = DataElementGroupField(type=SignatureAlgorithm)
     key_name = DataElementGroupField(type=KeyName)
-    certificate = DataElementGroupField(type=Certificate)
+    certificate = DataElementGroupField(type=Certificate, required=False)
 
 
 

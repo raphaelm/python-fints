@@ -55,3 +55,8 @@ def test_invalid():
 
     with pytest.raises(ValueError):
         FinTS3Parser.explode_segments(message5)
+
+    message6 = rb"""HNHBS:5:1'"""
+    with pytest.raises(ValueError, match='^Required field'):
+        m = FinTS3Parser().parse_message(message6)
+
