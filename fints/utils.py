@@ -25,11 +25,11 @@ def fints_escape(content):
     Ref:  https://www.hbci-zka.de/dokumente/spezifikation_deutsch/fintsv3/FinTS_3.0_Formals_2017-05-11_final_version.pdf
     Section  H.1.1
     """
-    return content.replace('?', '??').replace('+', '?+').replace(':', '?:').replace("'", "?'")
+    return content.replace('?', '??').replace('+', '?+').replace(':', '?:').replace("'", "?'").replace('@', '?@')
 
 
 def fints_unescape(content):
-    return content.replace('??', '?').replace("?'", "'").replace('?+', '+').replace('?:', ':')
+    return content.replace('??', '?').replace("?'", "'").replace('?+', '+').replace('?:', ':').replace('?@', '@')
 
 
 def split_for_data_groups(seg):
