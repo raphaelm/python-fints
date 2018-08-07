@@ -49,6 +49,10 @@ def classproperty(f):
     return fx(f)
 
 
+def fints_unescape(content):
+    return content.replace('??', '?').replace("?'", "'").replace('?+', '+').replace('?:', ':').replace('?@', '@')
+
+
 class SubclassesMixin:
     @classmethod
     def _all_subclasses(cls):
