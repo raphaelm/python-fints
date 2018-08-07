@@ -1,6 +1,8 @@
 import pytest
 from fints.segments import FinTS3Segment, HNHBK3, HNHBS1
-from fints.formals import SegmentHeader, DataElementField, GenericField, NumericField, AlphanumericField
+from fints.formals import SegmentSequence, SegmentHeader, DataElementField, GenericField, NumericField, AlphanumericField
+
+from io import StringIO
 
 def test_metaclass_foo():
     a = HNHBK3()
@@ -79,3 +81,19 @@ def test_find_subclass():
 
     clazz = FinTS3Segment.find_subclass(a)
     assert clazz is HNHBS1
+
+def test_nested_output_evalable():
+    import fints.segments, fints.formals
+
+    a = SegmentSequence([fints.segments.HNHBK3(header=fints.formals.SegmentHeader('HNHBK', 1, 3, None), message_size='000000000428', hbci_version=300, dialogue_id='430711670077=043999659571CN9D=', message_number=2, reference_message=fints.formals.ReferenceMessage(dialogue_id='430711670077=043999659571CN9D=', message_number=2)), fints.segments.HNVSK3(header=fints.formals.SegmentHeader('HNVSK', 998, 3, None), security_profile=fints.formals.SecurityProfile(security_method='PIN', security_method_version=1), security_function='998', security_role='1', security_identification_details=fints.formals.SecurityIdentificationDetails(name_party='2', cid=None, identifier_party='oIm3BlHv6mQBAADYgbPpp+kWrAQA'), security_datetime=fints.formals.SecurityDateTime(datetime_type='1', date=None, time=None), encryption_algorithm=fints.formals.EncryptionAlgorithm(usage_encryption='2', operation_mode='2', encryption_algorithm='13', algorithm_parameter_value=b'00000000', algorithm_parameter_name='5', algorithm_parameter_iv_name='1', algorithm_parameter_iv_value=None), key_name=fints.formals.KeyName(bank_identifier=fints.formals.BankIdentifier(country_identifier='280', bank_code='15050500'), user_id='hermes', key_type='S', key_number=0, key_version=0), compression_function='0', certificate=fints.formals.Certificate(certificate_type=None, certificate_content=None)), fints.segments.HNVSD1(header=fints.formals.SegmentHeader('HNVSD', 999, 1, None), data=SegmentSequence([fints.segments.HNSHK4(header=fints.formals.SegmentHeader('HNSHK', 2, 4, None), security_profile=fints.formals.SecurityProfile(security_method='PIN', security_method_version=1), security_function='999', security_reference='9166926', security_application_area='1', security_role='1', security_identification_details=fints.formals.SecurityIdentificationDetails(name_party='2', cid=None, identifier_party='oIm3BlHv6mQBAADYgbPpp+kWrAQA'), security_reference_number=1, security_datetime=fints.formals.SecurityDateTime(datetime_type='1', date=None, time=None), hash_algorithm=fints.formals.HashAlgorithm(usage_hash='1', hash_algorithm='999', algorithm_parameter_name='1', algorithm_parameter_value=None), signature_algorithm=fints.formals.SignatureAlgorithm(usage_signature='6', signature_algorithm='10', operation_mode='16'), key_name=fints.formals.KeyName(bank_identifier=fints.formals.BankIdentifier(country_identifier='280', bank_code='15050500'), user_id='hermes', key_type='S', key_number=0, key_version=0), certificate=fints.formals.Certificate(certificate_type=None, certificate_content=None)), fints.segments.FinTS3Segment(header=fints.formals.SegmentHeader('HIRMG', 3, 2, None), _additional_data=[['0010', None, 'Nachricht entgegengenommen.'], ['0100', None, 'Dialog beendet.']]), fints.segments.FinTS3Segment(header=fints.formals.SegmentHeader('HNSHA', 4, 2, None), _additional_data=['9166926'])])), fints.segments.HNHBS1(header=fints.formals.SegmentHeader('HNHBS', 5, 1, None), message_number=2)])
+
+    output = StringIO()
+    a.print_nested(stream=output)
+
+    b = eval(output.getvalue())
+    output.close()
+
+    assert len(a.segments) == len(b.segments)
+
+    for s1, s2 in zip(a.segments, b.segments):
+        assert type(s1) == type(s2)
