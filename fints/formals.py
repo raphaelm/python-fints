@@ -118,6 +118,17 @@ class Field:
         with suppress(NotImplementedError):
             self._render_value(value)
 
+    def _check_value_length(self, value):
+        if self.max_length is not None and len(value) > self.max_length:
+            raise ValueError("Value {!r} cannot be rendered: max_length={} exceeded".format(value, self.max_length))
+
+        if self.min_length is not None and len(value) < self.min_length:
+            raise ValueError("Value {!r} cannot be rendered: min_length={} not reached".format(value, self.min_length))
+
+        if self.length is not None and len(value) != self.length:
+            raise ValueError("Value {!r} cannot be rendered: length={} not satisfied".format(value, self.length))
+
+
 class TypedField(Field, SubclassesMixin):
     flat_length = 1
 
@@ -145,6 +156,15 @@ class TypedField(Field, SubclassesMixin):
 class DataElementField(TypedField):
     pass
 
+class FieldRenderFormatStringMixin:
+    FORMAT_STRING = None
+
+    def _render_value(self, value):
+        retval = self.FORMAT_STRING.format(value)
+        self._check_value_length(retval)
+
+        return retval
+
 class ContainerField(TypedField):
     def _check_value(self, value):
         if self.type:
@@ -168,8 +188,10 @@ class ContainerField(TypedField):
 class DataElementGroupField(ContainerField):
     pass
 
-class GenericField(DataElementField):
+class GenericField(FieldRenderFormatStringMixin, DataElementField):
     type = None
+    FORMAT_STRING = "{}"
+
     def _parse_value(self, value):
         warnings.warn("Generic field used for type {!r} value {!r}".format(self.type, value))
         return value
@@ -188,8 +210,9 @@ class GenericGroupField(DataElementGroupField):
             warnings.warn("Generic field used for type {!r} value {!r}".format(self.type, value))
         return value
 
-class TextField(DataElementField):
+class TextField(FieldRenderFormatStringMixin, DataElementField):
     type = 'txt'
+    FORMAT_STRING = "{}"  ## FIXME Restrict CRLF
 
     def _parse_value(self, value): return str(value)
 
@@ -199,8 +222,9 @@ class AlphanumericField(TextField):
 class DTAUSField(DataElementField):
     type = 'dta'
 
-class NumericField(DataElementField):
+class NumericField(FieldRenderFormatStringMixin, DataElementField):
     type = 'num'
+    FORMAT_STRING = "{:d}"
 
     def _parse_value(self, value): 
         _value = str(value)
@@ -208,8 +232,9 @@ class NumericField(DataElementField):
             raise TypeError("Leading zeroes not allowed for value of type 'num': {!r}".format(value))
         return int(_value, 10)
 
-class DigitsField(DataElementField):
+class DigitsField(FieldRenderFormatStringMixin, DataElementField):
     type = 'dig'
+    FORMAT_STRING = "{}"
 
     def _parse_value(self, value): 
         _value = str(value)
@@ -217,11 +242,17 @@ class DigitsField(DataElementField):
             raise TypeError("Only digits allowed for value of type 'dig': {!r}".format(value))
         return _value
 
-class FloatField(DataElementField):
+class FloatField(FieldRenderFormatStringMixin, DataElementField):
     type = 'float'
 
 class BinaryField(DataElementField):
     type = 'bin'
+
+    def _render_value(self, value):
+        retval = bytes(value)
+        self._check_value_length(retval)
+
+        return retval
 
     def _parse_value(self, value): return bytes(value)
 

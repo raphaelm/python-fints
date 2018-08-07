@@ -1,5 +1,5 @@
 import pytest
-from fints.formals import Container, ContainerField, DataElementField, DataElementGroupField, DigitsField, NumericField, Field, SegmentSequence, SegmentHeader
+from fints.formals import Container, ContainerField, DataElementField, DataElementGroupField, DigitsField, NumericField, Field, SegmentSequence, SegmentHeader, AlphanumericField
 
 def test_container_simple():
     class A(Container):
@@ -257,6 +257,26 @@ def test_invalid_spec():
             a = Field()
 
         A(a=123)
+
+def test_parse_restrictions():
+    class A(Container):
+        a = NumericField(min_length=2, max_length=3)
+        b = DigitsField(length=3)
+
+    i1 = A()
+    with pytest.raises(ValueError, match='max_length=3 exceeded'):
+        i1.a = '1234'
+
+    i2 = A(a=123)
+    with pytest.raises(ValueError, match='max_length=3 exceeded'):
+        i2.a = 1234
+
+    with pytest.raises(ValueError, match='length=3 not satisfied'):
+        A(b='01')
+
+    with pytest.raises(ValueError, match='min_length=2 not reached'):
+        A(a=1)
+
 
 def test_sequence_repr():
     s = SegmentSequence()
