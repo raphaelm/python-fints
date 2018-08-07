@@ -277,6 +277,21 @@ def test_parse_restrictions():
     with pytest.raises(ValueError, match='min_length=2 not reached'):
         A(a=1)
 
+def test_unset():
+    class A(Container):
+        a = NumericField()
+
+    class B(Container):
+        b = ContainerField(type=A)
+        c = NumericField()
+
+    assert A().is_unset()
+    assert not A(a=1).is_unset()
+    assert A(a=None).is_unset()
+
+    assert B().is_unset()
+    assert B(b=A()).is_unset()
+    assert not B(c=1).is_unset()
 
 def test_sequence_repr():
     s = SegmentSequence()
@@ -286,4 +301,4 @@ def test_sequence_repr():
 def test_segmentheader_short():
     h = SegmentHeader('HNHBS', 5, 1)
 
-    assert repr(h) == "fints.formals.SegmentHeader('HNHBS', 5, 1, None)"
+    assert repr(h) == "fints.formals.SegmentHeader('HNHBS', 5, 1)"

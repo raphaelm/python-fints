@@ -333,13 +333,37 @@ class Container(metaclass=ContainerMeta):
             setattr(retval, name, value)
         return retval
 
+    def is_unset(self):
+        for name in self._fields.keys():
+            val = getattr(self, name)
+            if isinstance(val, Container):
+                if not val.is_unset():
+                    return False
+            elif val is not None:
+                return False
+        return True
+
+    @property
+    def _repr_items(self):
+        for name, field in self._fields.items():
+            val = getattr(self, name)
+            if not field.required:
+                if isinstance(val, Container):
+                    if val.is_unset():
+                        continue
+                elif val is None:
+                    continue
+            yield (name, val)
+
+        if self._additional_data:
+            yield ("_additional_data", self._additional_data)
+
     def __repr__(self):
-        return "{}{}({})".format(
-            "{}.".format(self.__class__.__module__),
+        return "{}.{}({})".format(
+            self.__class__.__module__,
             self.__class__.__name__,
             ", ".join(
-                "{}={!r}".format(name, getattr(self, name))
-                for name in list(self._fields.keys())+( ['_additional_data'] if self._additional_data else [] )
+                "{}={!r}".format(name, val) for (name, val) in self._repr_items
             )
         )
 
@@ -351,7 +375,7 @@ class Container(metaclass=ContainerMeta):
             ( (prefix + level*indent) if first_level_indent else "")
             + "{}.{}(".format(self.__class__.__module__, self.__class__.__name__) + "\n"
         )
-        for name, field in self._fields.items():
+        for name, value in self._repr_items:
             val = getattr(self, name)
             if not hasattr( getattr(val, 'print_nested', None), '__call__'):
                 stream.write(
@@ -362,11 +386,6 @@ class Container(metaclass=ContainerMeta):
                     (prefix + (level+1)*indent) + "{} = ".format(name)
                 )
                 val.print_nested(stream=stream, level=level+2, indent=indent, prefix=prefix, first_level_indent=False, trailer=",")
-        if self._additional_data:
-            stream.write(
-                (prefix + (level+1)*indent) + "_additional_data=\n" +
-                (prefix + (level+2)*indent) + "{!r},\n".format(self._additional_data)
-            )
         stream.write( (prefix + level*indent) + "){}\n".format(trailer) )
 
 class ShortReprMixin:
@@ -375,9 +394,8 @@ class ShortReprMixin:
             "{}.".format(self.__class__.__module__),
             self.__class__.__name__,
             ", ".join(
-                [ "{!r}".format(getattr(self, name))
-                    for name in list(self._fields.keys())] +
-                ( ['_additional_data={!r}'.format(self._additional_data)] if self._additional_data else [] )
+                ("{!r}".format(value) if not name.startswith("_") else "{}={!r}".format(name, value))
+                for (name, value) in self._repr_items
             )
         )
 
