@@ -1,5 +1,5 @@
 import pytest
-from fints.formals import Container, ContainerField, DataElementField, DataElementGroupField, DigitsField, NumericField, Field, SegmentSequence
+from fints.formals import Container, ContainerField, DataElementField, DataElementGroupField, DigitsField, NumericField, Field, SegmentSequence, SegmentHeader
 
 def test_container_simple():
     class A(Container):
@@ -262,3 +262,8 @@ def test_sequence_repr():
     s = SegmentSequence()
 
     assert repr(s) == 'SegmentSequence([])'
+
+def test_segmentheader_short():
+    h = SegmentHeader('HNHBS', 5, 1)
+
+    assert repr(h) == "fints.formals.SegmentHeader('HNHBS', 5, 1, None)"

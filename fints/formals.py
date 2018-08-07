@@ -338,11 +338,28 @@ class Container(metaclass=ContainerMeta):
             )
         stream.write( (prefix + level*indent) + "){}\n".format(trailer) )
 
+class ShortReprMixin:
+    def __repr__(self):
+        return "{}{}({})".format(
+            "{}.".format(self.__class__.__module__),
+            self.__class__.__name__,
+            ", ".join(
+                [ "{!r}".format(getattr(self, name))
+                    for name in list(self._fields.keys())] +
+                ( ['_additional_data={!r}'.format(self._additional_data)] if self._additional_data else [] )
+            )
+        )
+
+    def print_nested(self, stream=None, level=0, indent="    ", prefix="", first_level_indent=True, trailer=""):
+        stream.write(
+            ( (prefix + level*indent) if first_level_indent else "")
+            + "{!r}{}\n".format(self, trailer)
+        )
 
 class DataElementGroup(Container):
     pass
 
-class SegmentHeader(DataElementGroup):
+class SegmentHeader(ShortReprMixin, DataElementGroup):
     type = AlphanumericField(max_length=6)
     number = NumericField(max_length=3)
     version = NumericField(max_length=3)
