@@ -64,6 +64,23 @@ class ValueList:
     def __repr__(self):
         return "{!r}".format(list(self))
 
+    def print_nested(self, stream=None, level=0, indent="    ", prefix="", first_level_indent=True, trailer=""):
+        import sys
+        stream = stream or sys.stdout
+
+        stream.write(
+            ( (prefix + level*indent) if first_level_indent else "")
+            + "[\n"
+        )
+        for val in self:
+            if not hasattr( getattr(val, 'print_nested', None), '__call__'):
+                stream.write(
+                    (prefix + (level+1)*indent) + "{!r},\n".format(val)
+                )
+            else:
+                val.print_nested(stream=stream, level=level+2, indent=indent, prefix=prefix, trailer=",")
+        stream.write( (prefix + level*indent) + "]{}\n".format(trailer) )
+
 class Field:
     def __init__(self, length=None, min_length=None, max_length=None, count=None, min_count=None, max_count=None, required=True):
         if length is not None and (min_length is not None or max_length is not None):
@@ -368,6 +385,9 @@ class Container(metaclass=ContainerMeta):
                 if isinstance(val, Container):
                     if val.is_unset():
                         continue
+                elif isinstance(val, ValueList):
+                    if len(val) == 0:
+                        continue
                 elif val is None:
                     continue
             yield (name, val)
@@ -492,4 +512,4 @@ class Response(DataElementGroup):
     response_code = DataElementField(type='dig', length=4)
     reference_element = DataElementField(type='an', max_length=7)
     response_text = DataElementField(type='an', max_length=80)
-    parameters = DataElementField(type='an', max_length=35, max_count=10)
+    parameters = DataElementField(type='an', max_length=35, max_count=10, required=False)
