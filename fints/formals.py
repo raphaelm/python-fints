@@ -134,6 +134,7 @@ class Field:
 
 class TypedField(Field, SubclassesMixin):
     flat_length = 1
+    flat_length_max = 1
 
     def __new__(cls, *args, **kwargs):
         target_cls = None
@@ -185,6 +186,19 @@ class ContainerField(TypedField):
             if field.count is None:
                 raise TypeError("Cannot compute flat length of field {}.{} with variable count".format(self.__class__.__name__, name))
             result = result + field.count * field.flat_length
+        return result
+
+    @property
+    def flat_length_max(self):
+        result = 0
+        for name, field in self.type._fields.items():
+            # Note: We're *not* recursing into flat_length_max, because we don't want variable count fields at deeper levels
+            if field.count is not None:
+                result = result + field.count * field.flat_length
+            elif field.max_count is not None:
+                result = result + field.max_count * field.flat_length
+            else:
+                raise TypeError("Cannot compute max flat length of field {}.{} without count and max_count".format(self.__class__.__name__, name))
         return result
     
 

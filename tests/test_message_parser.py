@@ -48,14 +48,14 @@ def test_parse_counted():
         a = NumericField(max_count=3)
 
     m2 = FinTS3Parser().parse_message(b"ITST:1:2+1+2+3'")
-    assert m1.segments[0].a[2] == 3
+    assert m2.segments[0].a[2] == 3
 
-    with pytest.raises(IndexError):
-        FinTS3Parser().parse_message(b"ITST:1:2+1+2+3+4'")
+    m3 = FinTS3Parser().parse_message(b"ITST:1:2+1+2+3+4'")
+    assert m3.segments[0]._additional_data == ['4']
 
-    m = FinTS3Parser().parse_message(b"ITST:1:2+1+2'")
-    assert len(m2.segments[0].a) == 2
-    assert m2.segments[0].a[1] == 2
+    m4 = FinTS3Parser().parse_message(b"ITST:1:2+1+2'")
+    assert len(m4.segments[0].a) == 2
+    assert m4.segments[0].a[1] == 2
 
 
 def test_parse_HIRMG2():

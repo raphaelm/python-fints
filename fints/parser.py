@@ -116,60 +116,70 @@ class FinTS3Parser:
         seg = clazz()
 
         data = iter(segment)
-        for name, field in seg._fields.items():
-            try:
-                val = next(data)
-            except StopIteration:
-                if field.required:
-                    raise ValueError("Required field {}.{} was not present".format(clazz.__name__, name))
+        for number, (name, field) in enumerate(seg._fields.items()):
+            vals = self.parse_repeat(field, data, number == len(seg._fields)-1)
+            if field.count == 1:
+                if len(vals):
+                    setattr(seg, name, vals[0])
+                else:
+                    if field.required:
+                        raise ValueError("Required field {}.{} was not present".format(seg.__class__.__name__, name))
             else:
-                deg = self.parse_n_deg(field, val)
-                setattr(seg, name, deg)
+                setattr(seg, name, vals)
+
         seg._additional_data = list(data)
 
         return seg
 
-    def parse_n_deg(self, field, data):
+    def parse_repeat(self, field, data_i, is_last):
+        retval = []
+
+        if field.count == 1:
+            try:
+                val = next(data_i)
+            except StopIteration:
+                pass
+            else:
+                retval.append( self.parse_n_deg(field, val) )
+        else:
+            for i in range(field.count if field.count is not None else field.max_count):
+                try:
+                    val = next(data_i)
+                except StopIteration:
+                    break
+                else:
+                    retval.append(self.parse_n_deg(field, val, is_last))
+
+        return retval
+
+
+    def parse_n_deg(self, field, data, is_last=False):
         if not isinstance(data, Iterable) or isinstance(data, (str, bytes)):
             data = [data]
 
         data_i = iter(data)
-        field_index = 0
-        field_length = field.flat_length
+        if is_last:
+            field_length = field.flat_length_max
+        else:
+            field_length = field.flat_length
 
-        retval = []
         eod = False
 
-        while not eod:
-            vals = []
-            try:
-                for x in range(field_length):
-                    vals.append(next(data_i))
-            except StopIteration:
-                eod = True
+        vals = []
+        try:
+            for x in range(field_length):
+                vals.append(next(data_i))
+        except StopIteration:
+            pass
 
-            if field.count == 1:
-                if isinstance(field, DataElementField):
-                    if not len(vals):
-                        return
-                    return vals[0]
-                elif isinstance(field, DataElementGroupField):
-                    return self.parse_deg(field.type, vals)
-                else:
-                    raise Error("Internal error")
-                break
-
-            if field_index >= (field.count if field.count is not None else len(data) // field_length):
-                break
-
-            if isinstance(field, DataElementField):
-                retval.append(vals[0] if len(vals) else None)
-            elif isinstance(field, DataElementGroupField):
-                retval.append(self.parse_deg(field.type, vals))
-            else:
-                raise Error("Internal error")
-
-        return retval
+        if isinstance(field, DataElementField):
+            if not len(vals):
+                return
+            return vals[0]
+        elif isinstance(field, DataElementGroupField):
+            return self.parse_deg(field.type, vals)
+        else:
+            raise Error("Internal error")
 
     def parse_deg(self, clazz, vals):
         retval = clazz()
