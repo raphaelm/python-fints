@@ -1,6 +1,6 @@
 import re
 
-from fints.formals import Container, ContainerMeta, SegmentHeader, DataElementGroupField, DataElementField, ReferenceMessage, SegmentSequenceField, SecurityProfile, SecurityIdentificationDetails, SecurityDateTime, EncryptionAlgorithm, KeyName, Certificate, HashAlgorithm, SignatureAlgorithm, UserDefinedSignature, Response
+from fints.formals import Container, ContainerMeta, SegmentHeader, DataElementGroupField, DataElementField, ReferenceMessage, SegmentSequenceField, SecurityProfile, SecurityIdentificationDetails, SecurityDateTime, EncryptionAlgorithm, KeyName, Certificate, HashAlgorithm, SignatureAlgorithm, UserDefinedSignature, Response, AccountInformation, AccountLimit, AllowedTransaction
 
 from fints.utils import classproperty, SubclassesMixin
 
@@ -106,3 +106,23 @@ class HIRMG2(FinTS3Segment):
 
 class HIRMS2(FinTS3Segment):
     response = DataElementGroupField(type=Response, min_count=1, max_count=99)
+
+class HIUPA4(FinTS3Segment):
+    user_identifier = DataElementField(type='id')
+    upd_version = DataElementField(type='num', max_length=3)
+    upd_usage = DataElementField(type='code', length=1)
+    username = DataElementField(type='an', max_length=35, required=False)
+    extension = DataElementField(type='an', max_length=2048, required=False)
+
+class HIUPD6(FinTS3Segment):
+    account_information = DataElementGroupField(type=AccountInformation)
+    iban = DataElementField(type='an', max_length=34)
+    customer_id = DataElementField(type='id')
+    account_type = DataElementField(type='num', max_length=2)
+    account_currency = DataElementField(type='cur')
+    name_account_owner_1 = DataElementField(type='an', max_length=27)
+    name_account_owner_2 = DataElementField(type='an', max_length=27, required=False)
+    account_product_name = DataElementField(type='an', max_length=30, required=False)
+    account_limit = DataElementGroupField(type=AccountLimit, required=False)
+    allowed_transactions = DataElementGroupField(type=AllowedTransaction, max_count=999, required=False)
+    extension = DataElementField(type='an', max_length=2048, required=False)

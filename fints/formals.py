@@ -513,3 +513,20 @@ class Response(DataElementGroup):
     reference_element = DataElementField(type='an', max_length=7)
     response_text = DataElementField(type='an', max_length=80)
     parameters = DataElementField(type='an', max_length=35, max_count=10, required=False)
+
+class AccountInformation(DataElementGroup):
+    account_number = DataElementField(type='id')
+    subaccount_number = DataElementField(type='id')
+    bank_identifier = DataElementGroupField(type=BankIdentifier)
+
+class AccountLimit(DataElementGroup):
+    limit_type = DataElementField(type='code', length=1)
+    limit_amount = DataElementField(type='btg', required=False)
+    limit_days = DataElementField(type='num', max_length=3, required=False)
+
+class AllowedTransaction(DataElementGroup):
+    transaction = DataElementField(type='an', max_length=6)
+    required_signatures = DataElementField(type='num', max_length=2)
+    limit_type = DataElementField(type='code', length=1, required=False)
+    limit_amount = DataElementField(type='btg', required=False)
+    limit_days = DataElementField(type='num', max_length=3, required=False)
