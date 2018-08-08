@@ -29,10 +29,11 @@ def test_parse_complicated():
     m = FinTS3Parser().parse_message(COMPLICATED_EXAMPLE)
     assert len(m.segments) == 4
     assert m.segments[3].__class__.__name__ == "HNHBS1"
+    m.print_nested()
 
 def test_parse_counted():
     from fints.segments import FinTS3Segment
-    from fints.formals import NumericField
+    from fints.formals import NumericField, Container, ContainerField
 
     class ITST1(FinTS3Segment):
         a = NumericField(count=3)
@@ -56,6 +57,23 @@ def test_parse_counted():
     m4 = FinTS3Parser().parse_message(b"ITST:1:2+1+2'")
     assert len(m4.segments[0].a) == 2
     assert m4.segments[0].a[1] == 2
+
+    class InnerTest(Container):
+        a = NumericField(max_count=3)
+
+    class ITST3(FinTS3Segment):
+        b = ContainerField(type=InnerTest, max_count=99)
+
+
+    m5 = FinTS3Parser().parse_message(b"ITST:1:3+12:42+345+61:62:63'")
+    m5.print_nested()
+    assert m5.segments[0].b[0].a[0] == 12
+    assert m5.segments[0].b[0].a[1] == 42
+    assert m5.segments[0].b[0].a[2] is None
+    assert m5.segments[0].b[1].a[0] == 345
+    assert m5.segments[0].b[2].a[0] == 61
+    assert m5.segments[0].b[2].a[1] == 62
+    assert m5.segments[0].b[2].a[2] == 63
 
 
 def test_parse_HIRMG2():

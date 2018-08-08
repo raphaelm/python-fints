@@ -90,3 +90,5 @@ class HNSHA2(FinTS3Segment):
 class HIRMG2(FinTS3Segment):
     response = DataElementGroupField(type=Response, min_count=1, max_count=99)
 
+class HIRMS2(FinTS3Segment):
+    response = DataElementGroupField(type=Response, min_count=1, max_count=99)

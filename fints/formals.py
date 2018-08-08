@@ -466,8 +466,8 @@ class SecurityIdentificationDetails(DataElementGroup):
 
 class SecurityDateTime(DataElementGroup):
     datetime_type = DataElementField(type='code', max_length=3)
-    date = DataElementField(type='dat')
-    time = DataElementField(type='tim')
+    date = DataElementField(type='dat', required=False)
+    time = DataElementField(type='tim', required=False)
 
 class EncryptionAlgorithm(DataElementGroup):
     usage_encryption = DataElementField(type='code', max_length=3)
@@ -476,7 +476,7 @@ class EncryptionAlgorithm(DataElementGroup):
     algorithm_parameter_value = DataElementField(type='bin', max_length=512)
     algorithm_parameter_name = DataElementField(type='code', max_length=3)
     algorithm_parameter_iv_name = DataElementField(type='code', max_length=3)
-    algorithm_parameter_iv_value = DataElementField(type='bin', max_length=512)
+    algorithm_parameter_iv_value = DataElementField(type='bin', max_length=512, required=False)
 
 class HashAlgorithm(DataElementGroup):
     usage_hash = DataElementField(type='code', max_length=3)
