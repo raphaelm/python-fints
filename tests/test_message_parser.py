@@ -30,7 +30,35 @@ def test_parse_complicated():
     assert len(m.segments) == 4
     assert m.segments[3].__class__.__name__ == "HNHBS1"
 
-def test_HIRMG2_parse():
+def test_parse_counted():
+    from fints.segments import FinTS3Segment
+    from fints.formals import NumericField
+
+    class ITST1(FinTS3Segment):
+        a = NumericField(count=3)
+
+    m1 = FinTS3Parser().parse_message(b"ITST:1:1+1+2+3'")
+    assert m1.segments[0].header.type == 'ITST'
+    assert len(m1.segments[0].a) == 3
+    assert m1.segments[0].a[0] == 1
+    assert m1.segments[0].a[1] == 2
+    assert m1.segments[0].a[2] == 3
+
+    class ITST2(FinTS3Segment):
+        a = NumericField(max_count=3)
+
+    m2 = FinTS3Parser().parse_message(b"ITST:1:2+1+2+3'")
+    assert m1.segments[0].a[2] == 3
+
+    with pytest.raises(IndexError):
+        FinTS3Parser().parse_message(b"ITST:1:2+1+2+3+4'")
+
+    m = FinTS3Parser().parse_message(b"ITST:1:2+1+2'")
+    assert len(m2.segments[0].a) == 2
+    assert m2.segments[0].a[1] == 2
+
+
+def test_parse_HIRMG2():
     d = b"HIRMG:3:2+0010::Nachricht entgegengenommen.+0100::Dialog beendet.'"
     m = FinTS3Parser().parse_message(d)
     
