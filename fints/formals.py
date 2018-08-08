@@ -51,7 +51,17 @@ class ValueList:
         if self._parent.count is not None:
             return self._parent.count
         else:
-            retval = len(self._data)
+            retval = 0
+            for i, val in enumerate(self._data):
+                if isinstance(val, Container):
+                    if val.is_unset():
+                        continue
+                elif isinstance(val, ValueList):
+                    if len(val) == 0:
+                        continue
+                elif val is None:
+                    continue
+                retval = i+1
             if self._parent.min_count is not None:
                 if self._parent.min_count > retval:
                     retval = self._parent.min_count

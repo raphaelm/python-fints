@@ -90,7 +90,7 @@ def test_container_count_variable_1():
     assert i1.a[1] is None
     assert i1.a[3] is None
 
-    assert len(i1.a) == 4
+    assert len(i1.a) == 2
 
     with pytest.raises(IndexError):
         i1.a[5]
@@ -114,7 +114,7 @@ def test_container_count_variable_1():
 
     assert i1.a[4] is None
 
-    assert len(i1.a) == 5
+    assert len(i1.a) == 4
 
 def test_container_count_variable_2():
     class A(Container):
