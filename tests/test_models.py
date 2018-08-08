@@ -10,6 +10,24 @@ def test_metaclass_foo():
     assert list(a._fields) == ['header', 'message_size', 'hbci_version', 'dialogue_id', 'message_number', 'reference_message']
     assert a._fields['header']
 
+def test_fints3_only_de_and_deg():
+    from fints.formals import Field, Container, DataElementGroupField, ContainerField
+
+    with pytest.raises(TypeError, match="b=.* is not DataElementField or DataElementGroupField"):
+        class Foo(FinTS3Segment):
+            a = NumericField()
+            b = Field()
+
+    class A(Container):
+        a = Field()
+
+    class B(Container):
+        b = DataElementGroupField(type=A)
+
+    with pytest.raises(TypeError, match="a=.* is not DataElementField or DataElementGroupField"):
+        class Foo(FinTS3Segment):
+            c = DataElementGroupField(type=B)
+
 def test_descriptor_subclassing():
     a = DataElementField(type='an')
     assert isinstance(a, AlphanumericField)
