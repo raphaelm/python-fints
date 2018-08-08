@@ -1,6 +1,6 @@
 import re
 
-from fints.formals import Container, SegmentHeader, DataElementGroupField, DataElementField, ReferenceMessage, SegmentSequenceField, SecurityProfile, SecurityIdentificationDetails, SecurityDateTime, EncryptionAlgorithm, KeyName, Certificate, HashAlgorithm, SignatureAlgorithm
+from fints.formals import Container, SegmentHeader, DataElementGroupField, DataElementField, ReferenceMessage, SegmentSequenceField, SecurityProfile, SecurityIdentificationDetails, SecurityDateTime, EncryptionAlgorithm, KeyName, Certificate, HashAlgorithm, SignatureAlgorithm, UserDefinedSignature, Response
 
 from fints.utils import classproperty, SubclassesMixin
 
@@ -82,6 +82,11 @@ class HNSHK4(FinTS3Segment):
     key_name = DataElementGroupField(type=KeyName)
     certificate = DataElementGroupField(type=Certificate, required=False)
 
+class HNSHA2(FinTS3Segment):
+    security_reference = DataElementField(type='an', max_length=14)
+    validation_result = DataElementField(type='bin', max_length=512, required=False)
+    user_defined_signature = DataElementGroupField(type=UserDefinedSignature, required=False)
 
-
+class HIRMG2(FinTS3Segment):
+    response = DataElementGroupField(type=Response, min_count=1, max_count=99)
 

@@ -61,6 +61,9 @@ class ValueList:
         for i in range(len(self)):
             yield self[i]
 
+    def __repr__(self):
+        return "{!r}".format(list(self))
+
 class Field:
     def __init__(self, length=None, min_length=None, max_length=None, count=None, min_count=None, max_count=None, required=True):
         if length is not None and (min_length is not None or max_length is not None):
@@ -466,3 +469,13 @@ class KeyName(DataElementGroup):
 class Certificate(DataElementGroup):
     certificate_type = DataElementField(type='code')
     certificate_content = DataElementField(type='bin', max_length=4096)
+
+class UserDefinedSignature(DataElementGroup):
+    pin = DataElementField(type='an', max_length=99)
+    tan = DataElementField(type='an', max_length=99, required=False)
+
+class Response(DataElementGroup):
+    response_code = DataElementField(type='dig', length=4)
+    reference_element = DataElementField(type='an', max_length=7)
+    response_text = DataElementField(type='an', max_length=80)
+    parameters = DataElementField(type='an', max_length=35, max_count=10)

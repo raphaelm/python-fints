@@ -30,6 +30,16 @@ def test_parse_complicated():
     assert len(m.segments) == 4
     assert m.segments[3].__class__.__name__ == "HNHBS1"
 
+def test_HIRMG2_parse():
+    d = b"HIRMG:3:2+0010::Nachricht entgegengenommen.+0100::Dialog beendet.'"
+    m = FinTS3Parser().parse_message(d)
+    
+    seg = m.segments[0]
+    assert seg.header.type == 'HIRMG'
+    assert seg.response[0].response_code == '0010'
+    assert seg.response[1].response_code == '0100'
+    assert len(seg.response) == 2
+
 def test_invalid():
     message1 = rb"""12"""
 
