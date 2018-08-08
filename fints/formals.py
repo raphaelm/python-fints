@@ -482,7 +482,7 @@ class HashAlgorithm(DataElementGroup):
     usage_hash = DataElementField(type='code', max_length=3)
     hash_algorithm = DataElementField(type='code', max_length=3)
     algorithm_parameter_name = DataElementField(type='code', max_length=3)
-    algorithm_parameter_value = DataElementField(type='bin', max_length=512)
+    algorithm_parameter_value = DataElementField(type='bin', max_length=512, required=False)
 
 class SignatureAlgorithm(DataElementGroup):
     usage_signature = DataElementField(type='code', max_length=3)

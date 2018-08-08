@@ -17,6 +17,17 @@ from .formals import DataElementField, DataElementGroupField, SegmentSequence
 #  are available. In general, a second order DEG must have fixed length but
 #  may have a variable repeat count if it is at the end of the segment
 #
+#  Parsing:
+#    The message after detokenization/exploding is up to three levels deep:
+#    1. level: Sequence of Segments
+#    2. level: Sequence of Data Elements or Data Element Groups
+#    3. level: Flat sequence of possibly nested Data Element or Data Element Groups
+# 
+#    On level 2 each item can be either a single item (a single Data Element), or
+#    a sequence. A sequence on level 2 can be either a repeated Data Element, or
+#    a flat representation of a Data Element Group or repeated Data Element Group.
+#    An item on level 3 is always a Data Element, but which Data Element it is depends
+#    on which fields have been consumed in the sequence before it.
 
 TOKEN_RE = re.compile(rb"""
                         ^(?:  (?: \? (?P<ECHAR>.) )
@@ -116,78 +127,100 @@ class FinTS3Parser:
         seg = clazz()
 
         data = iter(segment)
-        for number, (name, field) in enumerate(seg._fields.items()):
-            vals = self.parse_repeat(field, data, number == len(seg._fields)-1)
-            if field.count == 1:
-                if len(vals):
-                    setattr(seg, name, vals[0])
-                else:
+        for name, field in seg._fields.items():
+            repeat = field.count != 1
+            constructed = isinstance(field, DataElementGroupField)
+            
+            if not repeat:
+                try:
+                    val = next(data)
+                except StopIteration:
                     if field.required:
                         raise ValueError("Required field {}.{} was not present".format(seg.__class__.__name__, name))
+                    break
+
+                if not constructed:
+                    setattr(seg, name, val)
+                else:
+                    deg = self.parse_deg_noniter(field.type, val, field.required)
+                    setattr(seg, name, deg)
             else:
-                setattr(seg, name, vals)
+                i = 0
+                while True:
+                    try:
+                        val = next(data)
+                    except StopIteration:
+                        break
+
+                    if not constructed:
+                        getattr(seg, name)[i] = val
+                    else:
+                        deg = self.parse_deg_noniter(field.type, val, field.required)
+                        getattr(seg, name)[i] = deg
+
+                    i = i + 1
+
+                    if field.count is not None and i >= field.count:
+                        break
+                    if field.max_count is not None and i >= field.max_count:
+                        break
 
         seg._additional_data = list(data)
 
         return seg
 
-    def parse_repeat(self, field, data_i, is_last):
-        retval = []
-
-        if field.count == 1:
-            try:
-                val = next(data_i)
-            except StopIteration:
-                pass
-            else:
-                retval.append( self.parse_n_deg(field, val) )
-        else:
-            for i in range(field.count if field.count is not None else field.max_count):
-                try:
-                    val = next(data_i)
-                except StopIteration:
-                    break
-                else:
-                    retval.append(self.parse_n_deg(field, val, is_last))
-
-        return retval
-
-
-    def parse_n_deg(self, field, data, is_last=False):
+    def parse_deg_noniter(self, clazz, data, required):
         if not isinstance(data, Iterable) or isinstance(data, (str, bytes)):
             data = [data]
 
         data_i = iter(data)
-        if is_last:
-            field_length = field.flat_length_max
-        else:
-            field_length = field.flat_length
 
-        eod = False
+        retval = self.parse_deg(clazz, data_i, required)
 
-        vals = []
-        try:
-            for x in range(field_length):
-                vals.append(next(data_i))
-        except StopIteration:
-            pass
+        remainder = list(data_i)
+        if remainder:
+            raise ValueError("Unparsed data {!r} after parsing {!r}".format(remainder, clazz))
 
-        if isinstance(field, DataElementField):
-            if not len(vals):
-                return
-            return vals[0]
-        elif isinstance(field, DataElementGroupField):
-            return self.parse_deg(field.type, vals)
-        else:
-            raise Error("Internal error")
+        return retval
 
-    def parse_deg(self, clazz, vals):
+
+    def parse_deg(self, clazz, data_i, required=True):
         retval = clazz()
 
-        data_i = iter(vals)
-        for name, field in retval._fields.items():
-            deg = self.parse_n_deg(field, data_i)
-            setattr(retval, name, deg)
+        for number, (name, field) in enumerate(retval._fields.items()):
+            repeat = field.count != 1
+            constructed = isinstance(field, DataElementGroupField)
+
+            if not repeat:
+                if not constructed:
+                    try:
+                        setattr(retval, name, next(data_i))
+                    except StopIteration:
+                        if required and field.required:
+                            raise ValueError("Required field {}.{} was not present".format(retval.__class__.__name__, name))
+                        break
+                else:
+                    deg = self.parse_deg(field.type, data_i, required and field.required)
+                    setattr(retval, name, deg)
+            else:
+                i = 0
+                while True:
+                    if not constructed:
+                        try:
+                            getattr(retval, name)[i] = next(data_i)
+                        except StopIteration:
+                            break
+
+                    else:
+                        deg = self.parse_deg(field.type, data_i, required and field.required)
+                        getattr(retval, name)[i] = deg
+
+                    i = i + 1
+
+                    if field.count is not None and i >= field.count:
+                        break
+                    if field.max_count is not None and i >= field.max_count:
+                        break
 
         return retval
 
