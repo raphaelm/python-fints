@@ -167,13 +167,12 @@ class TypedField(Field, SubclassesMixin):
     def __new__(cls, *args, **kwargs):
         target_cls = None
         fallback_cls = None
-        if 'type' in kwargs:
-            for subcls in cls._all_subclasses():
-                if getattr(subcls, 'type', '') is None:
-                    fallback_cls = subcls
-                if getattr(subcls, 'type', None) == kwargs['type']:
-                    target_cls = subcls
-                    break
+        for subcls in cls._all_subclasses():
+            if getattr(subcls, 'type', '') is None:
+                fallback_cls = subcls
+            if getattr(subcls, 'type', None) == kwargs.get('type', None):
+                target_cls = subcls
+                break
         if target_cls is None and fallback_cls is not None and issubclass(fallback_cls, cls):
             target_cls = fallback_cls
         retval = object.__new__(target_cls or cls)
