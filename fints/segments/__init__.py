@@ -133,22 +133,17 @@ class HISYN4(FinTS3Segment):
     security_reference_signature_key = DataElementField(type='num', max_length=16, required=False)
     security_reference_digital_signature = DataElementField(type='num', max_length=16, required=False)
 
-
-class HITANS1(FinTS3Segment):
+class ParameterSegment(FinTS3Segment):
     max_number_tasks = DataElementField(type='num', max_length=3)
     min_number_signatures = DataElementField(type='num', length=1)
     security_class = DataElementField(type='num', length=1)
-    parameters_twostep_tan = DataElementGroupField(type=ParameterTwostepTAN1)
 
-class HITANS3(FinTS3Segment):
-    max_number_tasks = DataElementField(type='num', max_length=3)
-    min_number_signatures = DataElementField(type='num', length=1)
-    security_class = DataElementField(type='num', length=1)
-    parameters_twostep_tan = DataElementGroupField(type=ParameterTwostepTAN3)
+class HITANS1(ParameterSegment):
+    parameters = DataElementGroupField(type=ParameterTwostepTAN1)
 
-class HIPINS1(FinTS3Segment):
-    max_number_tasks = DataElementField(type='num', max_length=3)
-    min_number_signatures = DataElementField(type='num', length=1)
-    security_class = DataElementField(type='num', length=1)
-    parameters_pintan = DataElementGroupField(type=ParameterPinTan)
+class HITANS3(ParameterSegment):
+    parameters = DataElementGroupField(type=ParameterTwostepTAN3)
+
+class HIPINS1(ParameterSegment):
+    parameters = DataElementGroupField(type=ParameterPinTan)
 
