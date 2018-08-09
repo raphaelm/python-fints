@@ -331,4 +331,5 @@ def test_container_generic():
 
     assert i1.a
 
-    i2 = A(a=[])
+    with pytest.warns(UserWarning, match=r'Generic field used for type None value \[\]'):
+        i2 = A(a=[])

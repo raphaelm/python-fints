@@ -275,6 +275,7 @@ class DigitsField(FieldRenderFormatStringMixin, DataElementField):
 
 class FloatField(FieldRenderFormatStringMixin, DataElementField):
     type = 'float'
+    ## FIXME: Not implemented, no one uses this?
 
 class BinaryField(DataElementField):
     type = 'bin'
@@ -287,6 +288,56 @@ class BinaryField(DataElementField):
 
     def _parse_value(self, value): return bytes(value)
 
+class FixedLengthMixin:
+    FIXED_LENGTH = [None, None, None]
+
+    def __init__(self, *args, **kwargs):
+        for i, a in enumerate(('length', 'min_length', 'max_length')):
+            kwargs[a] = self.FIXED_LENGTH[i] if len(self.FIXED_LENGTH) > i else None
+
+        super().__init__(*args, **kwargs)
+
+class IDField(FixedLengthMixin, AlphanumericField):
+    type = 'id'
+    FIXED_LENGTH = [None, None, 30]
+
+class BooleanField(FixedLengthMixin, AlphanumericField):
+    type = 'jn'
+    FIXED_LENGTH = [1]
+
+    def _render_field(self, value):
+        return "J" if value else "N"
+
+    def _parse_field(self, value):
+        if value is None:
+            return None
+        if value == "J":
+            return True
+        elif value == "N":
+            return False
+        else:
+            raise ValueError("Invalid value {!r} for BooleanField".format(value))
+
+class CodeField(AlphanumericField):
+    type = 'code'
+
+    ## FIXME: Not further implemented, might want to use Enums
+
+class CountryField(FixedLengthMixin, DigitsField):
+    type = 'ctr'
+    FIXED_LENGTH = [3]
+
+class CurrencyField(FixedLengthMixin, AlphanumericField):
+    type = 'cur'
+    FIXED_LENGTH = [3]
+
+class DateField(FixedLengthMixin, NumericField):
+    type = 'dat'
+    FIXED_LENGTH = [8]
+
+class TimeField(FixedLengthMixin, DigitsField):
+    type = 'tim'
+    FIXED_LENGTH = [6]
 
 class SegmentSequence:
     def __init__(self, segments = None):
