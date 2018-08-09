@@ -1,7 +1,7 @@
-from . import FinTS3Segment
+from . import FinTS3SegmentOLD
 
 
-class HKSAL(FinTS3Segment):
+class HKSAL(FinTS3SegmentOLD):
     """
     HKSAL (Konto Saldo anfordern)
     Section C.2.1.2

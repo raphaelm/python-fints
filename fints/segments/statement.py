@@ -1,8 +1,8 @@
 from fints.utils import fints_escape
-from . import FinTS3Segment
+from . import FinTS3SegmentOLD
 
 
-class HKKAZ(FinTS3Segment):
+class HKKAZ(FinTS3SegmentOLD):
     """
     HKKAZ (Kontoumsätze)
 

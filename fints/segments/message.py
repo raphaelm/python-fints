@@ -1,10 +1,10 @@
 import time
 
 from fints.utils import fints_escape
-from . import FinTS3Segment
+from . import FinTS3SegmentOLD
 
 
-class HNHBK(FinTS3Segment):
+class HNHBK(FinTS3SegmentOLD):
     """
     HNHBK (Nachrichtenkopf)
     Section B.5.2
@@ -28,7 +28,7 @@ class HNHBK(FinTS3Segment):
         super().__init__(1, data)
 
 
-class HNSHK(FinTS3Segment):
+class HNSHK(FinTS3SegmentOLD):
     """
     HNSHK (Signaturkopf)
     Section B.5.1
@@ -57,7 +57,7 @@ class HNSHK(FinTS3Segment):
         super().__init__(segno, data)
 
 
-class HNVSK(FinTS3Segment):
+class HNVSK(FinTS3SegmentOLD):
     """
     HNVSK (Verschlüsslungskopf)
     Section B.5.3
@@ -82,7 +82,7 @@ class HNVSK(FinTS3Segment):
         super().__init__(segno, data)
 
 
-class HNVSD(FinTS3Segment):
+class HNVSD(FinTS3SegmentOLD):
     """
     HNVSD (Verschlüsselte Daten)
     Section B.5.4
@@ -104,7 +104,7 @@ class HNVSD(FinTS3Segment):
         ]
 
 
-class HNSHA(FinTS3Segment):
+class HNSHA(FinTS3SegmentOLD):
     """
     HNSHA (Signaturabschluss)
     Section B.5.2
@@ -129,7 +129,7 @@ class HNSHA(FinTS3Segment):
         super().__init__(segno, data)
 
 
-class HNHBS(FinTS3Segment):
+class HNHBS(FinTS3SegmentOLD):
     """
     HNHBS (Nachrichtenabschluss)
     Section B.5.3

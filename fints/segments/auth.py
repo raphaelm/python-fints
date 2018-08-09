@@ -1,8 +1,8 @@
 from fints.utils import fints_escape
-from . import FinTS3Segment
+from . import FinTS3SegmentOLD
 
 
-class HKIDN(FinTS3Segment):
+class HKIDN(FinTS3SegmentOLD):
     """
     HKIDN (Identifikation)
     Section C.3.1.2
@@ -20,7 +20,7 @@ class HKIDN(FinTS3Segment):
         super().__init__(segmentno, data)
 
 
-class HKVVB(FinTS3Segment):
+class HKVVB(FinTS3SegmentOLD):
     """
     HKVVB (Verarbeitungsvorbereitung)
     Section C.3.1.3
@@ -42,7 +42,7 @@ class HKVVB(FinTS3Segment):
         super().__init__(segmentno, data)
 
 
-class HKSYN(FinTS3Segment):
+class HKSYN(FinTS3SegmentOLD):
     """
     HKSYN (Synchronisation)
     Section C.8.1.2
@@ -61,7 +61,7 @@ class HKSYN(FinTS3Segment):
         super().__init__(segmentno, data)
 
 
-class HKTAN(FinTS3Segment):
+class HKTAN(FinTS3SegmentOLD):
     """
     HKTAN (TAN-Verfahren festlegen)
     Section B.5.1
@@ -98,7 +98,7 @@ class HKTAN(FinTS3Segment):
         super().__init__(segno, data)
 
 
-class HKTAB(FinTS3Segment):
+class HKTAB(FinTS3SegmentOLD):
     """
     HKTAB (Verfügbarre TAN-Medien ermitteln)
     Section C.2.1.2

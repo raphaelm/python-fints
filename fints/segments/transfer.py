@@ -1,8 +1,8 @@
-from . import FinTS3Segment
+from . import FinTS3SegmentOLD
 from ..models import SEPAAccount
 
 
-class HKCCS(FinTS3Segment):
+class HKCCS(FinTS3SegmentOLD):
     """
     HKCCS (SEPA Überweisung übertragen)
     Section C.2.1.2
@@ -24,7 +24,7 @@ class HKCCS(FinTS3Segment):
         super().__init__(segno, data)
 
 
-class HKCCM(FinTS3Segment):
+class HKCCM(FinTS3SegmentOLD):
     """
     HKCCM (SEPA-Sammelüberweisung einreichen)
     Section C.10.3.1.1

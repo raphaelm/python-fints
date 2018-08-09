@@ -1,7 +1,7 @@
-from . import FinTS3Segment
+from . import FinTS3SegmentOLD
 
 
-class HKSPA(FinTS3Segment):
+class HKSPA(FinTS3SegmentOLD):
     """
     HKSPA (SEPA-Kontoverbindung anfordern)
     Section C.10.1.3

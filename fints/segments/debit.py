@@ -1,8 +1,8 @@
-from . import FinTS3Segment
+from . import FinTS3SegmentOLD
 from ..models import SEPAAccount
 
 
-class HKDSE(FinTS3Segment):
+class HKDSE(FinTS3SegmentOLD):
     """
     HKDSE (Einreichung terminierter SEPA-Einzellastschrift)
     Section C.10.2.5.4.1
@@ -24,7 +24,7 @@ class HKDSE(FinTS3Segment):
         super().__init__(segno, data)
 
 
-class HKDME(FinTS3Segment):
+class HKDME(FinTS3SegmentOLD):
     """
     HKDME (Einreichung terminierter SEPA-Sammellastschrift)
     Section C.10.3.2.2.1

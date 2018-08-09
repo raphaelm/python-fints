@@ -1,7 +1,7 @@
-from . import FinTS3Segment
+from . import FinTS3SegmentOLD
 
 
-class HKWPD(FinTS3Segment):
+class HKWPD(FinTS3SegmentOLD):
     """
     HKWPD (Depotaufstellung anfordern)
     Section C.4.3.1

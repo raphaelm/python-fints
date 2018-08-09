@@ -1,7 +1,7 @@
-from . import FinTS3Segment
+from . import FinTS3SegmentOLD
 
 
-class HKEND(FinTS3Segment):
+class HKEND(FinTS3SegmentOLD):
     """
     HKEND (Dialogende)
     Section C.4.1.2

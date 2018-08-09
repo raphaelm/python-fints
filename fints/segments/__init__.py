@@ -6,6 +6,19 @@ from fints.utils import classproperty, SubclassesMixin
 
 TYPE_VERSION_RE = re.compile(r'^([A-Z]+)(\d+)$')
 
+class FinTS3SegmentOLD:
+    type = '???'
+    country_code = 280
+    version = 2
+    def __init__(self, segmentno, data):
+        self.segmentno = segmentno
+        self.data = data
+    def __str__(self):
+        res = '{}:{}:{}'.format(self.type, self.segmentno, self.version)
+        for d in self.data:
+            res += '+' + str(d)
+        return res + "'"
+
 class FinTS3SegmentMeta(ContainerMeta):
     @staticmethod
     def _check_fields_recursive(instance):
