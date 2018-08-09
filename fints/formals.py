@@ -5,7 +5,7 @@ from inspect import getmro
 from copy import deepcopy
 from collections import OrderedDict
 
-from fints.utils import classproperty, SubclassesMixin
+from fints.utils import classproperty, SubclassesMixin, Password
 
 class ValueList:
     def __init__(self, parent):
@@ -305,10 +305,10 @@ class BooleanField(FixedLengthMixin, AlphanumericField):
     type = 'jn'
     FIXED_LENGTH = [1]
 
-    def _render_field(self, value):
+    def _render_value(self, value):
         return "J" if value else "N"
 
-    def _parse_field(self, value):
+    def _parse_value(self, value):
         if value is None:
             return None
         if value == "J":
@@ -338,6 +338,15 @@ class DateField(FixedLengthMixin, NumericField):
 class TimeField(FixedLengthMixin, DigitsField):
     type = 'tim'
     FIXED_LENGTH = [6]
+
+class PasswordField(AlphanumericField):
+    type = ''
+
+    def _parse_value(self, value):
+        return Password(value)
+
+    def _render_value(self, value):
+        return str(value)
 
 class SegmentSequence:
     def __init__(self, segments = None):
@@ -554,7 +563,7 @@ class Certificate(DataElementGroup):
     certificate_content = DataElementField(type='bin', max_length=4096)
 
 class UserDefinedSignature(DataElementGroup):
-    pin = DataElementField(type='an', max_length=99)
+    pin = PasswordField(max_length=99)
     tan = DataElementField(type='an', max_length=99, required=False)
 
 class Response(DataElementGroup):
@@ -605,25 +614,24 @@ class TwoStepParameters3(DataElementGroup):
     number_supported_tan_lists = DataElementField(type='num', length=1)
     multiple_tans_allowed = DataElementField(type='jn')
     tan_timedelayed_type = DataElementField(type='code', length=1)
-    tan_list_number_required = DataElementField(type='jn')
+    tan_list_number_required = DataElementField(type='code', length=1)
     cancel_allowed = DataElementField(type='jn')
     challenge_class_required = DataElementField(type='jn')
     challenge_amount_required = DataElementField(type='jn')
-    initialisation_mode = DataElementField(type='code')
-    id_tan_medium_required = DataElementField(type='jn')
+    initialisation_mode = DataElementField(type='code', length=2)  # Spec error: It says "length=1", but also "value: 00, 01, 02"
+    id_tan_medium_required = DataElementField(type='code', length=1)
     number_supported_tan_media = DataElementField(type='num', length=1, required=False)
 
-class ParameterTwostepTAN1(DataElementGroup):
+class ParameterTwostepCommon(DataElementGroup):
     onestep_method_allowed = DataElementField(type='jn')
     multiple_tasks_allowed = DataElementField(type='jn')
     hash_algorithm = DataElementField(type='code', length=1)
+
+class ParameterTwostepTAN1(ParameterTwostepCommon):
     security_profile_bank_signature = DataElementField(type='code', length=1)
     twostep_parameters = DataElementGroupField(type=TwoStepParameters1, min_count=1, max_count=98)
 
-class ParameterTwostepTAN3(DataElementGroup):
-    onestep_method_allowed = DataElementField(type='jn')
-    multiple_tasks_allowed = DataElementField(type='jn')
-    hash_algorithm = DataElementField(type='code', length=1)
+class ParameterTwostepTAN3(ParameterTwostepCommon):
     twostep_parameters = DataElementGroupField(type=TwoStepParameters3, min_count=1, max_count=98)
 
 class TransactionTanRequired(DataElementGroup):
