@@ -128,7 +128,7 @@ class HIUPA4(FinTS3Segment):
     extension = DataElementField(type='an', max_length=2048, required=False)
 
 class HIUPD6(FinTS3Segment):
-    account_information = DataElementGroupField(type=AccountInformation)
+    account_information = DataElementGroupField(type=AccountInformation, required=False)
     iban = DataElementField(type='an', max_length=34)
     customer_id = DataElementField(type='id')
     account_type = DataElementField(type='num', max_length=2)
