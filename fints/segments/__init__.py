@@ -1,6 +1,6 @@
 import re
 
-from fints.formals import Container, ContainerMeta, SegmentHeader, DataElementGroupField, DataElementField, ReferenceMessage, SegmentSequenceField, SecurityProfile, SecurityIdentificationDetails, SecurityDateTime, EncryptionAlgorithm, KeyName, Certificate, HashAlgorithm, SignatureAlgorithm, UserDefinedSignature, Response, AccountInformation, AccountLimit, AllowedTransaction
+from fints.formals import Container, ContainerMeta, SegmentHeader, DataElementGroupField, DataElementField, ReferenceMessage, SegmentSequenceField, SecurityProfile, SecurityIdentificationDetails, SecurityDateTime, EncryptionAlgorithm, KeyName, Certificate, HashAlgorithm, SignatureAlgorithm, UserDefinedSignature, Response, AccountInformation, AccountLimit, AllowedTransaction, ParameterTwostepTAN
 
 from fints.utils import classproperty, SubclassesMixin
 
@@ -126,3 +126,16 @@ class HIUPD6(FinTS3Segment):
     account_limit = DataElementGroupField(type=AccountLimit, required=False)
     allowed_transactions = DataElementGroupField(type=AllowedTransaction, max_count=999, required=False)
     extension = DataElementField(type='an', max_length=2048, required=False)
+
+class HISYN4(FinTS3Segment):
+    customer_system_id = DataElementField(type='id')
+    message_number = DataElementField(type='num', max_length=4, required=False)
+    security_reference_signature_key = DataElementField(type='num', max_length=16, required=False)
+    security_reference_digital_signature = DataElementField(type='num', max_length=16, required=False)
+
+
+class HITANS1(FinTS3Segment):
+    max_number_tasks = DataElementField(type='num', max_length=3)
+    min_number_signatures = DataElementField(type='num', length=1)
+    security_class = DataElementField(type='num', length=1)
+    parameters_twostep_tan = DataElementGroupField(type=ParameterTwostepTAN)

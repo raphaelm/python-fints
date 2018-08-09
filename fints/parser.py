@@ -190,6 +190,7 @@ class FinTS3Parser:
         for number, (name, field) in enumerate(retval._fields.items()):
             repeat = field.count != 1
             constructed = isinstance(field, DataElementGroupField)
+            is_last = number == len(retval._fields)-1
 
             if not repeat:
                 if not constructed:
@@ -212,7 +213,8 @@ class FinTS3Parser:
                             break
 
                     else:
-                        deg = self.parse_deg(field.type, data_i, required and field.required)
+                        require_last = (field.max_count is None) if is_last else True
+                        deg = self.parse_deg(field.type, data_i, require_last and required and field.required)
                         getattr(retval, name)[i] = deg
 
                     i = i + 1

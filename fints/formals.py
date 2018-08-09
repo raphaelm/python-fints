@@ -540,3 +540,23 @@ class AllowedTransaction(DataElementGroup):
     limit_type = DataElementField(type='code', length=1, required=False)
     limit_amount = DataElementField(type='btg', required=False)
     limit_days = DataElementField(type='num', max_length=3, required=False)
+
+class TwoStepParameters(DataElementGroup):
+    security_function = DataElementField(type='code', max_length=3)
+    tan_process = DataElementField(type='code', length=1)
+    technical_identification_tan_process = DataElementField(type='id')
+    name_twostep_process = DataElementField(type='an', max_length=30)
+    max_length_tan_entry = DataElementField(type='num', max_length=2)
+    allowed_format_tan_entry = DataElementField(type='code', length=1)
+    return_value_text = DataElementField(type='an', max_length=30)
+    max_length_return_value = DataElementField(type='num', max_length=3)
+    number_supported_tan_lists = DataElementField(type='num', length=1)
+    multiple_tans_allowed = DataElementField(type='jn')
+    tan_time_delayed_allowed = DataElementField(type='jn')
+
+class ParameterTwostepTAN(DataElementGroup):
+    onestep_method_allowed = DataElementField(type='jn')
+    multiple_tasks_allowed = DataElementField(type='jn')
+    hash_algorithm = DataElementField(type='code', length=1)
+    security_profile_bank_signature = DataElementField(type='code', length=1)
+    twostep_parameters = DataElementGroupField(type=TwoStepParameters, min_count=1, max_count=98)
