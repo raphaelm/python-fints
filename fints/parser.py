@@ -193,29 +193,36 @@ class FinTS3Parser:
             is_last = number == len(retval._fields)-1
 
             if not repeat:
-                if not constructed:
-                    try:
-                        setattr(retval, name, next(data_i))
-                    except StopIteration:
-                        if required and field.required:
-                            raise ValueError("Required field {}.{} was not present".format(retval.__class__.__name__, name))
-                        break
-                else:
-                    deg = self.parse_deg(field.type, data_i, required and field.required)
-                    setattr(retval, name, deg)
+                try:
+                    if not constructed:
+                        try:
+                            setattr(retval, name, next(data_i))
+                        except StopIteration:
+                            if required and field.required:
+                                raise ValueError("Required field {}.{} was not present".format(retval.__class__.__name__, name))
+                            break
+                    else:
+                        deg = self.parse_deg(field.type, data_i, required and field.required)
+                        setattr(retval, name, deg)
+                except ValueError as e:
+                    raise ValueError("Wrong input when setting {}.{}".format(retval.__class__.__name__, name)) from e
             else:
                 i = 0
                 while True:
-                    if not constructed:
-                        try:
-                            getattr(retval, name)[i] = next(data_i)
-                        except StopIteration:
-                            break
+                    try:
+                        if not constructed:
+                            try:
+                                getattr(retval, name)[i] = next(data_i)
+                            except StopIteration:
+                                break
 
-                    else:
-                        require_last = (field.max_count is None) if is_last else True
-                        deg = self.parse_deg(field.type, data_i, require_last and required and field.required)
-                        getattr(retval, name)[i] = deg
+                        else:
+                            require_last = (field.max_count is None) if is_last else True
+                            deg = self.parse_deg(field.type, data_i, require_last and required and field.required)
+                            getattr(retval, name)[i] = deg
+
+                    except ValueError as e:
+                        raise ValueError("Wrong input when setting {}.{}".format(retval.__class__.__name__, name)) from e
 
                     i = i + 1
 
