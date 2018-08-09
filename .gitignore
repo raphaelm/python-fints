@@ -5,5 +5,5 @@ dist/
 env
 .idea/
 test*.py
-!tests
+!tests/*
 *.pyc
