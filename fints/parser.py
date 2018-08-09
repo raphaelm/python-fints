@@ -139,11 +139,14 @@ class FinTS3Parser:
                         raise ValueError("Required field {}.{} was not present".format(seg.__class__.__name__, name))
                     break
 
-                if not constructed:
-                    setattr(seg, name, val)
-                else:
-                    deg = self.parse_deg_noniter(field.type, val, field.required)
-                    setattr(seg, name, deg)
+                try:
+                    if not constructed:
+                        setattr(seg, name, val)
+                    else:
+                        deg = self.parse_deg_noniter(field.type, val, field.required)
+                        setattr(seg, name, deg)
+                except ValueError as e:
+                    raise ValueError("Wrong input when setting {}.{}".format(seg.__class__.__name__, name)) from e
             else:
                 i = 0
                 while True:
@@ -152,11 +155,14 @@ class FinTS3Parser:
                     except StopIteration:
                         break
 
-                    if not constructed:
-                        getattr(seg, name)[i] = val
-                    else:
-                        deg = self.parse_deg_noniter(field.type, val, field.required)
-                        getattr(seg, name)[i] = deg
+                    try:
+                        if not constructed:
+                            getattr(seg, name)[i] = val
+                        else:
+                            deg = self.parse_deg_noniter(field.type, val, field.required)
+                            getattr(seg, name)[i] = deg
+                    except ValueError as e:
+                        raise ValueError("Wrong input when setting {}.{}".format(seg.__class__.__name__, name)) from e
 
                     i = i + 1
 
