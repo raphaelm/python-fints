@@ -586,3 +586,15 @@ class ParameterTwostepTAN3(DataElementGroup):
     multiple_tasks_allowed = DataElementField(type='jn')
     hash_algorithm = DataElementField(type='code', length=1)
     twostep_parameters = DataElementGroupField(type=TwoStepParameters3, min_count=1, max_count=98)
+
+class TransactionTanRequired(DataElementGroup):
+    transaction = DataElementField(type='an', max_length=6)
+    tan_required = DataElementField(type='jn')
+
+class ParameterPinTan(DataElementGroup):
+    min_pin_length = DataElementField(type='num', max_length=2, required=False)
+    max_pin_length = DataElementField(type='num', max_length=2, required=False)
+    max_tan_length = DataElementField(type='num', max_length=2, required=False)
+    user_id_field_text = DataElementField(type='an', max_length=30, required=False)
+    customer_id_field_text = DataElementField(type='an', max_length=30, required=False)
+    transaction_tans_required = DataElementGroupField(type=TransactionTanRequired, max_count=999, required=False)

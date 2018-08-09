@@ -1,6 +1,6 @@
 import re
 
-from fints.formals import Container, ContainerMeta, SegmentHeader, DataElementGroupField, DataElementField, ReferenceMessage, SegmentSequenceField, SecurityProfile, SecurityIdentificationDetails, SecurityDateTime, EncryptionAlgorithm, KeyName, Certificate, HashAlgorithm, SignatureAlgorithm, UserDefinedSignature, Response, AccountInformation, AccountLimit, AllowedTransaction, ParameterTwostepTAN1, ParameterTwostepTAN3
+from fints.formals import Container, ContainerMeta, SegmentHeader, DataElementGroupField, DataElementField, ReferenceMessage, SegmentSequenceField, SecurityProfile, SecurityIdentificationDetails, SecurityDateTime, EncryptionAlgorithm, KeyName, Certificate, HashAlgorithm, SignatureAlgorithm, UserDefinedSignature, Response, AccountInformation, AccountLimit, AllowedTransaction, ParameterTwostepTAN1, ParameterTwostepTAN3, ParameterPinTan
 
 from fints.utils import classproperty, SubclassesMixin
 
@@ -145,3 +145,10 @@ class HITANS3(FinTS3Segment):
     min_number_signatures = DataElementField(type='num', length=1)
     security_class = DataElementField(type='num', length=1)
     parameters_twostep_tan = DataElementGroupField(type=ParameterTwostepTAN3)
+
+class HIPINS1(FinTS3Segment):
+    max_number_tasks = DataElementField(type='num', max_length=3)
+    min_number_signatures = DataElementField(type='num', length=1)
+    security_class = DataElementField(type='num', length=1)
+    parameters_pintan = DataElementGroupField(type=ParameterPinTan)
+
