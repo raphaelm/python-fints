@@ -298,6 +298,23 @@ def test_sequence_repr():
 
     assert repr(s) == 'SegmentSequence([])'
 
+def test_valuelist_repr():
+    class A(Container):
+        a = NumericField(max_count=3)
+
+    i1 = A()
+    assert repr(i1.a) == "[]"
+
+def test_empty_list():
+    class A(Container):
+        a = NumericField(max_count=3)
+
+    i1 = A()
+    assert len(i1.a) == 0
+
+    i2 = A(a=[None])
+    assert len(i2.a) == 0
+
 def test_segmentheader_short():
     h = SegmentHeader('HNHBS', 5, 1)
 

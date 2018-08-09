@@ -56,9 +56,6 @@ class ValueList:
                 if isinstance(val, Container):
                     if val.is_unset():
                         continue
-                elif isinstance(val, ValueList):
-                    if len(val) == 0:
-                        continue
                 elif val is None:
                     continue
                 retval = i+1
@@ -161,7 +158,7 @@ class Field:
     def render(self, value):
         if value is None:
             return ""
-        
+
         return self._render_value(value)
 
 class TypedField(Field, SubclassesMixin):
