@@ -3,7 +3,7 @@ from collections import Iterable
 from contextlib import suppress
 import re
 from .segments import FinTS3Segment
-from .formals import DataElementField, DataElementGroupField, SegmentSequence
+from .formals import Container, ValueList, DataElementField, DataElementGroupField, SegmentSequence
 
 # 
 # FinTS 3.0 structure:
@@ -274,4 +274,135 @@ class FinTS3Parser:
         parser.consume(Token.EOF)
 
         return segments
+
+class FinTS3Serializer:
+    def serialize_message(self, message):
+        if isinstance(message, FinTS3Segment):
+            message = [message]
+        if isinstance(message, (list, tuple, Iterable)):
+            message = SegmentSequence(list(message))
+
+        result = []
+
+        for segment in message.segments:
+            result.append( self.serialize_segment(segment) )
+
+        return self.implode_segments(result)
+
+    def serialize_segment(self, segment):
+
+        seg = []
+        skipping_end = False
+
+        for name,field in segment._fields.items():
+            repeat = field.count != 1
+            constructed = isinstance(field, DataElementGroupField)
+
+            val = getattr(segment, name)
+            empty = False
+            if not field.required:
+                if isinstance(val, Container):
+                    if val.is_unset():
+                        empty = True
+                elif isinstance(val, ValueList):
+                    if len(val) == 0:
+                        empty = True
+                elif val is None:
+                    empty = True
+
+            if skipping_end and not empty:
+                raise ValueError("Inconsistency during serialization: Field {}.{} not empty, but a field before it was".format(segment.__class__.__name__, name))
+
+            if empty:
+                skipping_end = True
+                continue
+
+            if not constructed:
+                if repeat:
+                    seg.extend( field.render(val) for val in getattr(segment, name) )
+                else:
+                    seg.append( field.render(getattr(segment, name)) )
+            else:
+                if repeat:
+                    inner = []
+                    for val in getattr(segment, name):
+                        inner.extend( self.serialize_deg(val) )
+                    seg.append(inner)
+                else:
+                    seg.append( self.serialize_deg(getattr(segment, name)) )
+
+        if segment._additional_data:
+            seg.extend(segment._additional_data)
+            
+        return seg
+
+    def serialize_deg(self, deg):
+        result = []
+        skipping_end = False
+
+        for name,field in deg._fields.items():
+            repeat = field.count != 1
+            constructed = isinstance(field, DataElementGroupField)
+
+            val = getattr(deg, name)
+            empty = False
+            if not field.required:
+                if isinstance(val, Container):
+                    if val.is_unset():
+                        empty = True
+                elif isinstance(val, ValueList):
+                    if len(val) == 0:
+                        empty = True
+                elif val is None:
+                    empty = True
+
+            if skipping_end and not empty:
+                raise ValueError("Inconsistency during serialization: Field {}.{} not empty, but a field before it was".format(deg.__class__.__name__, name))
+
+            if empty:
+                skipping_end = True
+                continue
+
+            if not constructed:
+                if repeat:
+                    result.extend( field.render(val) for val in getattr(deg, name) )
+                else:
+                    result.append( field.render(getattr(deg, name)) )
+            else:
+                if repeat:
+                    for val in getattr(deg, name):
+                        result.extend( self.serialize_deg(val) )
+                else:
+                    result.extend( self.serialize_deg(getattr(deg, name)) )
+
+        return result
+
+
+    @staticmethod
+    def implode_segments(message: list):
+        level1 = []
+
+        for segment in message:
+            level2 = []
+            for deg in segment:
+                if isinstance(deg, (list, tuple)):
+                    level2.append(
+                        b":".join(FinTS3Serializer.escape_value(de) for de in deg)
+                    )
+                else:
+                    level2.append(FinTS3Serializer.escape_value(deg))
+            level1.append(b"+".join(level2))
+
+        return b"'".join(level1) + b"'"
+
+    @staticmethod
+    def escape_value(val):
+        if isinstance(val, str):
+            return re.sub(r"([+:'@?])", r"?\1", val).encode('iso-8859-1')
+        elif isinstance(val, bytes):
+            return "@{}@".format(len(val)).encode('us-ascii') + val
+        else:
+            raise TypeError("Can only escape str and bytes")
+
+
 

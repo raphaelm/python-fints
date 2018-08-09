@@ -37,7 +37,7 @@ class FinTS3Segment(Container, SubclassesMixin, metaclass=FinTS3SegmentMeta):
 
     def __init__(self, *args, **kwargs):
         if 'header' not in kwargs:
-            kwargs['header'] = None
+            kwargs['header'] = SegmentHeader(self.TYPE, None, self.VERSION)
 
         args = (kwargs.pop('header'), ) + args
 

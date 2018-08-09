@@ -158,6 +158,11 @@ class Field:
         if self.length is not None and len(value) != self.length:
             raise ValueError("Value {!r} cannot be rendered: length={} not satisfied".format(value, self.length))
 
+    def render(self, value):
+        if value is None:
+            return ""
+        
+        return self._render_value(value)
 
 class TypedField(Field, SubclassesMixin):
     flat_length = 1
