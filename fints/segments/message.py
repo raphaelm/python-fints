@@ -73,7 +73,7 @@ class HNVSK(FinTS3SegmentOLD):
             ':'.join(['PIN', str(profile_version)]),
             998,
             self.SECURITY_SUPPLIER_ROLE,
-            ':'.join(['1', '', str(systemid)]),
+            ':'.join(['1', '', fints_escape(str(systemid))]),
             ':'.join(['1', time.strftime('%Y%m%d'), time.strftime('%H%M%S')]),
             ':'.join(['2', '2', '13', '@8@00000000', '5', '1']),  # Crypto algorithm
             ':'.join([str(self.country_code), blz, username, 'S', '0', '0']),
