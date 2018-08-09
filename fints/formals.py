@@ -343,7 +343,8 @@ class ContainerMeta(type):
         retval = super().__new__(cls, name, bases, classdict)
         retval._fields = OrderedDict()
         for supercls in reversed(bases):
-            retval._fields.update((k,v) for (k,v) in supercls.__dict__.items() if isinstance(v, Field))
+            if hasattr(supercls, '_fields'):
+                retval._fields.update((k,v) for (k,v) in supercls._fields.items())
         retval._fields.update((k,v) for (k,v) in classdict.items() if isinstance(v, Field))
         return retval
 

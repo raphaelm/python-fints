@@ -28,6 +28,18 @@ def test_fints3_only_de_and_deg():
         class Foo(FinTS3Segment):
             c = DataElementGroupField(type=B)
 
+def test_segment_subclassing():
+    class Base1(FinTS3Segment):
+        a = NumericField()
+
+    class Base2(Base1):
+        b = NumericField()
+
+    class ISUBTST1(Base2):
+        c = NumericField()
+
+    assert list( ISUBTST1._fields.keys() ) == ['header', 'a', 'b', 'c']
+
 def test_descriptor_subclassing():
     a = DataElementField(type='an')
     assert isinstance(a, AlphanumericField)
