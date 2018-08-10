@@ -34,7 +34,7 @@ class FinTS3SegmentMeta(ContainerMeta):
         return retval
 
 class FinTS3Segment(Container, SubclassesMixin, metaclass=FinTS3SegmentMeta):
-    header = DataElementGroupField(type=SegmentHeader)
+    header = DataElementGroupField(type=SegmentHeader, _d="Segmentkopf")
 
     @classproperty
     def TYPE(cls):
@@ -147,9 +147,9 @@ class HISYN4(FinTS3Segment):
     security_reference_digital_signature = DataElementField(type='num', max_length=16, required=False)
 
 class ParameterSegment(FinTS3Segment):
-    max_number_tasks = DataElementField(type='num', max_length=3)
-    min_number_signatures = DataElementField(type='num', length=1)
-    security_class = DataElementField(type='num', length=1)
+    max_number_tasks = DataElementField(type='num', max_length=3, _d="Maximale Anzahl Aufträge")
+    min_number_signatures = DataElementField(type='num', length=1, _d="Anzahl Signaturen mindestens")
+    security_class = DataElementField(type='num', length=1, _d="Sicherheitsklasse")
 
 class HITANS1(ParameterSegment):
     parameters = DataElementGroupField(type=ParameterTwostepTAN1)
@@ -158,5 +158,10 @@ class HITANS3(ParameterSegment):
     parameters = DataElementGroupField(type=ParameterTwostepTAN3)
 
 class HIPINS1(ParameterSegment):
-    parameters = DataElementGroupField(type=ParameterPinTan)
+    """PIN/TAN-spezifische Informationen, version 1
+
+    Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Sicherheitsverfahren PIN/TAN 
+    """
+    parameters = DataElementGroupField(type=ParameterPinTan, _d="Parameter PIN/TAN-spezifische Informationen") 
+
 

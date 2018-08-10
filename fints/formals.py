@@ -89,7 +89,7 @@ class ValueList:
         stream.write( (prefix + level*indent) + "]{}\n".format(trailer) )
 
 class Field:
-    def __init__(self, length=None, min_length=None, max_length=None, count=None, min_count=None, max_count=None, required=True):
+    def __init__(self, length=None, min_length=None, max_length=None, count=None, min_count=None, max_count=None, required=True, _d=None):
         if length is not None and (min_length is not None or max_length is not None):
             raise ValueError("May not specify both 'length' AND 'min_length'/'max_length'")
         if count is not None and (min_count is not None or max_count is not None):
@@ -105,6 +105,8 @@ class Field:
 
         if not self.count and not self.min_count and not self.max_count:
             self.count = 1
+
+        self.__doc__ = _d
 
     def _default_value(self):
         return None
@@ -463,6 +465,9 @@ class Container(metaclass=ContainerMeta):
         )
 
     def print_nested(self, stream=None, level=0, indent="    ", prefix="", first_level_indent=True, trailer=""):
+        """Structured nested print of the object to the given stream.
+
+        The print-out is eval()able to reconstruct the object."""
         import sys
         stream = stream or sys.stdout
 
@@ -504,10 +509,11 @@ class DataElementGroup(Container):
     pass
 
 class SegmentHeader(ShortReprMixin, DataElementGroup):
-    type = AlphanumericField(max_length=6)
-    number = NumericField(max_length=3)
-    version = NumericField(max_length=3)
-    reference = NumericField(max_length=3, required=False)
+    "Segmentkopf"
+    type = AlphanumericField(max_length=6, _d='Segmentkennung')
+    number = NumericField(max_length=3, _d='Segmentnummer')
+    version = NumericField(max_length=3, _d='Segmentversion')
+    reference = NumericField(max_length=3, required=False, _d='Bezugssegment')
 
 class ReferenceMessage(DataElementGroup):
     dialogue_id = DataElementField(type='id')

@@ -19,3 +19,4 @@ Documentation content
    transfers
    debits
    tested
+   developer
