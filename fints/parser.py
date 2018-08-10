@@ -112,7 +112,11 @@ class ParserState:
         yield Token.EOF, b''
 
 class FinTS3Parser:
-    def parse_message(self, data):
+    """Parser for FinTS/HBCI 3.0 messages
+    """
+
+    def parse_message(self, data: bytes) -> SegmentSequence:
+        "Takes a FinTS 3.0 message as byte array, and returns a parsed segment sequence"
         if isinstance(data, bytes):
             data = self.explode_segments(data)
 
@@ -276,7 +280,11 @@ class FinTS3Parser:
         return segments
 
 class FinTS3Serializer:
-    def serialize_message(self, message):
+    """Serializer for FinTS/HBCI 3.0 messages
+    """
+
+    def serialize_message(self, message: SegmentSequence) -> bytes:
+        "Serialize a message (as SegmentSequence, list of FinTS3Segment, or FinTS3Segment) into a byte array"
         if isinstance(message, FinTS3Segment):
             message = [message]
         if isinstance(message, (list, tuple, Iterable)):
@@ -292,7 +300,7 @@ class FinTS3Serializer:
     def serialize_segment(self, segment):
 
         seg = []
-        skipping_end = False
+        filler = []
 
         for name,field in segment._fields.items():
             repeat = field.count != 1
@@ -310,12 +318,13 @@ class FinTS3Serializer:
                 elif val is None:
                     empty = True
 
-            if skipping_end and not empty:
-                raise ValueError("Inconsistency during serialization: Field {}.{} not empty, but a field before it was".format(segment.__class__.__name__, name))
-
             if empty:
-                skipping_end = True
+                filler.append(None)
                 continue
+            else:
+                if filler:
+                    seg.extend(filler)
+                    filler.clear()
 
             if not constructed:
                 if repeat:
@@ -324,10 +333,8 @@ class FinTS3Serializer:
                     seg.append( field.render(getattr(segment, name)) )
             else:
                 if repeat:
-                    inner = []
                     for val in getattr(segment, name):
-                        inner.extend( self.serialize_deg(val) )
-                    seg.append(inner)
+                        seg.append( self.serialize_deg(val) )
                 else:
                     seg.append( self.serialize_deg(getattr(segment, name)) )
 
@@ -401,8 +408,10 @@ class FinTS3Serializer:
             return re.sub(r"([+:'@?])", r"?\1", val).encode('iso-8859-1')
         elif isinstance(val, bytes):
             return "@{}@".format(len(val)).encode('us-ascii') + val
+        elif val is None:
+            return b''
         else:
-            raise TypeError("Can only escape str and bytes")
+            raise TypeError("Can only escape str, bytes and None")
 
 
 

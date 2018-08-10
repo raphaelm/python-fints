@@ -159,7 +159,7 @@ class Field:
 
     def render(self, value):
         if value is None:
-            return ""
+            return None
 
         return self._render_value(value)
 
@@ -351,6 +351,8 @@ class PasswordField(AlphanumericField):
         return str(value)
 
 class SegmentSequence:
+    """A sequence of FinTS3Segment objects"""
+
     def __init__(self, segments = None):
         if isinstance(segments, bytes):
             from .parser import FinTS3Parser
@@ -358,6 +360,10 @@ class SegmentSequence:
             data = parser.explode_segments(segments)
             segments = [parser.parse_segment(segment) for segment in data]
         self.segments = segments or []
+
+    def render_bytes(self) -> bytes:
+        from .parser import FinTS3Serializer
+        return FinTS3Serializer().serialize_message(self)
 
     def __repr__(self):
         return "{}({!r})".format(self.__class__.__name__, self.segments)
@@ -373,6 +379,24 @@ class SegmentSequence:
             segment.print_nested(stream=stream, level=level+1, indent=indent, prefix=prefix, first_level_indent=True, trailer=",")
         stream.write( (prefix + level*indent) + "]){}\n".format(trailer) )
 
+    def find_segments(self, type=None, version=None, callback=None, recurse=True):
+        """Yields an iterable of all matching segments.
+
+        :param type: Either a str specifying a segment type (such as 'HNHBK'), or a list or tuple of strings.
+                     If a list/tuple is specified, segments returning any matching type will be returned.
+        :param version: Either an int specifying a segment version, or a list or tuple of ints.
+                        If a list/tuple is specified, segments returning any matching version will be returned.
+        :param callback: A callable that will be given the segment as its sole argument and must return a booleans indicating whether to return this segment.
+        :param recurse: If True (the default), recurse into SegmentSequenceField values, otherwise only look at segments in this SegmentSequence.
+
+        The match results of all given parameters will be AND-combined.
+        """
+
+    def find_segment_first(self, *args, **kwargs):
+        """Finds the first matching segment.
+
+        Same parameters as find_segments(), but only returns the first match, or None if no match is found."""
+
 class SegmentSequenceField(DataElementField):
     type = 'sf'
 
@@ -381,6 +405,9 @@ class SegmentSequenceField(DataElementField):
             return value
         else:
             return SegmentSequence(value)
+
+    def _render_value(self, value):
+        return value.render_bytes()
 
 
 class ContainerMeta(type):
