@@ -116,7 +116,19 @@ The only exception is: Every field can be set to ``None`` in order to clear the 
     >>> s
     fints.segments.HNHBS1(header=fints.formals.SegmentHeader(None, None, None), message_number=None)
 
-Some segment fields have a variable number of values. These are always treated as a list (convenience exception: setting a non-iterable value operates on the first value of the list), and minimum/maximum list length is obeyed. Setting a value beyond the end of the list results in an exception. Empty values are added to maintain the correct minimum number of values.
+When calling the constructor with non-keyword arguments, fields are assigned in order, with the exception of ``header`` in :class:`~fints.segments.FinTS3Segment` subclasses, which can only be given as a keyword argument. When no ``header`` argument is present, a :class:`~fints.formals.SegmentHeader` is automatically constructed with default values (and no ``number``). It's generally not required to construct the ``header`` parameter manually.
+
+**FIXME** The ``number`` should in the future be generated automatically within in sequence (at least before serializing).
+
+.. code-block:: python
+
+    >>> HNHBS1(42)
+    fints.segments.HNHBS1(header=fints.formals.SegmentHeader('HNHBS', None, 1), message_number=42)
+    >>> HNHBS1(42, header=SegmentHeader('FOO'))
+    fints.segments.HNHBS1(header=fints.formals.SegmentHeader('FOO', None, None), message_number=42)
+
+
+Some segment fields have a variable number of values. These are always treated as a list, and minimum/maximum list length is obeyed. Setting a value beyond the end of the list results in an exception. Empty values are added to maintain the correct minimum number of values.
 
 .. code-block:: python
 
@@ -137,6 +149,17 @@ Some segment fields have a variable number of values. These are always treated a
                     ),
                     fints.formals.Response(
                         response_code = '0100',
+                        reference_element = None,
+                        response_text = None,
+                    ),
+            ],
+    )
+    >>> HIRMG2(response=[fints.formals.Response('2342')]).print_nested()
+    fints.segments.HIRMG2(
+        header = fints.formals.SegmentHeader('HIRMG', None, 2),
+        response = [
+                    fints.formals.Response(
+                        response_code = '2342',
                         reference_element = None,
                         response_text = None,
                     ),
