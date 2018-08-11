@@ -219,7 +219,14 @@ class ContainerField(TypedField):
     
 
 class DataElementGroupField(ContainerField):
-    pass
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        if self.type is not None:
+            if not self.__doc__:
+                self.__doc__ = ""
+
+            self.__doc__ = self.__doc__ + "\n\n:type: :class:`{}.{}`".format(self.type.__module__, self.type.__name__)
 
 class GenericField(FieldRenderFormatStringMixin, DataElementField):
     type = None

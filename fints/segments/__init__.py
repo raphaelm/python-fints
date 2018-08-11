@@ -189,4 +189,8 @@ class HIBPA3(FinTS3Segment):
     max_timeout = DataElementField(type='num', max_length=4, required=False)
 
 class HISPA1(FinTS3Segment):
+    """SEPA-Kontoverbindung anfordern, version 1
+
+    Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Messages -- Multibankfähige Geschäftsvorfälle 
+    """
     accounts = DataElementGroupField(type=AccountInternational, max_count=999, required=False)

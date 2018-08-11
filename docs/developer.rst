@@ -28,6 +28,9 @@ Example usage:
    >>> FinTS3Serializer().serialize_message(s)
    b"HNHBK:1:3+000000000428+300+430711670077=043999659571CN9D=+2+430711670077=043999659571CN9D=:2'HNVSK:998:3+PIN:1+998+1+2::oIm3BlHv6mQBAADYgbPpp?+kWrAQA+1+2:2:13:@8@00000000:5:1+280:15050500:hermes:S:0:0+0'HNVSD:999:1+@195@HNSHK:2:4+PIN:1+999+9166926+1+1+2::oIm3BlHv6mQBAADYgbPpp?+kWrAQA+1+1+1:999:1+6:10:16+280:15050500:hermes:S:0:0'HIRMG:3:2+0010::Nachricht entgegengenommen.+0100::Dialog beendet.'HNSHA:4:2+9166926''HNHBS:5:1+2'"
 
+.. note::
+
+  In general parsing followed by serialization is not idempotent: A message may contain empty list elements at the end, but our parser will never generate them.
 
 FinTS Segment Sequence
 ----------------------
@@ -173,3 +176,5 @@ ____________
 .. automodule:: fints.segments
     :members:
     :inherited-members:
+    :exclude-members: print_nested
+
