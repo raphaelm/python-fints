@@ -1,6 +1,6 @@
 import re
 
-from fints.formals import Container, ContainerMeta, SegmentHeader, DataElementGroupField, DataElementField, ReferenceMessage, SegmentSequenceField, SecurityProfile, SecurityIdentificationDetails, SecurityDateTime, EncryptionAlgorithm, KeyName, Certificate, HashAlgorithm, SignatureAlgorithm, UserDefinedSignature, Response, AccountInformation, AccountLimit, AllowedTransaction, ParameterTwostepTAN1, ParameterTwostepTAN3, ParameterPinTan
+from fints.formals import Container, ContainerMeta, SegmentHeader, DataElementGroupField, DataElementField, ReferenceMessage, SegmentSequenceField, SecurityProfile, SecurityIdentificationDetails, SecurityDateTime, EncryptionAlgorithm, KeyName, Certificate, HashAlgorithm, SignatureAlgorithm, UserDefinedSignature, Response, AccountInformation, AccountLimit, AllowedTransaction, ParameterTwostepTAN1, ParameterTwostepTAN3, ParameterPinTan, SupportedLanguages2, SupportedHBCIVersions2, BankIdentifier
 
 from fints.utils import classproperty, SubclassesMixin
 
@@ -115,10 +115,10 @@ class HNSHA2(FinTS3Segment):
     user_defined_signature = DataElementGroupField(type=UserDefinedSignature, required=False)
 
 class HIRMG2(FinTS3Segment):
-    response = DataElementGroupField(type=Response, min_count=1, max_count=99)
+    responses = DataElementGroupField(type=Response, min_count=1, max_count=99)
 
 class HIRMS2(FinTS3Segment):
-    response = DataElementGroupField(type=Response, min_count=1, max_count=99)
+    responses = DataElementGroupField(type=Response, min_count=1, max_count=99)
 
 class HIUPA4(FinTS3Segment):
     user_identifier = DataElementField(type='id')
@@ -165,3 +165,13 @@ class HIPINS1(ParameterSegment):
     parameters = DataElementGroupField(type=ParameterPinTan, _d="Parameter PIN/TAN-spezifische Informationen") 
 
 
+class HIBPA3(FinTS3Segment):
+    bpd_version = DataElementField(type='num', max_length=3)
+    bank_identifier = DataElementGroupField(type=BankIdentifier)
+    bank_name = DataElementField(type='an', max_length=60)
+    number_tasks = DataElementField(type='num', max_length=3)
+    supported_languages = DataElementGroupField(type=SupportedLanguages2)
+    supported_hbci_version = DataElementGroupField(type=SupportedHBCIVersions2)
+    max_message_length = DataElementField(type='num', max_length=4, required=False)
+    min_timeout = DataElementField(type='num', max_length=4, required=False)
+    max_timeout = DataElementField(type='num', max_length=4, required=False)

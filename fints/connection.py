@@ -2,7 +2,7 @@ import base64
 
 import requests
 
-from .message import FinTSMessage
+from .message import FinTSMessage, FinTSResponse
 
 from fints.parser import FinTS3Parser
 from fints.utils import Password
@@ -25,9 +25,10 @@ class FinTSHTTPSConnection:
         )
         if r.status_code < 200 or r.status_code > 299:
             raise FinTSConnectionError('Bad status code {}'.format(r.status_code))
-        retval = base64.b64decode(r.content.decode('iso-8859-1'))
+        response = base64.b64decode(r.content.decode('iso-8859-1'))
+        retval = FinTSResponse(response)
         print("Received <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
         with Password.protect():
-            FinTS3Parser().parse_message(retval).print_nested()
+            retval.print_nested()
         print("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
         return retval

@@ -386,7 +386,7 @@ class SegmentSequence:
                      If a list/tuple is specified, segments returning any matching type will be returned.
         :param version: Either an int specifying a segment version, or a list or tuple of ints.
                         If a list/tuple is specified, segments returning any matching version will be returned.
-        :param callback: A callable that will be given the segment as its sole argument and must return a booleans indicating whether to return this segment.
+        :param callback: A callable that will be given the segment as its sole argument and must return a boolean indicating whether to return this segment.
         :param recurse: If True (the default), recurse into SegmentSequenceField values, otherwise only look at segments in this SegmentSequence.
 
         The match results of all given parameters will be AND-combined.
@@ -631,9 +631,9 @@ class UserDefinedSignature(DataElementGroup):
     tan = DataElementField(type='an', max_length=99, required=False)
 
 class Response(DataElementGroup):
-    response_code = DataElementField(type='dig', length=4)
+    code = DataElementField(type='dig', length=4)
     reference_element = DataElementField(type='an', max_length=7)
-    response_text = DataElementField(type='an', max_length=80)
+    text = DataElementField(type='an', max_length=80)
     parameters = DataElementField(type='an', max_length=35, max_count=10, required=False)
 
 class AccountInformation(DataElementGroup):
@@ -709,3 +709,9 @@ class ParameterPinTan(DataElementGroup):
     user_id_field_text = DataElementField(type='an', max_length=30, required=False)
     customer_id_field_text = DataElementField(type='an', max_length=30, required=False)
     transaction_tans_required = DataElementGroupField(type=TransactionTanRequired, max_count=999, required=False)
+
+class SupportedLanguages2(DataElementGroup):
+    languages = DataElementField(type='code', max_length=3, min_count=1, max_count=9)
+
+class SupportedHBCIVersions2(DataElementGroup):
+    versions = DataElementField(type='code', max_length=3, min_count=1, max_count=9)

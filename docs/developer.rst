@@ -23,7 +23,7 @@ Example usage:
    >>> from fints.parser import FinTS3Parser
    >>> s = FinTS3Parser().parse_message(message)
    >>> s
-   SegmentSequence([fints.segments.HNHBK3(header=fints.formals.SegmentHeader('HNHBK', 1, 3), message_size='000000000428', hbci_version=300, dialogue_id='430711670077=043999659571CN9D=', message_number=2, reference_message=fints.formals.ReferenceMessage(dialogue_id='430711670077=043999659571CN9D=', message_number=2)), fints.segments.HNVSK3(header=fints.formals.SegmentHeader('HNVSK', 998, 3), security_profile=fints.formals.SecurityProfile(security_method='PIN', security_method_version=1), security_function='998', security_role='1', security_identification_details=fints.formals.SecurityIdentificationDetails(name_party='2', cid=None, identifier_party='oIm3BlHv6mQBAADYgbPpp+kWrAQA'), security_datetime=fints.formals.SecurityDateTime(datetime_type='1'), encryption_algorithm=fints.formals.EncryptionAlgorithm(usage_encryption='2', operation_mode='2', encryption_algorithm='13', algorithm_parameter_value=b'00000000', algorithm_parameter_name='5', algorithm_parameter_iv_name='1'), key_name=fints.formals.KeyName(bank_identifier=fints.formals.BankIdentifier(country_identifier='280', bank_code='15050500'), user_id='hermes', key_type='S', key_number=0, key_version=0), compression_function='0'), fints.segments.HNVSD1(header=fints.formals.SegmentHeader('HNVSD', 999, 1), data=SegmentSequence([fints.segments.HNSHK4(header=fints.formals.SegmentHeader('HNSHK', 2, 4), security_profile=fints.formals.SecurityProfile(security_method='PIN', security_method_version=1), security_function='999', security_reference='9166926', security_application_area='1', security_role='1', security_identification_details=fints.formals.SecurityIdentificationDetails(name_party='2', cid=None, identifier_party='oIm3BlHv6mQBAADYgbPpp+kWrAQA'), security_reference_number=1, security_datetime=fints.formals.SecurityDateTime(datetime_type='1'), hash_algorithm=fints.formals.HashAlgorithm(usage_hash='1', hash_algorithm='999', algorithm_parameter_name='1'), signature_algorithm=fints.formals.SignatureAlgorithm(usage_signature='6', signature_algorithm='10', operation_mode='16'), key_name=fints.formals.KeyName(bank_identifier=fints.formals.BankIdentifier(country_identifier='280', bank_code='15050500'), user_id='hermes', key_type='S', key_number=0, key_version=0)), fints.segments.HIRMG2(header=fints.formals.SegmentHeader('HIRMG', 3, 2), response=[fints.formals.Response(response_code='0010', reference_element=None, response_text='Nachricht entgegengenommen.'), fints.formals.Response(response_code='0100', reference_element=None, response_text='Dialog beendet.')]), fints.segments.HNSHA2(header=fints.formals.SegmentHeader('HNSHA', 4, 2), security_reference='9166926')])), fints.segments.HNHBS1(header=fints.formals.SegmentHeader('HNHBS', 5, 1), message_number=2)])
+   SegmentSequence([fints.segments.HNHBK3(header=fints.formals.SegmentHeader('HNHBK', 1, 3), message_size='000000000428', hbci_version=300, dialogue_id='430711670077=043999659571CN9D=', message_number=2, reference_message=fints.formals.ReferenceMessage(dialogue_id='430711670077=043999659571CN9D=', message_number=2)), fints.segments.HNVSK3(header=fints.formals.SegmentHeader('HNVSK', 998, 3), security_profile=fints.formals.SecurityProfile(security_method='PIN', security_method_version=1), security_function='998', security_role='1', security_identification_details=fints.formals.SecurityIdentificationDetails(name_party='2', cid=None, identifier_party='oIm3BlHv6mQBAADYgbPpp+kWrAQA'), security_datetime=fints.formals.SecurityDateTime(datetime_type='1'), encryption_algorithm=fints.formals.EncryptionAlgorithm(usage_encryption='2', operation_mode='2', encryption_algorithm='13', algorithm_parameter_value=b'00000000', algorithm_parameter_name='5', algorithm_parameter_iv_name='1'), key_name=fints.formals.KeyName(bank_identifier=fints.formals.BankIdentifier(country_identifier='280', bank_code='15050500'), user_id='hermes', key_type='S', key_number=0, key_version=0), compression_function='0'), fints.segments.HNVSD1(header=fints.formals.SegmentHeader('HNVSD', 999, 1), data=SegmentSequence([fints.segments.HNSHK4(header=fints.formals.SegmentHeader('HNSHK', 2, 4), security_profile=fints.formals.SecurityProfile(security_method='PIN', security_method_version=1), security_function='999', security_reference='9166926', security_application_area='1', security_role='1', security_identification_details=fints.formals.SecurityIdentificationDetails(name_party='2', cid=None, identifier_party='oIm3BlHv6mQBAADYgbPpp+kWrAQA'), security_reference_number=1, security_datetime=fints.formals.SecurityDateTime(datetime_type='1'), hash_algorithm=fints.formals.HashAlgorithm(usage_hash='1', hash_algorithm='999', algorithm_parameter_name='1'), signature_algorithm=fints.formals.SignatureAlgorithm(usage_signature='6', signature_algorithm='10', operation_mode='16'), key_name=fints.formals.KeyName(bank_identifier=fints.formals.BankIdentifier(country_identifier='280', bank_code='15050500'), user_id='hermes', key_type='S', key_number=0, key_version=0)), fints.segments.HIRMG2(header=fints.formals.SegmentHeader('HIRMG', 3, 2), responses=[fints.formals.Response(code='0010', reference_element=None, text='Nachricht entgegengenommen.'), fints.formals.Response(code='0100', reference_element=None, text='Dialog beendet.')]), fints.segments.HNSHA2(header=fints.formals.SegmentHeader('HNSHA', 4, 2), security_reference='9166926')])), fints.segments.HNHBS1(header=fints.formals.SegmentHeader('HNHBS', 5, 1), message_number=2)])
    >>> from fints.parser import FinTS3Serializer
    >>> FinTS3Serializer().serialize_message(s)
    b"HNHBK:1:3+000000000428+300+430711670077=043999659571CN9D=+2+430711670077=043999659571CN9D=:2'HNVSK:998:3+PIN:1+998+1+2::oIm3BlHv6mQBAADYgbPpp?+kWrAQA+1+2:2:13:@8@00000000:5:1+280:15050500:hermes:S:0:0+0'HNVSD:999:1+@195@HNSHK:2:4+PIN:1+999+9166926+1+1+2::oIm3BlHv6mQBAADYgbPpp?+kWrAQA+1+1+1:999:1+6:10:16+280:15050500:hermes:S:0:0'HIRMG:3:2+0010::Nachricht entgegengenommen.+0100::Dialog beendet.'HNSHA:4:2+9166926''HNHBS:5:1+2'"
@@ -108,7 +108,7 @@ When setting a value, format and length restrictions will be checked, if possibl
     >>> s.message_number = 12345
     ValueError: Value '12345' cannot be rendered: max_length=4 exceeded
 
-The only exception is: Every field can be set to ``None`` in order to clear the field and make it unset, recursively. No checking is performed whether all fields that are required (or conditionally required) by the specification are set.
+The only exception is: Every field can be set to ``None`` in order to clear the field and make it unset, recursively. No checking is performed whether all fields that are required (or conditionally required) by the specification are set. For convenience, an unset constructed field will still be filled with an instance of the field's value type, so that subfield accessing will always work, without encountering ``None`` values on the way.
 
 .. code-block:: python
 
@@ -135,33 +135,33 @@ Some segment fields have a variable number of values. These are always treated a
     >>> from fints.segments import HIRMG2
     >>> s = HIRMG2()
     >>> s
-    fints.segments.HIRMG2(header=fints.formals.SegmentHeader('HIRMG', None, 2), response=[fints.formals.Response(response_code=None, reference_element=None, response_text=None)])
-    >>> s.response[0].response_code = '0010'
-    >>> s.response[1].response_code = '0100'
+    fints.segments.HIRMG2(header=fints.formals.SegmentHeader('HIRMG', None, 2), responses=[fints.formals.Response(code=None, reference_element=None, text=None)])
+    >>> s.responses[0].code = '0010'
+    >>> s.responses[1].code = '0100'
     >>> s.print_nested()
     fints.segments.HIRMG2(
         header = fints.formals.SegmentHeader('HIRMG', None, 2),
-        response = [
+        responses = [
                     fints.formals.Response(
-                        response_code = '0010',
+                        code = '0010',
                         reference_element = None,
-                        response_text = None,
+                        text = None,
                     ),
                     fints.formals.Response(
-                        response_code = '0100',
+                        code = '0100',
                         reference_element = None,
-                        response_text = None,
+                        text = None,
                     ),
             ],
     )
-    >>> HIRMG2(response=[fints.formals.Response('2342')]).print_nested()
+    >>> HIRMG2(responses=[fints.formals.Response('2342')]).print_nested()
     fints.segments.HIRMG2(
         header = fints.formals.SegmentHeader('HIRMG', None, 2),
-        response = [
+        responses = [
                     fints.formals.Response(
-                        response_code = '2342',
+                        code = '2342',
                         reference_element = None,
-                        response_text = None,
+                        text = None,
                     ),
             ],
     )

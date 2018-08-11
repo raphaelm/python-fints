@@ -336,16 +336,16 @@ class FinTS3Serializer:
                     for val in getattr(segment, name):
                         seg.append( self.serialize_deg(val) )
                 else:
-                    seg.append( self.serialize_deg(getattr(segment, name)) )
+                    seg.append( self.serialize_deg(getattr(segment, name), allow_skip=True) )
 
         if segment._additional_data:
             seg.extend(segment._additional_data)
             
         return seg
 
-    def serialize_deg(self, deg):
+    def serialize_deg(self, deg, allow_skip=False):
         result = []
-        skipping_end = False
+        filler = []
 
         for name,field in deg._fields.items():
             repeat = field.count != 1
@@ -353,7 +353,7 @@ class FinTS3Serializer:
 
             val = getattr(deg, name)
             empty = False
-            if not field.required:
+            if field.count == 1 and not field.required:
                 if isinstance(val, Container):
                     if val.is_unset():
                         empty = True
@@ -363,12 +363,16 @@ class FinTS3Serializer:
                 elif val is None:
                     empty = True
 
-            if skipping_end and not empty:
-                raise ValueError("Inconsistency during serialization: Field {}.{} not empty, but a field before it was".format(deg.__class__.__name__, name))
-
             if empty:
-                skipping_end = True
+                if allow_skip:
+                    filler.append(None)
+                else:
+                    result.append(None)
                 continue
+            else:
+                if filler:
+                    result.extend(filler)
+                    filler.clear()
 
             if not constructed:
                 if repeat:
