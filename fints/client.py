@@ -10,13 +10,14 @@ from fints.segments.debit import HKDSE, HKDME
 from .connection import FinTSHTTPSConnection
 from .dialog import FinTSDialog
 from .message import FinTSMessage
-from .models import SEPAAccount, TANMethod, TANChallenge6, TANChallenge5, TANChallenge3, TANChallenge4, TANChallenge
+from .models import SEPAAccount, TANChallenge6, TANChallenge5, TANChallenge3, TANChallenge4, TANChallenge
 from .segments.accounts import HKSPA
 from .segments.auth import HKTAN, HKTAB
 from .segments.depot import HKWPD
 from .segments.saldo import HKSAL
 from .segments.statement import HKKAZ
 from .segments.transfer import HKCCS, HKCCM
+from .formals import TwoStepParametersCommon
 from .utils import mt940_to_array, MT535_Miniparser, Password
 
 logger = logging.getLogger(__name__)
@@ -56,12 +57,9 @@ class FinTS3Client:
         logger.debug('Got HKSPA response: {}'.format(resp))
         dialog.end()
 
-        seg = resp._find_segment('HISPA')
         self.accounts = []
-        for arr in seg[1:]:
-            self.accounts.append(SEPAAccount(
-                iban=arr[1], bic=arr[2], accountnumber=arr[3], subaccount=arr[4], blz=arr[6]
-            ))
+        for seg in resp.find_segments('HISPA'):
+            self.accounts.extend(seg.accounts)
 
         return self.accounts
 
@@ -290,7 +288,7 @@ class FinTS3Client:
 
         challenge.dialog.end()
 
-    def start_simple_sepa_transfer(self, account: SEPAAccount, tan_method: TANMethod, iban: str, bic: str,
+    def start_simple_sepa_transfer(self, account: SEPAAccount, tan_method: TwoStepParametersCommon, iban: str, bic: str,
                                    recipient_name: str, amount: Decimal, account_name: str, reason: str,
                                    endtoend_id='NOTPROVIDED', tan_description=''):
         """

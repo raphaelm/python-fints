@@ -1,6 +1,6 @@
 import re
 
-from fints.formals import Container, ContainerMeta, SegmentHeader, DataElementGroupField, DataElementField, ReferenceMessage, SegmentSequenceField, SecurityProfile, SecurityIdentificationDetails, SecurityDateTime, EncryptionAlgorithm, KeyName, Certificate, HashAlgorithm, SignatureAlgorithm, UserDefinedSignature, Response, AccountInformation, AccountLimit, AllowedTransaction, ParameterTwostepTAN1, ParameterTwostepTAN2, ParameterTwostepTAN3, ParameterTwostepTAN4, ParameterTwostepTAN5, ParameterTwostepTAN6, ParameterPinTan, SupportedLanguages2, SupportedHBCIVersions2, BankIdentifier
+from fints.formals import Container, ContainerMeta, SegmentHeader, DataElementGroupField, DataElementField, ReferenceMessage, SegmentSequenceField, SecurityProfile, SecurityIdentificationDetails, SecurityDateTime, EncryptionAlgorithm, KeyName, Certificate, HashAlgorithm, SignatureAlgorithm, UserDefinedSignature, Response, AccountInformation, AccountLimit, AllowedTransaction, ParameterTwostepTAN1, ParameterTwostepTAN2, ParameterTwostepTAN3, ParameterTwostepTAN4, ParameterTwostepTAN5, ParameterTwostepTAN6, ParameterPinTan, SupportedLanguages2, SupportedHBCIVersions2, BankIdentifier, AccountInternational
 
 from fints.utils import classproperty, SubclassesMixin
 
@@ -187,3 +187,6 @@ class HIBPA3(FinTS3Segment):
     max_message_length = DataElementField(type='num', max_length=4, required=False)
     min_timeout = DataElementField(type='num', max_length=4, required=False)
     max_timeout = DataElementField(type='num', max_length=4, required=False)
+
+class HISPA1(FinTS3Segment):
+    accounts = DataElementGroupField(type=AccountInternational, max_count=999, required=False)

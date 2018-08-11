@@ -806,3 +806,11 @@ class SupportedLanguages2(DataElementGroup):
 
 class SupportedHBCIVersions2(DataElementGroup):
     versions = DataElementField(type='code', max_length=3, min_count=1, max_count=9)
+
+class AccountInternational(DataElementGroup):
+    is_sepa = DataElementField(type='jn')
+    iban = DataElementField(type='an', max_length=34)
+    bic = DataElementField(type='an', max_length=11)
+    account_number = DataElementField(type='id')
+    subaccount_number = DataElementField(type='id')
+    bank_identifier = DataElementGroupField(type=BankIdentifier)

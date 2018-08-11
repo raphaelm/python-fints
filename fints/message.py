@@ -19,9 +19,9 @@ class FinTSMessage:
         self.segments = []
         self.encrypted_segments = []
 
-        if tan_mechs and '999' not in [t.security_feature for t in tan_mechs]:
+        if tan_mechs and '999' not in [t.security_function for t in tan_mechs]:
             self.profile_version = 2
-            self.security_function = tan_mechs[0].security_feature
+            self.security_function = tan_mechs[0].security_function
         else:
             self.profile_version = 1
             self.security_function = '999'

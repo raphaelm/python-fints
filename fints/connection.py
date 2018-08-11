@@ -27,6 +27,7 @@ class FinTSHTTPSConnection:
             raise FinTSConnectionError('Bad status code {}'.format(r.status_code))
         response = base64.b64decode(r.content.decode('iso-8859-1'))
         retval = FinTSResponse(response)
+        #import pprint; pprint.pprint(response)  FIXME Remove
         print("Received <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
         with Password.protect():
             retval.print_nested()
