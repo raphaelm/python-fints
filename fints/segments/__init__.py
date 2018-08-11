@@ -152,17 +152,17 @@ class ParameterSegment(FinTS3Segment):
     security_class = DataElementField(type='num', length=1, _d="Sicherheitsklasse")
 
 class HITANS1(ParameterSegment):
-    parameters = DataElementGroupField(type=ParameterTwostepTAN1)
+    parameter = DataElementGroupField(type=ParameterTwostepTAN1)
 
 class HITANS3(ParameterSegment):
-    parameters = DataElementGroupField(type=ParameterTwostepTAN3)
+    parameter = DataElementGroupField(type=ParameterTwostepTAN3)
 
 class HIPINS1(ParameterSegment):
     """PIN/TAN-spezifische Informationen, version 1
 
     Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Sicherheitsverfahren PIN/TAN 
     """
-    parameters = DataElementGroupField(type=ParameterPinTan, _d="Parameter PIN/TAN-spezifische Informationen") 
+    parameter = DataElementGroupField(type=ParameterPinTan, _d="Parameter PIN/TAN-spezifische Informationen") 
 
 
 class HIBPA3(FinTS3Segment):

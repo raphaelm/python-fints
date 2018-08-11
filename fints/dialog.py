@@ -60,9 +60,9 @@ class FinTSDialog:
         self.systemid = resp.get_systemid()
         self.dialogid = resp.get_dialog_id()
         self.bankname = resp.get_bank_name()
-        self.hksalversion = resp.get_hksal_max_version()
-        self.hkkazversion = resp.get_hkkaz_max_version()
-        self.hktanversion = resp._get_segment_max_version('HKTAN')
+        self.hksalversion = resp.get_segment_max_version('HIKAZS')
+        self.hkkazversion = resp.get_segment_max_version('HISALS')
+        self.hktanversion = resp.get_segment_max_version('HKTAN')
         self.tan_mechs = resp.get_supported_tan_mechanisms()
 
         logger.debug('Bank name: {}'.format(self.bankname))
@@ -107,7 +107,7 @@ class FinTSDialog:
         msg.dialogid = self.dialogid
 
         try:
-            resp = FinTSResponse(self.connection.send(msg))
+            resp = self.connection.send(msg)
             if not resp.is_success():
                 raise FinTSDialogError(
                     resp.get_summary_by_segment()

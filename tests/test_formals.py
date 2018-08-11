@@ -352,7 +352,7 @@ def test_find_1():
 
     assert m.find_segment_first('ITST') is None
 
-    assert len( m.find_segment_first('HITANS', 1).parameters.twostep_parameters ) == 2
-    assert len( m.find_segment_first('HITANS', 3).parameters.twostep_parameters ) == 6
+    assert len( m.find_segment_first('HITANS', 1).parameter.twostep_parameters ) == 2
+    assert len( m.find_segment_first('HITANS', 3).parameter.twostep_parameters ) == 6
 
     assert m.find_segment_first('HITANS', recurse=False) is None

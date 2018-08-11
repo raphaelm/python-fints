@@ -90,11 +90,8 @@ class FinTSResponse(SegmentSequence):
             raise ValueError('Could not find systemid')
         return seg.customer_system_id
 
-    def get_hkkaz_max_version(self):
-        return max((seg.header.version for seg in self.find_segments('HIKAZS')), default=3)
-
-    def get_hksal_max_version(self):
-        return max((seg.header.version for seg in self.find_segments('HISALS')), default=3)
+    def get_segment_max_version(self, type):
+        return max((seg.header.version for seg in self.find_segments(type)), default=3)
 
     def get_supported_tan_mechanisms(self):
         tan_methods = []
@@ -113,8 +110,9 @@ class FinTSResponse(SegmentSequence):
                     )
                 )
 
-            if seg.parameters.twostep_parameters.security_function in tan_methods:
-                methods.append(method)
+            for params in seg.parameter.twostep_parameters:
+                if params.security_function in tan_methods:
+                    methods.append(params)
 
         return methods
 
