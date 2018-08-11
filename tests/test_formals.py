@@ -333,3 +333,26 @@ def test_container_generic():
 
     with pytest.warns(UserWarning, match=r'Generic field used for type None value \[\]'):
         i2 = A(a=[])
+
+def test_find_1():
+    from conftest import COMPLICATED_EXAMPLE
+    from fints.parser import FinTS3Parser
+    from fints.segments import HNHBS1, HNHBK3
+
+    m = FinTS3Parser().parse_message(COMPLICATED_EXAMPLE)
+
+    assert len(list(m.find_segments('HNHBK'))) == 1
+    assert len(list(m.find_segments( ['HNHBK', 'HNHBS'] ))) == 2
+
+    assert len(list(m.find_segments( ['HNHBK', 'HNHBS'], 1))) == 1
+    assert len(list(m.find_segments( ['HNHBK', 'HNHBS'], (1, 3) ))) == 2
+
+    assert isinstance(m.find_segment_first('HNHBK'), HNHBK3)
+    assert isinstance(m.find_segment_first('HNHBS'), HNHBS1)
+
+    assert m.find_segment_first('ITST') is None
+
+    assert len( m.find_segment_first('HITANS', 1).parameters.twostep_parameters ) == 2
+    assert len( m.find_segment_first('HITANS', 3).parameters.twostep_parameters ) == 6
+
+    assert m.find_segment_first('HITANS', recurse=False) is None

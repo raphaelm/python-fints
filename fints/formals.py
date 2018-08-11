@@ -3,7 +3,7 @@ import warnings
 from contextlib import suppress
 from inspect import getmro
 from copy import deepcopy
-from collections import OrderedDict
+from collections import OrderedDict, Iterable
 
 from fints.utils import classproperty, SubclassesMixin, Password
 
@@ -392,10 +392,41 @@ class SegmentSequence:
         The match results of all given parameters will be AND-combined.
         """
 
+        if type is None:
+            type = []
+        elif isinstance(type, str) or not isinstance(type, (list, tuple, Iterable)):
+            type = [type]
+
+        if version is None:
+            version = []
+        elif not isinstance(version, (list, tuple, Iterable)):
+            version = [version]
+
+        if callback is None:
+            callback = lambda s: True
+
+        for s in self.segments:
+            if ((not type) or any(s.header.type == t for t in type)) and \
+                ((not version) or any(s.header.version == v for v in version)) and \
+                callback(s):
+                yield s
+
+            if recurse:
+                for name, field in s._fields.items():
+                    if isinstance(field, SegmentSequenceField):
+                        val = getattr(s, name)
+                        if val:
+                            yield from val.find_segments(type=type, version=version, callback=callback, recurse=recurse)
+
     def find_segment_first(self, *args, **kwargs):
         """Finds the first matching segment.
 
         Same parameters as find_segments(), but only returns the first match, or None if no match is found."""
+
+        for m in self.find_segments(*args, **kwargs):
+            return m
+
+        return None
 
 class SegmentSequenceField(DataElementField):
     type = 'sf'
