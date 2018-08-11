@@ -1,34 +1,27 @@
 from fints.message import FinTSResponse
 from fints.parser import FinTS3Parser
-#from fints.segments.message import HNHBK
+from fints.formals import SegmentSequence
 import pytest
 
-from conftest import COMPLICATED_EXAMPLE, SIMPLE_EXAMPLE
+from conftest import TEST_MESSAGES
 
-def test_basic_message():
-    segments = FinTS3Parser.explode_segments(SIMPLE_EXAMPLE)
-    assert len(segments) == 4
+@pytest.mark.parametrize("input_name", TEST_MESSAGES.keys())
+def test_explode(input_name):
+    segments = FinTS3Parser.explode_segments(TEST_MESSAGES[input_name])
+    if input_name.startswith('basic_'):
+        assert len(segments) == 4
 
-def test_explode_complicated():
-    segments = FinTS3Parser.explode_segments(COMPLICATED_EXAMPLE)
-    assert len(segments) == 4
-
-def test_legacy_response():
-    data = SIMPLE_EXAMPLE
-    m = FinTSResponse(data)
-    assert len(m.segments) == 4
-    assert len(m.payload) == 3
-
-def test_parse_simple():
-    m = FinTS3Parser().parse_message(SIMPLE_EXAMPLE)
-    assert len(m.segments) == 4
+@pytest.mark.parametrize("input_name", [k for k in TEST_MESSAGES.keys() if k.startswith('basic_')])
+def test_parse_basic(input_name):
+    m = FinTS3Parser().parse_message(TEST_MESSAGES[input_name])
     assert m.segments[0].__class__.__name__ == "HNHBK3"
+    assert m.segments[3].__class__.__name__ == "HNHBS1"
     m.print_nested()
 
-def test_parse_complicated():
-    m = FinTS3Parser().parse_message(COMPLICATED_EXAMPLE)
-    assert len(m.segments) == 4
-    assert m.segments[3].__class__.__name__ == "HNHBS1"
+@pytest.mark.parametrize("input_name", [k for k in TEST_MESSAGES.keys() if not k.startswith('basic_')])
+def test_parse_other(input_name):
+    m = FinTS3Parser().parse_message(TEST_MESSAGES[input_name])
+    assert isinstance(m, SegmentSequence)
     m.print_nested()
 
 def test_parse_counted():
@@ -82,9 +75,9 @@ def test_parse_HIRMG2():
     
     seg = m.segments[0]
     assert seg.header.type == 'HIRMG'
-    assert seg.response[0].response_code == '0010'
-    assert seg.response[1].response_code == '0100'
-    assert len(seg.response) == 2
+    assert seg.responses[0].code == '0010'
+    assert seg.responses[1].code == '0100'
+    assert len(seg.responses) == 2
 
 def test_invalid():
     message1 = rb"""12"""

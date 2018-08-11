@@ -335,11 +335,11 @@ def test_container_generic():
         i2 = A(a=[])
 
 def test_find_1():
-    from conftest import COMPLICATED_EXAMPLE
+    from conftest import TEST_MESSAGES
     from fints.parser import FinTS3Parser
     from fints.segments import HNHBS1, HNHBK3
 
-    m = FinTS3Parser().parse_message(COMPLICATED_EXAMPLE)
+    m = FinTS3Parser().parse_message(TEST_MESSAGES['basic_complicated'])
 
     assert len(list(m.find_segments('HNHBK'))) == 1
     assert len(list(m.find_segments( ['HNHBK', 'HNHBS'] ))) == 2

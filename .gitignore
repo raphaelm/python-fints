@@ -6,4 +6,5 @@ env
 .idea/
 test*.py
 !tests/*
+tests/messages/private_*
 *.pyc
