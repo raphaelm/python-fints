@@ -1,6 +1,6 @@
 import re
 
-from fints.formals import Container, ContainerMeta, SegmentHeader, DataElementGroupField, DataElementField, ReferenceMessage, SegmentSequenceField, SecurityProfile, SecurityIdentificationDetails, SecurityDateTime, EncryptionAlgorithm, KeyName, Certificate, HashAlgorithm, SignatureAlgorithm, UserDefinedSignature, Response, AccountInformation, AccountLimit, AllowedTransaction, ParameterTwostepTAN1, ParameterTwostepTAN3, ParameterPinTan, SupportedLanguages2, SupportedHBCIVersions2, BankIdentifier
+from fints.formals import Container, ContainerMeta, SegmentHeader, DataElementGroupField, DataElementField, ReferenceMessage, SegmentSequenceField, SecurityProfile, SecurityIdentificationDetails, SecurityDateTime, EncryptionAlgorithm, KeyName, Certificate, HashAlgorithm, SignatureAlgorithm, UserDefinedSignature, Response, AccountInformation, AccountLimit, AllowedTransaction, ParameterTwostepTAN1, ParameterTwostepTAN2, ParameterTwostepTAN3, ParameterTwostepTAN4, ParameterTwostepTAN5, ParameterTwostepTAN6, ParameterPinTan, SupportedLanguages2, SupportedHBCIVersions2, BankIdentifier
 
 from fints.utils import classproperty, SubclassesMixin
 
@@ -154,8 +154,20 @@ class ParameterSegment(FinTS3Segment):
 class HITANS1(ParameterSegment):
     parameter = DataElementGroupField(type=ParameterTwostepTAN1)
 
+class HITANS2(ParameterSegment):
+    parameter = DataElementGroupField(type=ParameterTwostepTAN2)
+
 class HITANS3(ParameterSegment):
     parameter = DataElementGroupField(type=ParameterTwostepTAN3)
+
+class HITANS4(ParameterSegment):
+    parameter = DataElementGroupField(type=ParameterTwostepTAN4)
+
+class HITANS5(ParameterSegment):
+    parameter = DataElementGroupField(type=ParameterTwostepTAN5)
+
+class HITANS6(ParameterSegment):
+    parameter = DataElementGroupField(type=ParameterTwostepTAN6)
 
 class HIPINS1(ParameterSegment):
     """PIN/TAN-spezifische Informationen, version 1

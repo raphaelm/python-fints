@@ -653,38 +653,117 @@ class AllowedTransaction(DataElementGroup):
     limit_amount = DataElementField(type='btg', required=False)
     limit_days = DataElementField(type='num', max_length=3, required=False)
 
-class TwoStepParameters1(DataElementGroup):
-    security_function = DataElementField(type='code', max_length=3)
-    tan_process = DataElementField(type='code', length=1)
-    technical_identification_tan_process = DataElementField(type='id')
-    name_twostep_process = DataElementField(type='an', max_length=30)
-    max_length_tan_entry = DataElementField(type='num', max_length=2)
-    allowed_format_tan_entry = DataElementField(type='code', length=1)
-    return_value_text = DataElementField(type='an', max_length=30)
-    max_length_return_value = DataElementField(type='num', max_length=3)
-    number_supported_tan_lists = DataElementField(type='num', length=1)
-    multiple_tans_allowed = DataElementField(type='jn')
-    tan_time_delayed_allowed = DataElementField(type='jn')
+class TwoStepParametersCommon(DataElementGroup):
+    @property
+    def VERSION(self):
+        return int( re.match(r'^(\D+)(\d+)$', self.__class__.__name__).group(2) )
 
-class TwoStepParameters3(DataElementGroup):
-    security_function = DataElementField(type='code', max_length=3)
-    tan_process = DataElementField(type='code', length=1)
-    technical_identification_tan_process = DataElementField(type='id')
-    name_twostep_process = DataElementField(type='an', max_length=30)
-    max_length_tan_entry = DataElementField(type='num', max_length=2)
-    allowed_format_tan_entry = DataElementField(type='code', length=1)
-    return_value_text = DataElementField(type='an', max_length=30)
-    max_length_return_value = DataElementField(type='num', max_length=3)
-    number_supported_tan_lists = DataElementField(type='num', length=1)
-    multiple_tans_allowed = DataElementField(type='jn')
-    tan_timedelayed_type = DataElementField(type='code', length=1)
-    tan_list_number_required = DataElementField(type='code', length=1)
-    cancel_allowed = DataElementField(type='jn')
-    challenge_class_required = DataElementField(type='jn')
-    challenge_amount_required = DataElementField(type='jn')
-    initialisation_mode = DataElementField(type='code', length=2)  # Spec error: It says "length=1", but also "value: 00, 01, 02"
-    id_tan_medium_required = DataElementField(type='code', length=1)
-    number_supported_tan_media = DataElementField(type='num', length=1, required=False)
+    security_function = DataElementField(type='code', max_length=3, _d="Sicherheitsfunktion kodiert")
+    tan_process = DataElementField(type='code', length=1, _d="TAN-Prozess")
+    tech_id = DataElementField(type='id', _d="Technische Identifikation TAN-Verfahren")
+
+class TwoStepParameters1(TwoStepParametersCommon):
+    name = DataElementField(type='an', max_length=30, _d="Name des Zwei-Schritt-Verfahrens")
+    max_length_input = DataElementField(type='num', max_length=2, _d="Maximale Länge des Eingabewertes im Zwei-Schritt-Verfahren")
+    allowed_format = DataElementField(type='code', length=1, _d="Erlaubtes Format im Zwei-Schritt-Verfahren")
+    text_return_value = DataElementField(type='an', max_length=30, _d="Text zur Belegung des Rückgabewertes im Zwei-Schritt-Verfahren")
+    max_length_return_value = DataElementField(type='num', max_length=3, _d="Maximale Länge des Rückgabewertes im Zwei-Schritt-Verfahren")
+    number_of_supported_lists = DataElementField(type='num', length=1, _d="Anzahl unterstützter aktiver TAN-Listen")
+    multiple_tans_allowed = DataElementField(type='jn', _d="Mehrfach-TAN erlaubt")
+    tan_time_delayed_allowed = DataElementField(type='jn', _d="TAN zeitversetzt/dialogübergreifend erlaubt")
+
+class TwoStepParameters2(TwoStepParametersCommon):
+    name = DataElementField(type='an', max_length=30, _d="Name des Zwei-Schritt-Verfahrens")
+    max_length_input = DataElementField(type='num', max_length=2, _d="Maximale Länge des Eingabewertes im Zwei-Schritt-Verfahren")
+    allowed_format = DataElementField(type='code', length=1, _d="Erlaubtes Format im Zwei-Schritt-Verfahren")
+    text_return_value = DataElementField(type='an', max_length=30, _d="Text zur Belegung des Rückgabewertes im Zwei-Schritt-Verfahren")
+    max_length_return_value = DataElementField(type='num', max_length=3, _d="Maximale Länge des Rückgabewertes im Zwei-Schritt-Verfahren")
+    number_of_supported_lists = DataElementField(type='num', length=1, _d="Anzahl unterstützter aktiver TAN-Listen")
+    multiple_tans_allowed = DataElementField(type='jn', _d="Mehrfach-TAN erlaubt")
+    tan_time_dialog_association = DataElementField(type='code', length=1, _d="TAN Zeit- und Dialogbezug")
+    tan_list_number_required = DataElementField(type='code', length=1, _d="TAN-Listennummer erforderlich")
+    cancel_allowed = DataElementField(type='jn', _d="Auftragsstorno erlaubt")
+    challenge_class_required = DataElementField(type='jn', _d="Challenge-Klasse erforderlich")
+    challenge_value_required = DataElementField(type='jn', _d="Challenge-Betrag erforderlich")
+
+class TwoStepParameters3(TwoStepParametersCommon):
+    name = DataElementField(type='an', max_length=30, _d="Name des Zwei-Schritt-Verfahrens")
+    max_length_input = DataElementField(type='num', max_length=2, _d="Maximale Länge des Eingabewertes im Zwei-Schritt-Verfahren")
+    allowed_format = DataElementField(type='code', length=1, _d="Erlaubtes Format im Zwei-Schritt-Verfahren")
+    text_return_value = DataElementField(type='an', max_length=30, _d="Text zur Belegung des Rückgabewertes im Zwei-Schritt-Verfahren")
+    max_length_return_value = DataElementField(type='num', max_length=3, _d="Maximale Länge des Rückgabewertes im Zwei-Schritt-Verfahren")
+    number_of_supported_lists = DataElementField(type='num', length=1, _d="Anzahl unterstützter aktiver TAN-Listen")
+    multiple_tans_allowed = DataElementField(type='jn', _d="Mehrfach-TAN erlaubt")
+    tan_time_dialog_association = DataElementField(type='code', length=1, _d="TAN Zeit- und Dialogbezug")
+    tan_list_number_required = DataElementField(type='code', length=1, _d="TAN-Listennummer erforderlich")
+    cancel_allowed = DataElementField(type='jn', _d="Auftragsstorno erlaubt")
+    challenge_class_required = DataElementField(type='jn', _d="Challenge-Klasse erforderlich")
+    challenge_value_required = DataElementField(type='jn', _d="Challenge-Betrag erforderlich")
+    initialisation_mode = DataElementField(type='code', _d="Initialisierungsmodus")
+    description_required = DataElementField(type='code', length=1, _d="Bezeichnung des TAN-Medium erforderlich")
+    supported_media_number = DataElementField(type='num', length=1, required=False, _d="Anzahl unterstützter aktiver TAN-Medien")
+
+class TwoStepParameters4(TwoStepParametersCommon):
+    zka_id = DataElementField(type='an', max_length=32, _d="ZKA TAN-Verfahren")
+    zka_version = DataElementField(type='an', max_length=10, _d="Version ZKA TAN-Verfahren")
+    name = DataElementField(type='an', max_length=30, _d="Name des Zwei-Schritt-Verfahrens")
+    max_length_input = DataElementField(type='num', max_length=2, _d="Maximale Länge des Eingabewertes im Zwei-Schritt-Verfahren")
+    allowed_format = DataElementField(type='code', length=1, _d="Erlaubtes Format im Zwei-Schritt-Verfahren")
+    text_return_value = DataElementField(type='an', max_length=30, _d="Text zur Belegung des Rückgabewertes im Zwei-Schritt-Verfahren")
+    max_length_return_value = DataElementField(type='num', max_length=3, _d="Maximale Länge des Rückgabewertes im Zwei-Schritt-Verfahren")
+    number_of_supported_lists = DataElementField(type='num', length=1, _d="Anzahl unterstützter aktiver TAN-Listen")
+    multiple_tans_allowed = DataElementField(type='jn', _d="Mehrfach-TAN erlaubt")
+    tan_time_dialog_association = DataElementField(type='code', length=1, _d="TAN Zeit- und Dialogbezug")
+    tan_list_number_required = DataElementField(type='code', length=1, _d="TAN-Listennummer erforderlich")
+    cancel_allowed = DataElementField(type='jn', _d="Auftragsstorno erlaubt")
+    sms_charge_account_required = DataElementField(type='jn', _d="SMS-Abbuchungskonto erforderlich")
+    challenge_class_required = DataElementField(type='jn', _d="Challenge-Klasse erforderlich")
+    challenge_value_required = DataElementField(type='jn', _d="Challenge-Betrag erforderlich")
+    challenge_structured = DataElementField(type='jn', _d="Challenge strukturiert")
+    initialisation_mode = DataElementField(type='code', _d="Initialisierungsmodus")
+    description_required = DataElementField(type='code', length=1, _d="Bezeichnung des TAN-Medium erforderlich")
+    supported_media_number = DataElementField(type='num', length=1, required=False, _d="Anzahl unterstützter aktiver TAN-Medien")
+
+class TwoStepParameters5(TwoStepParametersCommon):
+    zka_id = DataElementField(type='an', max_length=32, _d="ZKA TAN-Verfahren")
+    zka_version = DataElementField(type='an', max_length=10, _d="Version ZKA TAN-Verfahren")
+    name = DataElementField(type='an', max_length=30, _d="Name des Zwei-Schritt-Verfahrens")
+    max_length_input = DataElementField(type='num', max_length=2, _d="Maximale Länge des Eingabewertes im Zwei-Schritt-Verfahren")
+    allowed_format = DataElementField(type='code', length=1, _d="Erlaubtes Format im Zwei-Schritt-Verfahren")
+    text_return_value = DataElementField(type='an', max_length=30, _d="Text zur Belegung des Rückgabewertes im Zwei-Schritt-Verfahren")
+    max_length_return_value = DataElementField(type='num', max_length=3, _d="Maximale Länge des Rückgabewertes im Zwei-Schritt-Verfahren")
+    number_of_supported_lists = DataElementField(type='num', length=1, _d="Anzahl unterstützter aktiver TAN-Listen")
+    multiple_tans_allowed = DataElementField(type='jn', _d="Mehrfach-TAN erlaubt")
+    tan_time_dialog_association = DataElementField(type='code', length=1, _d="TAN Zeit- und Dialogbezug")
+    tan_list_number_required = DataElementField(type='code', length=1, _d="TAN-Listennummer erforderlich")
+    cancel_allowed = DataElementField(type='jn', _d="Auftragsstorno erlaubt")
+    sms_charge_account_required = DataElementField(type='code', length=1, _d="SMS-Abbuchungskonto erforderlich")
+    principal_account_required = DataElementField(type='code', length=1, _d="Auftraggeberkonto erforderlich")
+    challenge_class_required = DataElementField(type='jn', _d="Challenge-Klasse erforderlich")
+    challenge_structured = DataElementField(type='jn', _d="Challenge strukturiert")
+    initialisation_mode = DataElementField(type='code', _d="Initialisierungsmodus")
+    description_required = DataElementField(type='code', length=1, _d="Bezeichnung des TAN-Medium erforderlich")
+    supported_media_number = DataElementField(type='num', length=1, required=False, _d="Anzahl unterstützter aktiver TAN-Medien")
+
+class TwoStepParameters6(TwoStepParametersCommon):
+    zka_id = DataElementField(type='an', max_length=32, _d="ZKA TAN-Verfahren")
+    zka_version = DataElementField(type='an', max_length=10, _d="Version ZKA TAN-Verfahren")
+    name = DataElementField(type='an', max_length=30, _d="Name des Zwei-Schritt-Verfahrens")
+    max_length_input = DataElementField(type='num', max_length=2, _d="Maximale Länge des Eingabewertes im Zwei-Schritt-Verfahren")
+    allowed_format = DataElementField(type='code', length=1, _d="Erlaubtes Format im Zwei-Schritt-Verfahren")
+    text_return_value = DataElementField(type='an', max_length=30, _d="Text zur Belegung des Rückgabewertes im Zwei-Schritt-Verfahren")
+    max_length_return_value = DataElementField(type='num', max_length=3, _d="Maximale Länge des Rückgabewertes im Zwei-Schritt-Verfahren")
+    multiple_tans_allowed = DataElementField(type='jn', _d="Mehrfach-TAN erlaubt")
+    tan_time_dialog_association = DataElementField(type='code', length=1, _d="TAN Zeit- und Dialogbezug")
+    cancel_allowed = DataElementField(type='jn', _d="Auftragsstorno erlaubt")
+    sms_charge_account_required = DataElementField(type='code', length=1, _d="SMS-Abbuchungskonto erforderlich")
+    principal_account_required = DataElementField(type='code', length=1, _d="Auftraggeberkonto erforderlich")
+    challenge_class_required = DataElementField(type='jn', _d="Challenge-Klasse erforderlich")
+    challenge_structured = DataElementField(type='jn', _d="Challenge strukturiert")
+    initialisation_mode = DataElementField(type='code', _d="Initialisierungsmodus")
+    description_required = DataElementField(type='code', length=1, _d="Bezeichnung des TAN-Medium erforderlich")
+    response_hhd_uc_required = DataElementField(type='jn', _d="Antwort HHD_UC erforderlich")
+    supported_media_number = DataElementField(type='num', length=1, required=False, _d="Anzahl unterstützter aktiver TAN-Medien")
 
 class ParameterTwostepCommon(DataElementGroup):
     onestep_method_allowed = DataElementField(type='jn')
@@ -695,8 +774,20 @@ class ParameterTwostepTAN1(ParameterTwostepCommon):
     security_profile_bank_signature = DataElementField(type='code', length=1)
     twostep_parameters = DataElementGroupField(type=TwoStepParameters1, min_count=1, max_count=98)
 
+class ParameterTwostepTAN2(ParameterTwostepCommon):
+    twostep_parameters = DataElementGroupField(type=TwoStepParameters2, min_count=1, max_count=98)
+
 class ParameterTwostepTAN3(ParameterTwostepCommon):
     twostep_parameters = DataElementGroupField(type=TwoStepParameters3, min_count=1, max_count=98)
+
+class ParameterTwostepTAN4(ParameterTwostepCommon):
+    twostep_parameters = DataElementGroupField(type=TwoStepParameters4, min_count=1, max_count=98)
+
+class ParameterTwostepTAN5(ParameterTwostepCommon):
+    twostep_parameters = DataElementGroupField(type=TwoStepParameters5, min_count=1, max_count=98)
+
+class ParameterTwostepTAN6(ParameterTwostepCommon):
+    twostep_parameters = DataElementGroupField(type=TwoStepParameters6, min_count=1, max_count=98)
 
 class TransactionTanRequired(DataElementGroup):
     transaction = DataElementField(type='an', max_length=6)
