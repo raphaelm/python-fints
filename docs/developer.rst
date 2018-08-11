@@ -53,6 +53,7 @@ All segment classes derive from  :class:`~fints.segments.FinTS3Segment`, which s
 .. autoclass:: fints.segments.FinTS3Segment
    :members:
    :inherited-members: print_nested
+   :member-order: bysource
 
    .. attribute:: TYPE
 
@@ -68,6 +69,7 @@ All segment classes derive from  :class:`~fints.segments.FinTS3Segment`, which s
 
 .. autoclass:: fints.formals.SegmentHeader
    :members:
+   :member-order: bysource
 
 The :class:`~fints.segments.FinTS3Segment` class and its base classes employ a number of dynamic programming techniques so that derived classes need only specify the name, order and type of fields and all type conversion, construction etc. will take place automatically. All derived classes basically should behave "as expected", returning only native Python datatypes.
 
@@ -177,4 +179,14 @@ ____________
     :members:
     :inherited-members:
     :exclude-members: print_nested
+    :member-order: bysource
 
+
+Field types
+___________
+
+.. automodule:: fints.formals
+    :members:
+    :undoc-members:
+    :exclude-members: print_nested
+    :member-order: bysource

@@ -356,3 +356,14 @@ def test_find_1():
     assert len( m.find_segment_first('HITANS', 3).parameter.twostep_parameters ) == 6
 
     assert m.find_segment_first('HITANS', recurse=False) is None
+
+def test_find_by_class():
+    from conftest import TEST_MESSAGES
+    from fints.parser import FinTS3Parser
+    from fints.segments import HNHBS1
+
+    m = FinTS3Parser().parse_message(TEST_MESSAGES['basic_complicated'])
+
+    assert list(m.find_segments(HNHBS1))[0].__class__ == HNHBS1
+
+    assert m.find_segment_first(HNHBS1).header.type == 'HNHBS'

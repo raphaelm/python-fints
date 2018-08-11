@@ -386,10 +386,10 @@ class SegmentSequence:
             segment.print_nested(stream=stream, level=level+1, indent=indent, prefix=prefix, first_level_indent=True, trailer=",")
         stream.write( (prefix + level*indent) + "]){}\n".format(trailer) )
 
-    def find_segments(self, type=None, version=None, callback=None, recurse=True):
+    def find_segments(self, query=None, version=None, callback=None, recurse=True):
         """Yields an iterable of all matching segments.
 
-        :param type: Either a str specifying a segment type (such as 'HNHBK'), or a list or tuple of strings.
+        :param query: Either a str or class specifying a segment type (such as 'HNHBK', or :class:`~fints.segments.HNHBK3`), or a list or tuple of strings or classes.
                      If a list/tuple is specified, segments returning any matching type will be returned.
         :param version: Either an int specifying a segment version, or a list or tuple of ints.
                         If a list/tuple is specified, segments returning any matching version will be returned.
@@ -399,10 +399,10 @@ class SegmentSequence:
         The match results of all given parameters will be AND-combined.
         """
 
-        if type is None:
-            type = []
-        elif isinstance(type, str) or not isinstance(type, (list, tuple, Iterable)):
-            type = [type]
+        if query is None:
+            query = []
+        elif isinstance(query, str) or not isinstance(query, (list, tuple, Iterable)):
+            query = [query]
 
         if version is None:
             version = []
@@ -413,7 +413,7 @@ class SegmentSequence:
             callback = lambda s: True
 
         for s in self.segments:
-            if ((not type) or any(s.header.type == t for t in type)) and \
+            if ((not query) or any( (isinstance(s, t) if isinstance(t, type) else s.header.type == t) for t in query)) and \
                 ((not version) or any(s.header.version == v for v in version)) and \
                 callback(s):
                 yield s
@@ -423,7 +423,7 @@ class SegmentSequence:
                     if isinstance(field, SegmentSequenceField):
                         val = getattr(s, name)
                         if val:
-                            yield from val.find_segments(type=type, version=version, callback=callback, recurse=recurse)
+                            yield from val.find_segments(query=query, version=version, callback=callback, recurse=recurse)
 
     def find_segment_first(self, *args, **kwargs):
         """Finds the first matching segment.
