@@ -1,8 +1,10 @@
-import mt940
 import re
-from .models import Holding
-from datetime import datetime
 from contextlib import contextmanager
+from datetime import datetime
+
+import mt940
+
+from .models import Holding
 
 
 def mt940_to_array(data):

@@ -1,9 +1,12 @@
-from enum import Enum
+import re
+import warnings
 from collections import Iterable
-from contextlib import suppress
-import re, warnings
+from enum import Enum
+
+from .formals import (
+    Container, DataElementGroupField, SegmentSequence, ValueList,
+)
 from .segments import FinTS3Segment
-from .formals import Container, ValueList, DataElementField, DataElementGroupField, SegmentSequence
 
 # 
 # FinTS 3.0 structure:
@@ -440,6 +443,3 @@ class FinTS3Serializer:
             return b''
         else:
             raise TypeError("Can only escape str, bytes and None")
-
-
-

@@ -1,8 +1,12 @@
-import pytest
-from fints.segments import FinTS3Segment, HNHBK3, HNHBS1
-from fints.formals import SegmentSequence, SegmentHeader, DataElementField, GenericField, NumericField, AlphanumericField
-
 from io import StringIO
+
+import pytest
+from fints.formals import (
+    AlphanumericField, DataElementField, GenericField,
+    NumericField, SegmentHeader, SegmentSequence,
+)
+from fints.segments import HNHBK3, HNHBS1, FinTS3Segment
+
 
 def test_metaclass_foo():
     a = HNHBK3()

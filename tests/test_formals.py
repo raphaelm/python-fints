@@ -1,5 +1,10 @@
 import pytest
-from fints.formals import Container, ContainerField, DataElementField, DataElementGroupField, DigitsField, NumericField, Field, SegmentSequence, SegmentHeader, AlphanumericField, GenericGroupField
+from fints.formals import (
+    AlphanumericField, Container, ContainerField, DataElementField,
+    DataElementGroupField, DigitsField, Field, GenericGroupField,
+    NumericField, SegmentHeader, SegmentSequence,
+)
+
 
 def test_container_simple():
     class A(Container):

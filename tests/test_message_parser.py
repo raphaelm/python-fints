@@ -1,10 +1,10 @@
+import pytest
+from conftest import TEST_MESSAGES
+from fints.formals import SegmentSequence
 from fints.message import FinTSResponse
 from fints.parser import FinTS3Parser, FinTSParserError, FinTSParserWarning
-from fints.formals import SegmentSequence
 from fints.segments import FinTS3Segment
-import pytest
 
-from conftest import TEST_MESSAGES
 
 @pytest.mark.parametrize("input_name", TEST_MESSAGES.keys())
 def test_explode(input_name):
@@ -117,4 +117,3 @@ def test_robust_mode(mock):
     with pytest.warns(FinTSParserWarning, match='^Ignoring parser error.*: Required field'):
         m = FinTS3Parser().parse_message(message1)
         assert m.segments[0].__class__ == FinTS3Segment
-

@@ -1,6 +1,6 @@
 import logging
 
-from .message import FinTSMessage, FinTSResponse
+from .message import FinTSMessage
 from .segments.auth import HKIDN, HKSYN, HKVVB
 from .segments.dialog import HKEND
 

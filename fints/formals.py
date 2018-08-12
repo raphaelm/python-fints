@@ -1,11 +1,10 @@
 import re
 import warnings
+from collections import Iterable, OrderedDict
 from contextlib import suppress
-from inspect import getmro
-from copy import deepcopy
-from collections import OrderedDict, Iterable
 
-from fints.utils import classproperty, SubclassesMixin, Password
+from fints.utils import Password, SubclassesMixin
+
 
 class ValueList:
     def __init__(self, parent):

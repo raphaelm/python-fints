@@ -1,11 +1,11 @@
 import base64
 
 import requests
+from fints.parser import FinTS3Parser
+from fints.utils import Password
 
 from .message import FinTSMessage, FinTSResponse
 
-from fints.parser import FinTS3Parser
-from fints.utils import Password
 
 class FinTSConnectionError(Exception):
     pass

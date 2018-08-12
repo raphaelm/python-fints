@@ -1,9 +1,9 @@
-from fints.parser import FinTS3Serializer, FinTS3Parser
-from fints.segments import FinTS3Segment
-from fints.formals import NumericField
 import pytest
-
 from conftest import TEST_MESSAGES
+from fints.formals import NumericField
+from fints.parser import FinTS3Parser, FinTS3Serializer
+from fints.segments import FinTS3Segment
+
 
 def test_serialize_1():
     class ITST1(FinTS3Segment):

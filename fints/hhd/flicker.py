@@ -4,7 +4,6 @@
 # https://wiki.ccc-ffm.de/projekte:tangenerator:start#flickercode_uebertragung
 import math
 import re
-
 import time
 
 HHD_VERSION_13 = 13

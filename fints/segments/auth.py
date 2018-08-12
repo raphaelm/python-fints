@@ -1,4 +1,5 @@
 from fints.utils import fints_escape
+
 from . import FinTS3SegmentOLD
 
 

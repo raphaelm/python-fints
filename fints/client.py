@@ -1,26 +1,27 @@
 import datetime
 import logging
-import re
 from decimal import Decimal
 
+from fints.segments import HISPA1
+from fints.segments.debit import HKDME, HKDSE
 from mt940.models import Balance
 from sepaxml import SepaTransfer
 
-from fints.segments.debit import HKDSE, HKDME
 from .connection import FinTSHTTPSConnection
 from .dialog import FinTSDialog
+from .formals import TwoStepParametersCommon
 from .message import FinTSMessage
-from .models import SEPAAccount, TANChallenge6, TANChallenge5, TANChallenge3, TANChallenge4, TANChallenge
+from .models import (
+    SEPAAccount, TANChallenge, TANChallenge3,
+    TANChallenge4, TANChallenge5, TANChallenge6,
+)
 from .segments.accounts import HKSPA
-from .segments.auth import HKTAN, HKTAB
+from .segments.auth import HKTAB, HKTAN
 from .segments.depot import HKWPD
 from .segments.saldo import HKSAL
 from .segments.statement import HKKAZ
-from .segments.transfer import HKCCS, HKCCM
-from .formals import TwoStepParametersCommon
-from .utils import mt940_to_array, MT535_Miniparser, Password
-
-from fints.segments import HISPA1
+from .segments.transfer import HKCCM, HKCCS
+from .utils import MT535_Miniparser, Password, mt940_to_array
 
 logger = logging.getLogger(__name__)
 

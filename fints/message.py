@@ -1,11 +1,9 @@
-from enum import Enum
 import random
-import re
 
-from .segments.message import HNHBK, HNHBS, HNSHA, HNSHK, HNVSD, HNVSK
-from .parser import FinTS3Parser
 from .formals import SegmentSequence
-from .segments import ParameterSegment, HIRMG2, HNHBK3, HIBPA3, HISYN4, HIRMS2, HITANSBase
+from .segments import HIBPA3, HIRMG2, HIRMS2, HISYN4, HNHBK3, HITANSBase
+from .segments.message import HNHBK, HNHBS, HNSHA, HNSHK, HNVSD, HNVSK
+
 
 class FinTSMessage:
     def __init__(self, blz, username, pin, systemid, dialogid, msgno, encrypted_segments, tan_mechs=None, tan=None):

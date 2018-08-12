@@ -1,8 +1,17 @@
 import re
 
-from fints.formals import Container, ContainerMeta, SegmentHeader, DataElementGroupField, DataElementField, ReferenceMessage, SegmentSequenceField, SecurityProfile, SecurityIdentificationDetails, SecurityDateTime, EncryptionAlgorithm, KeyName, Certificate, HashAlgorithm, SignatureAlgorithm, UserDefinedSignature, Response, AccountInformation, AccountLimit, AllowedTransaction, ParameterTwostepTAN1, ParameterTwostepTAN2, ParameterTwostepTAN3, ParameterTwostepTAN4, ParameterTwostepTAN5, ParameterTwostepTAN6, ParameterPinTan, SupportedLanguages2, SupportedHBCIVersions2, BankIdentifier, AccountInternational
-
-from fints.utils import classproperty, SubclassesMixin
+from fints.formals import (
+    AccountInformation, AccountInternational, AccountLimit,
+    AllowedTransaction, BankIdentifier, Certificate, Container, ContainerMeta,
+    DataElementField, DataElementGroupField, EncryptionAlgorithm,
+    HashAlgorithm, KeyName, ParameterPinTan, ParameterTwostepTAN1,
+    ParameterTwostepTAN2, ParameterTwostepTAN3, ParameterTwostepTAN4,
+    ParameterTwostepTAN5, ParameterTwostepTAN6, ReferenceMessage, Response,
+    SecurityDateTime, SecurityIdentificationDetails, SecurityProfile,
+    SegmentHeader, SegmentSequenceField, SignatureAlgorithm,
+    SupportedHBCIVersions2, SupportedLanguages2, UserDefinedSignature,
+)
+from fints.utils import SubclassesMixin, classproperty
 
 TYPE_VERSION_RE = re.compile(r'^([A-Z]+)(\d+)$')
 
