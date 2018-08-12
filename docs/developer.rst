@@ -37,7 +37,7 @@ FinTS Segment Sequence
 
 A message is a sequence of segments. The :class:`~fints.formals.SegmentSequence` object allows searching for segments by type and version, by default recursing into nested sequences.
 
-.. autoclass:: fints.formals.SegmentSequence
+.. autoclass:: fints.types.SegmentSequence
    :members:
    :undoc-members: print_nested
 
@@ -178,15 +178,32 @@ ____________
 .. automodule:: fints.segments
     :members:
     :inherited-members:
+    :undoc-members:
+    :show-inheritance:
     :exclude-members: print_nested
     :member-order: bysource
 
 
+Defining new Segment classes
+----------------------------
+
 Field types
-___________
+~~~~~~~~~~~
+
+.. automodule:: fints.fields
+    :members:
+    :undoc-members:
+    :exclude-members: print_nested
+    :member-order: bysource
+
+
+Constructed and helper types
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. automodule:: fints.formals
     :members:
     :undoc-members:
     :exclude-members: print_nested
     :member-order: bysource
+
+

@@ -301,7 +301,7 @@ def test_unset():
 def test_sequence_repr():
     s = SegmentSequence()
 
-    assert repr(s) == 'SegmentSequence([])'
+    assert repr(s) == 'fints.types.SegmentSequence([])'
 
 def test_valuelist_repr():
     class A(Container):
