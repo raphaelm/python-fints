@@ -3,7 +3,10 @@ import warnings
 from contextlib import suppress
 
 import fints.types
-from fints.utils import Password, SubclassesMixin
+from fints.utils import (
+    DocTypeMixin, FieldRenderFormatStringMixin,
+    FixedLengthMixin, Password, SubclassesMixin,
+)
 
 
 class Field:
@@ -104,38 +107,8 @@ class TypedField(Field, SubclassesMixin):
         self.type = type or getattr(self.__class__, 'type', None)
 
 
-class DocTypeMixin:
-    _DOC_TYPE = None
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        type_ = self._DOC_TYPE
-        if type_ is None:
-            if isinstance(getattr(self, 'type', None), type):
-                type_ = getattr(self, 'type')
-
-        if type_ is not None:
-            if not self.__doc__:
-                self.__doc__ = ""
-
-            name = type_.__name__
-            if type_.__module__ != 'builtins':
-                name = "{}.{}".format(type_.__module__, name)
-
-            self.__doc__ = self.__doc__ + "\n\n:type: :class:`{}`".format(name)
-
 class DataElementField(DocTypeMixin, TypedField):
     pass
-
-class FieldRenderFormatStringMixin:
-    _FORMAT_STRING = None
-
-    def _render_value(self, value):
-        retval = self._FORMAT_STRING.format(value)
-        self._check_value_length(retval)
-
-        return retval
 
 class ContainerField(TypedField):
     def _check_value(self, value):
@@ -232,16 +205,6 @@ class BinaryField(DataElementField):
         return retval
 
     def _parse_value(self, value): return bytes(value)
-
-class FixedLengthMixin:
-    _FIXED_LENGTH = [None, None, None]
-    _DOC_TYPE = str
-
-    def __init__(self, *args, **kwargs):
-        for i, a in enumerate(('length', 'min_length', 'max_length')):
-            kwargs[a] = self._FIXED_LENGTH[i] if len(self._FIXED_LENGTH) > i else None
-
-        super().__init__(*args, **kwargs)
 
 class IDField(FixedLengthMixin, AlphanumericField):
     type = 'id'

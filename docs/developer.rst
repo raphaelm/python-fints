@@ -30,7 +30,7 @@ Example usage:
 
 .. note::
 
-  In general parsing followed by serialization is not idempotent: A message may contain empty list elements at the end, but our parser will never generate them.
+  In general parsing followed by serialization is not idempotent: A message may contain empty list elements at the end, but our serializer will never generate them.
 
 FinTS Segment Sequence
 ----------------------

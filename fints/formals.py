@@ -1,25 +1,9 @@
 import re
 
-from fints.types import * # The order is important!
+from fints.types import *  # The order is important!
 from fints.fields import *
+from fints.utils import ShortReprMixin
 
-
-class ShortReprMixin:
-    def __repr__(self):
-        return "{}{}({})".format(
-            "{}.".format(self.__class__.__module__),
-            self.__class__.__name__,
-            ", ".join(
-                ("{!r}".format(value) if not name.startswith("_") else "{}={!r}".format(name, value))
-                for (name, value) in self._repr_items
-            )
-        )
-
-    def print_nested(self, stream=None, level=0, indent="    ", prefix="", first_level_indent=True, trailer=""):
-        stream.write(
-            ( (prefix + level*indent) if first_level_indent else "")
-            + "{!r}{}\n".format(self, trailer)
-        )
 
 class DataElementGroup(Container):
     pass

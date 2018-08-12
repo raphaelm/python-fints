@@ -63,6 +63,67 @@ class SubclassesMixin:
         yield cls
 
 
+class DocTypeMixin:
+    _DOC_TYPE = None
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        type_ = self._DOC_TYPE
+        if type_ is None:
+            if isinstance(getattr(self, 'type', None), type):
+                type_ = getattr(self, 'type')
+
+        if type_ is not None:
+            if not self.__doc__:
+                self.__doc__ = ""
+
+            name = type_.__name__
+            if type_.__module__ != 'builtins':
+                name = "{}.{}".format(type_.__module__, name)
+
+            self.__doc__ = self.__doc__ + "\n\n:type: :class:`{}`".format(name)
+
+
+class FieldRenderFormatStringMixin:
+    _FORMAT_STRING = None
+
+    def _render_value(self, value):
+        retval = self._FORMAT_STRING.format(value)
+        self._check_value_length(retval)
+
+        return retval
+
+
+class FixedLengthMixin:
+    _FIXED_LENGTH = [None, None, None]
+    _DOC_TYPE = str
+
+    def __init__(self, *args, **kwargs):
+        for i, a in enumerate(('length', 'min_length', 'max_length')):
+            kwargs[a] = self._FIXED_LENGTH[i] if len(self._FIXED_LENGTH) > i else None
+
+        super().__init__(*args, **kwargs)
+
+
+class ShortReprMixin:
+    def __repr__(self):
+        return "{}{}({})".format(
+            "{}.".format(self.__class__.__module__),
+            self.__class__.__name__,
+            ", ".join(
+                ("{!r}".format(value) if not name.startswith("_") else "{}={!r}".format(name, value))
+                for (name, value) in self._repr_items
+            )
+        )
+
+    def print_nested(self, stream=None, level=0, indent="    ", prefix="", first_level_indent=True, trailer=""):
+        stream.write(
+            ( (prefix + level*indent) if first_level_indent else "")
+            + "{!r}{}\n".format(self, trailer)
+        )
+
+
 class MT535_Miniparser:
     re_identification = re.compile(r"^:35B:ISIN\s(.*)\|(.*)\|(.*)$")
     re_marketprice = re.compile(r"^:90B::MRKT\/\/ACTU\/([A-Z]{3})(\d*),{1}(\d*)$")
