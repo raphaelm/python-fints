@@ -186,14 +186,35 @@ class TypedField(Field, SubclassesMixin):
         self.type = type or getattr(self.__class__, 'type', None)
 
 
-class DataElementField(TypedField):
+class DocTypeMixin:
+    _DOC_TYPE = None
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        type_ = self._DOC_TYPE
+        if type_ is None:
+            if isinstance(getattr(self, 'type', None), type):
+                type_ = getattr(self, 'type')
+
+        if type_ is not None:
+            if not self.__doc__:
+                self.__doc__ = ""
+
+            name = type_.__name__
+            if type_.__module__ != 'builtins':
+                name = "{}.{}".format(type_.__module__, name)
+
+            self.__doc__ = self.__doc__ + "\n\n:type: :class:`{}`".format(name)
+
+class DataElementField(DocTypeMixin, TypedField):
     pass
 
 class FieldRenderFormatStringMixin:
-    FORMAT_STRING = None
+    _FORMAT_STRING = None
 
     def _render_value(self, value):
-        retval = self.FORMAT_STRING.format(value)
+        retval = self._FORMAT_STRING.format(value)
         self._check_value_length(retval)
 
         return retval
@@ -218,19 +239,12 @@ class ContainerField(TypedField):
         return result
     
 
-class DataElementGroupField(ContainerField):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        if self.type is not None:
-            if not self.__doc__:
-                self.__doc__ = ""
-
-            self.__doc__ = self.__doc__ + "\n\n:type: :class:`{}.{}`".format(self.type.__module__, self.type.__name__)
+class DataElementGroupField(DocTypeMixin, ContainerField):
+    pass
 
 class GenericField(FieldRenderFormatStringMixin, DataElementField):
     type = None
-    FORMAT_STRING = "{}"
+    _FORMAT_STRING = "{}"
 
     def _parse_value(self, value):
         warnings.warn("Generic field used for type {!r} value {!r}".format(self.type, value))
@@ -252,7 +266,8 @@ class GenericGroupField(DataElementGroupField):
 
 class TextField(FieldRenderFormatStringMixin, DataElementField):
     type = 'txt'
-    FORMAT_STRING = "{}"  ## FIXME Restrict CRLF
+    _DOC_TYPE = str
+    _FORMAT_STRING = "{}"  ## FIXME Restrict CRLF
 
     def _parse_value(self, value): return str(value)
 
@@ -264,7 +279,8 @@ class DTAUSField(DataElementField):
 
 class NumericField(FieldRenderFormatStringMixin, DataElementField):
     type = 'num'
-    FORMAT_STRING = "{:d}"
+    _DOC_TYPE = int
+    _FORMAT_STRING = "{:d}"
 
     def _parse_value(self, value): 
         _value = str(value)
@@ -274,7 +290,8 @@ class NumericField(FieldRenderFormatStringMixin, DataElementField):
 
 class DigitsField(FieldRenderFormatStringMixin, DataElementField):
     type = 'dig'
-    FORMAT_STRING = "{}"
+    _DOC_TYPE = str
+    _FORMAT_STRING = "{}"
 
     def _parse_value(self, value): 
         _value = str(value)
@@ -288,6 +305,7 @@ class FloatField(FieldRenderFormatStringMixin, DataElementField):
 
 class BinaryField(DataElementField):
     type = 'bin'
+    _DOC_TYPE = bytes
 
     def _render_value(self, value):
         retval = bytes(value)
@@ -298,21 +316,24 @@ class BinaryField(DataElementField):
     def _parse_value(self, value): return bytes(value)
 
 class FixedLengthMixin:
-    FIXED_LENGTH = [None, None, None]
+    _FIXED_LENGTH = [None, None, None]
+    _DOC_TYPE = str
 
     def __init__(self, *args, **kwargs):
         for i, a in enumerate(('length', 'min_length', 'max_length')):
-            kwargs[a] = self.FIXED_LENGTH[i] if len(self.FIXED_LENGTH) > i else None
+            kwargs[a] = self._FIXED_LENGTH[i] if len(self._FIXED_LENGTH) > i else None
 
         super().__init__(*args, **kwargs)
 
 class IDField(FixedLengthMixin, AlphanumericField):
     type = 'id'
-    FIXED_LENGTH = [None, None, 30]
+    _DOC_TYPE = str
+    _FIXED_LENGTH = [None, None, 30]
 
 class BooleanField(FixedLengthMixin, AlphanumericField):
     type = 'jn'
-    FIXED_LENGTH = [1]
+    _DOC_TYPE = bool
+    _FIXED_LENGTH = [1]
 
     def _render_value(self, value):
         return "J" if value else "N"
@@ -329,27 +350,29 @@ class BooleanField(FixedLengthMixin, AlphanumericField):
 
 class CodeField(AlphanumericField):
     type = 'code'
+    _DOC_TYPE = str
 
     ## FIXME: Not further implemented, might want to use Enums
 
 class CountryField(FixedLengthMixin, DigitsField):
     type = 'ctr'
-    FIXED_LENGTH = [3]
+    _FIXED_LENGTH = [3]
 
 class CurrencyField(FixedLengthMixin, AlphanumericField):
     type = 'cur'
-    FIXED_LENGTH = [3]
+    _FIXED_LENGTH = [3]
 
 class DateField(FixedLengthMixin, NumericField):
     type = 'dat'
-    FIXED_LENGTH = [8]
+    _FIXED_LENGTH = [8]
 
 class TimeField(FixedLengthMixin, DigitsField):
     type = 'tim'
-    FIXED_LENGTH = [6]
+    _FIXED_LENGTH = [6]
 
 class PasswordField(AlphanumericField):
     type = ''
+    _DOC_TYPE = Password
 
     def _parse_value(self, value):
         return Password(value)
