@@ -5,7 +5,7 @@ import re
 from .segments.message import HNHBK, HNHBS, HNSHA, HNSHK, HNVSD, HNVSK
 from .parser import FinTS3Parser
 from .formals import SegmentSequence
-from .segments import ParameterSegment
+from .segments import ParameterSegment, HIRMG2, HNHBK3, HIBPA3, HISYN4, HIRMS2, HITANSBase
 
 class FinTSMessage:
     def __init__(self, blz, username, pin, systemid, dialogid, msgno, encrypted_segments, tan_mechs=None, tan=None):
@@ -66,26 +66,26 @@ class FinTSMessage:
 
 class FinTSResponse(SegmentSequence):
     def is_success(self):
-        for seg in self.find_segments('HIRMG'):
+        for seg in self.find_segments(HIRMG2):
             for response in seg.responses:
                 if response.code.startswith('9'):
                     return False
         return True
 
     def get_dialog_id(self):
-        seg = self.find_segment_first('HNHBK')
+        seg = self.find_segment_first(HNHBK3)
         if not seg:
             raise ValueError('Invalid response, no HNHBK segment')
 
         return seg.dialogue_id
 
     def get_bank_name(self):
-        seg = self.find_segment_first('HIBPA')
+        seg = self.find_segment_first(HIBPA3)
         if seg:
             return seg.bank_name
 
     def get_systemid(self):
-        seg = self.find_segment_first('HISYN')
+        seg = self.find_segment_first(HISYN4)
         if not seg:
             raise ValueError('Could not find systemid')
         return seg.customer_system_id
@@ -95,21 +95,14 @@ class FinTSResponse(SegmentSequence):
 
     def get_supported_tan_mechanisms(self):
         tan_methods = []
-        for seg in self.find_segments('HIRMS'):
+        for seg in self.find_segments(HIRMS2):
             for response in seg.responses:
                 if response.code == '3920':
                     tan_methods.extend( response.parameters )
 
         # Get parameters for tan methods
         methods = []
-        for seg in self.find_segments('HITANS'):
-            if not isinstance(seg, ParameterSegment):
-                raise NotImplementedError(
-                    "HITANS segment version {} is currently not implemented".format(
-                        seg.header.version
-                    )
-                )
-
+        for seg in self.find_segments(HITANSBase):
             for params in seg.parameter.twostep_parameters:
                 if params.security_function in tan_methods:
                     methods.append(params)
@@ -124,7 +117,7 @@ class FinTSResponse(SegmentSequence):
     def get_touchdowns(self, msg: FinTSMessage):
         touchdown = {}
         for msgseg in msg.encrypted_segments:
-            seg = self._find_segment_for_reference('HIRMS', msgseg)
+            seg = self._find_segment_for_reference(HIRMS2, msgseg)
             if seg:
                 for p in seg[1:]:
                     if p[0] == "3040":

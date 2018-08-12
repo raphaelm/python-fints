@@ -1,7 +1,7 @@
 from enum import Enum
 from collections import Iterable
 from contextlib import suppress
-import re
+import re, warnings
 from .segments import FinTS3Segment
 from .formals import Container, ValueList, DataElementField, DataElementGroupField, SegmentSequence
 
@@ -28,6 +28,19 @@ from .formals import Container, ValueList, DataElementField, DataElementGroupFie
 #    a flat representation of a Data Element Group or repeated Data Element Group.
 #    An item on level 3 is always a Data Element, but which Data Element it is depends
 #    on which fields have been consumed in the sequence before it.
+
+
+#: Operate the parser in "robust mode". In this mode, errors during segment parsing
+#: will be turned into a FinTSParserWarning and a generic FinTS3Segment (not a subclass)
+#: will be constructed. This allows for all syntactically correct FinTS messages to be
+#: consumed, even in the presence of errors in this library.
+robust_mode = True
+
+class FinTSParserWarning(UserWarning):
+    pass
+
+class FinTSParserError(ValueError):
+    pass
 
 TOKEN_RE = re.compile(rb"""
                         ^(?:  (?: \? (?P<ECHAR>.) )
@@ -128,6 +141,17 @@ class FinTS3Parser:
 
     def parse_segment(self, segment):
         clazz = FinTS3Segment.find_subclass(segment)
+
+        try:
+            return self._parse_segment_as_class(clazz, segment)
+        except FinTSParserError as e:
+            if robust_mode:
+                warnings.warn("Ignoring parser error and returning generic object: {}. Turn off robust_mode to see Exception.".format(str(e)), FinTSParserWarning)
+                return self._parse_segment_as_class(FinTS3Segment, segment)
+            else:
+                raise
+
+    def _parse_segment_as_class(self, clazz, segment):
         seg = clazz()
 
         data = iter(segment)
@@ -140,7 +164,7 @@ class FinTS3Parser:
                     val = next(data)
                 except StopIteration:
                     if field.required:
-                        raise ValueError("Required field {}.{} was not present".format(seg.__class__.__name__, name))
+                        raise FinTSParserError("Required field {}.{} was not present".format(seg.__class__.__name__, name))
                     break
 
                 try:
@@ -150,7 +174,7 @@ class FinTS3Parser:
                         deg = self.parse_deg_noniter(field.type, val, field.required)
                         setattr(seg, name, deg)
                 except ValueError as e:
-                    raise ValueError("Wrong input when setting {}.{}".format(seg.__class__.__name__, name)) from e
+                    raise FinTSParserError("Wrong input when setting {}.{}".format(seg.__class__.__name__, name)) from e
             else:
                 i = 0
                 while True:
@@ -166,7 +190,7 @@ class FinTS3Parser:
                             deg = self.parse_deg_noniter(field.type, val, field.required)
                             getattr(seg, name)[i] = deg
                     except ValueError as e:
-                        raise ValueError("Wrong input when setting {}.{}".format(seg.__class__.__name__, name)) from e
+                        raise FinTSParserError("Wrong input when setting {}.{}".format(seg.__class__.__name__, name)) from e
 
                     i = i + 1
 
@@ -189,7 +213,7 @@ class FinTS3Parser:
 
         remainder = list(data_i)
         if remainder:
-            raise ValueError("Unparsed data {!r} after parsing {!r}".format(remainder, clazz))
+            raise FinTSParserError("Unparsed data {!r} after parsing {!r}".format(remainder, clazz))
 
         return retval
 
@@ -209,13 +233,13 @@ class FinTS3Parser:
                             setattr(retval, name, next(data_i))
                         except StopIteration:
                             if required and field.required:
-                                raise ValueError("Required field {}.{} was not present".format(retval.__class__.__name__, name))
+                                raise FinTSParserError("Required field {}.{} was not present".format(retval.__class__.__name__, name))
                             break
                     else:
                         deg = self.parse_deg(field.type, data_i, required and field.required)
                         setattr(retval, name, deg)
                 except ValueError as e:
-                    raise ValueError("Wrong input when setting {}.{}".format(retval.__class__.__name__, name)) from e
+                    raise FinTSParserError("Wrong input when setting {}.{}".format(retval.__class__.__name__, name)) from e
             else:
                 i = 0
                 while True:
@@ -232,7 +256,7 @@ class FinTS3Parser:
                             getattr(retval, name)[i] = deg
 
                     except ValueError as e:
-                        raise ValueError("Wrong input when setting {}.{}".format(retval.__class__.__name__, name)) from e
+                        raise FinTSParserError("Wrong input when setting {}.{}".format(retval.__class__.__name__, name)) from e
 
                     i = i + 1
 

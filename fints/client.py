@@ -20,6 +20,8 @@ from .segments.transfer import HKCCS, HKCCM
 from .formals import TwoStepParametersCommon
 from .utils import mt940_to_array, MT535_Miniparser, Password
 
+from fints.segments import HISPA1
+
 logger = logging.getLogger(__name__)
 
 
@@ -58,7 +60,7 @@ class FinTS3Client:
         dialog.end()
 
         self.accounts = []
-        for seg in resp.find_segments('HISPA'):
+        for seg in resp.find_segments(HISPA1):
             self.accounts.extend(seg.accounts)
 
         return self.accounts

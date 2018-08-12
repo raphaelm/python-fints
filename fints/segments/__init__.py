@@ -151,22 +151,25 @@ class ParameterSegment(FinTS3Segment):
     min_number_signatures = DataElementField(type='num', length=1, _d="Anzahl Signaturen mindestens")
     security_class = DataElementField(type='num', length=1, _d="Sicherheitsklasse")
 
-class HITANS1(ParameterSegment):
+class HITANSBase(ParameterSegment):
+    pass
+
+class HITANS1(HITANSBase):
     parameter = DataElementGroupField(type=ParameterTwostepTAN1)
 
-class HITANS2(ParameterSegment):
+class HITANS2(HITANSBase):
     parameter = DataElementGroupField(type=ParameterTwostepTAN2)
 
-class HITANS3(ParameterSegment):
+class HITANS3(HITANSBase):
     parameter = DataElementGroupField(type=ParameterTwostepTAN3)
 
-class HITANS4(ParameterSegment):
+class HITANS4(HITANSBase):
     parameter = DataElementGroupField(type=ParameterTwostepTAN4)
 
-class HITANS5(ParameterSegment):
+class HITANS5(HITANSBase):
     parameter = DataElementGroupField(type=ParameterTwostepTAN5)
 
-class HITANS6(ParameterSegment):
+class HITANS6(HITANSBase):
     parameter = DataElementGroupField(type=ParameterTwostepTAN6)
 
 class HIPINS1(ParameterSegment):

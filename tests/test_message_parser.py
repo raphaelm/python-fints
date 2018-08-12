@@ -1,6 +1,7 @@
 from fints.message import FinTSResponse
-from fints.parser import FinTS3Parser
+from fints.parser import FinTS3Parser, FinTSParserError, FinTSParserWarning
 from fints.formals import SegmentSequence
+from fints.segments import FinTS3Segment
 import pytest
 
 from conftest import TEST_MESSAGES
@@ -106,6 +107,14 @@ def test_invalid():
         FinTS3Parser.explode_segments(message5)
 
     message6 = rb"""HNHBS:5:1'"""
-    with pytest.raises(ValueError, match='^Required field'):
+    with pytest.raises(FinTSParserError, match='^Required field'):
         m = FinTS3Parser().parse_message(message6)
+
+def test_robust_mode(mock):
+    mock.patch('fints.parser.robust_mode', True)
+
+    message1 = rb"""HNHBS:5:1'"""
+    with pytest.warns(FinTSParserWarning, match='^Ignoring parser error.*: Required field'):
+        m = FinTS3Parser().parse_message(message1)
+        assert m.segments[0].__class__ == FinTS3Segment
 
