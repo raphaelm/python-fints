@@ -7,10 +7,12 @@ from fints.formals import (
     HashAlgorithm, KeyName, ParameterPinTan, ParameterTwostepTAN1,
     ParameterTwostepTAN2, ParameterTwostepTAN3, ParameterTwostepTAN4,
     ParameterTwostepTAN5, ParameterTwostepTAN6, ReferenceMessage, Response,
-    SecurityDateTime, SecurityIdentificationDetails, SecurityProfile,
+    SecurityDateTime, SecurityIdentificationDetails, SecurityProfile, SecurityRole,
     SegmentHeader, SegmentSequenceField, SignatureAlgorithm,
     SupportedHBCIVersions2, SupportedLanguages2, UserDefinedSignature,
+    CompressionFunction, SecurityApplicationArea,
 )
+from fints.fields import CodeField
 from fints.utils import SubclassesMixin, classproperty
 
 TYPE_VERSION_RE = re.compile(r'^([A-Z]+)(\d+)$')
@@ -87,41 +89,46 @@ class HNHBK3(FinTS3Segment):
     reference_message = DataElementGroupField(type=ReferenceMessage, required=False)
 
 class HNHBS1(FinTS3Segment):
+    "Nachrichtenabschluss"
     message_number = DataElementField(type='num', max_length=4)
 
 
 class HNVSD1(FinTS3Segment):
-    data = SegmentSequenceField()
+    "Verschlüsselte Daten"
+    data = SegmentSequenceField(_d="Daten, verschlüsselt")
 
 class HNVSK3(FinTS3Segment):
-    security_profile = DataElementGroupField(type=SecurityProfile)
-    security_function = DataElementField(type='code', max_length=3)
-    security_role = DataElementField(type='code', max_length=3)
-    security_identification_details = DataElementGroupField(type=SecurityIdentificationDetails)
-    security_datetime = DataElementGroupField(type=SecurityDateTime)
-    encryption_algorithm = DataElementGroupField(type=EncryptionAlgorithm)
-    key_name = DataElementGroupField(type=KeyName)
-    compression_function = DataElementField(type='code', max_length=3)
-    certificate = DataElementGroupField(type=Certificate, required=False)
+    "Verschlüsselungskopf"
+    security_profile = DataElementGroupField(type=SecurityProfile, _d="Sicherheitsprofil")
+    security_function = DataElementField(type='code', max_length=3, _d="Sicherheitsfunktion, kodiert")
+    security_role = CodeField(SecurityRole, max_length=3, _d="Rolle des Sicherheitslieferanten, kodiert")
+    security_identification_details = DataElementGroupField(type=SecurityIdentificationDetails, _d="Sicherheitsidentifikation, Details")
+    security_datetime = DataElementGroupField(type=SecurityDateTime, _d="Sicherheitsdatum und -uhrzeit")
+    encryption_algorithm = DataElementGroupField(type=EncryptionAlgorithm, _d="Verschlüsselungsalgorithmus")
+    key_name = DataElementGroupField(type=KeyName, _d="Schlüsselname")
+    compression_function = CodeField(CompressionFunction, max_length=3, _d="Komprimierungsfunktion")
+    certificate = DataElementGroupField(type=Certificate, required=False, _d="Zertifikat")
 
 class HNSHK4(FinTS3Segment):
-    security_profile = DataElementGroupField(type=SecurityProfile)
-    security_function = DataElementField(type='code', max_length=3)
-    security_reference = DataElementField(type='an', max_length=14)
-    security_application_area = DataElementField(type='code', max_length=3)
-    security_role = DataElementField(type='code', max_length=3)
-    security_identification_details = DataElementGroupField(type=SecurityIdentificationDetails)
-    security_reference_number = DataElementField(type='num', max_length=16)
-    security_datetime = DataElementGroupField(type=SecurityDateTime)
-    hash_algorithm = DataElementGroupField(type=HashAlgorithm)
-    signature_algorithm = DataElementGroupField(type=SignatureAlgorithm)
-    key_name = DataElementGroupField(type=KeyName)
-    certificate = DataElementGroupField(type=Certificate, required=False)
+    "Signaturkopf"
+    security_profile = DataElementGroupField(type=SecurityProfile, _d="Sicherheitsprofil")
+    security_function = DataElementField(type='code', max_length=3, _d="Sicherheitsfunktion, kodiert")
+    security_reference = DataElementField(type='an', max_length=14, _d="Sicherheitskontrollreferenz")
+    security_application_area = CodeField(SecurityApplicationArea, max_length=3, _d="Bereich der Sicherheitsapplikation, kodiert")
+    security_role = CodeField(SecurityRole, max_length=3, _d="Rolle des Sicherheitslieferanten, kodiert")
+    security_identification_details = DataElementGroupField(type=SecurityIdentificationDetails, _d="Sicherheitsidentifikation, Details")
+    security_reference_number = DataElementField(type='num', max_length=16, _d="Sicherheitsreferenznummer")
+    security_datetime = DataElementGroupField(type=SecurityDateTime, _d="Sicherheitsdatum und -uhrzeit")
+    hash_algorithm = DataElementGroupField(type=HashAlgorithm, _d="Hashalgorithmus")
+    signature_algorithm = DataElementGroupField(type=SignatureAlgorithm, _d="Signaturalgorithmus")
+    key_name = DataElementGroupField(type=KeyName, _d="Schlüsselname")
+    certificate = DataElementGroupField(type=Certificate, required=False, _d="Zertifikat")
 
 class HNSHA2(FinTS3Segment):
-    security_reference = DataElementField(type='an', max_length=14)
-    validation_result = DataElementField(type='bin', max_length=512, required=False)
-    user_defined_signature = DataElementGroupField(type=UserDefinedSignature, required=False)
+    "Signaturabschluss"
+    security_reference = DataElementField(type='an', max_length=14, _d="Sicherheitskontrollreferenz")
+    validation_result = DataElementField(type='bin', max_length=512, required=False, _d="Validierungsresultat")
+    user_defined_signature = DataElementGroupField(type=UserDefinedSignature, required=False, _d="Benutzerdefinierte Signatur")
 
 class HIRMG2(FinTS3Segment):
     responses = DataElementGroupField(type=Response, min_count=1, max_count=99)

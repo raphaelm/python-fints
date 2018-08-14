@@ -2,8 +2,7 @@ import re
 
 from fints.types import *  # The order is important!
 from fints.fields import *
-from fints.utils import ShortReprMixin
-
+from fints.utils import RepresentableEnum, ShortReprMixin
 
 class DataElementGroup(Container):
     pass
@@ -19,27 +18,64 @@ class ReferenceMessage(DataElementGroup):
     dialogue_id = DataElementField(type='id')
     message_number = NumericField(max_length=4)
 
+class SecurityMethod(RepresentableEnum):
+    DDV = 'DDV'
+    RAH = 'RAH'
+    RDH = 'RDH'
+    PIN = 'PIN'
+
 class SecurityProfile(DataElementGroup):
-    security_method = DataElementField(type='code', length=3)
-    security_method_version = DataElementField(type='num')
+    "Sicherheitsprofil"
+    security_method = CodeField(enum=SecurityMethod, length=3, _d="Sicherheitsverfahren")
+    security_method_version = DataElementField(type='num', _d="Version des Sicherheitsverfahrens")
+
+class IdentifiedRole(RepresentableEnum):
+    MS = '1' #: Message Sender
+    MR = '2' #: Message Receiver
 
 class SecurityIdentificationDetails(DataElementGroup):
-    name_party = DataElementField(type='code', max_length=3)
+    identified_role = CodeField(IdentifiedRole, max_length=3)
     cid = DataElementField(type='bin', max_length=256)
-    identifier_party = DataElementField(type='id')
+    identifier = DataElementField(type='id')
+
+class DateTimeType(RepresentableEnum):
+    STS = '1' #: Sicherheitszeitstempel
+    CRT = '6' #: Certificate Revocation Time
 
 class SecurityDateTime(DataElementGroup):
-    datetime_type = DataElementField(type='code', max_length=3)
+    date_time_type = CodeField(DateTimeType, max_length=3)
     date = DataElementField(type='dat', required=False)
     time = DataElementField(type='tim', required=False)
 
+class UsageEncryption(RepresentableEnum):
+    OSY = '2' #: Owner Symmetric
+
+class OperationMode(RepresentableEnum):
+    CBC = '2' #: Cipher Block Chaining
+    ISO_9796_1 = '16' #: ISO 9796-1 (bei RDH)
+    ISO_9796_2_RANDOM = '17' #: ISO 9796-2 mit Zufallszahl (bei RDH)
+    PKCS1V15 = '18' #: RSASSA-PKCS#1 V1.5 (bei RDH); RSAES-PKCS#1 V1.5 (bei RAH, RDH)
+    PSS = '19' #: RSASSA-PSS (bei RAH, RDH)
+    ZZZ = '999' #: Gegenseitig vereinbart (DDV: Retail-MAC)
+
+class EncryptionAlgorithmCoded(RepresentableEnum):
+    TWOKEY3DES = '13' #: 2-Key-Triple-DES
+    AES256 = '14' #: AES-256
+
+class AlgorithmParameterName(RepresentableEnum):
+    KYE = '5' #: Symmetrischer Schlüssel, verschlüsselt mit symmetrischem Schlüssel
+    KYP = '6' #: Symmetrischer Schlüssel, verschlüsselt mit öffentlichem Schlüssel
+
+class AlgorithmParameterIVName(RepresentableEnum):
+    IVC = '1' #: Initialization value, clear text
+
 class EncryptionAlgorithm(DataElementGroup):
-    usage_encryption = DataElementField(type='code', max_length=3)
-    operation_mode = DataElementField(type='code', max_length=3)
-    encryption_algorithm = DataElementField(type='code', max_length=3)
+    usage_encryption = CodeField(UsageEncryption, max_length=3)
+    operation_mode = CodeField(OperationMode, max_length=3)
+    encryption_algorithm = CodeField(EncryptionAlgorithmCoded, max_length=3)
     algorithm_parameter_value = DataElementField(type='bin', max_length=512)
-    algorithm_parameter_name = DataElementField(type='code', max_length=3)
-    algorithm_parameter_iv_name = DataElementField(type='code', max_length=3)
+    algorithm_parameter_name = CodeField(AlgorithmParameterName, max_length=3)
+    algorithm_parameter_iv_name = CodeField(AlgorithmParameterIVName, max_length=3)
     algorithm_parameter_iv_value = DataElementField(type='bin', max_length=512, required=False)
 
 class HashAlgorithm(DataElementGroup):
@@ -57,10 +93,16 @@ class BankIdentifier(DataElementGroup):
     country_identifier = DataElementField(type='ctr')
     bank_code = DataElementField(type='an', max_length=30)
 
+class KeyType(RepresentableEnum):
+    "Schlüsselart"
+    D = 'D' #: Schlüssel zur Erzeugung digitaler Signaturen
+    S = 'S' #: Signierschlüssel
+    V = 'V' #: Chiffrierschlüssel
+
 class KeyName(DataElementGroup):
     bank_identifier = DataElementGroupField(type=BankIdentifier)
     user_id = DataElementField(type='id')
-    key_type = DataElementField(type='code', length=1)
+    key_type = CodeField(KeyType, length=1, _d="Schlüsselart")
     key_number = DataElementField(type='num', max_length=3)
     key_version = DataElementField(type='num', max_length=3) 
 
@@ -256,3 +298,23 @@ class AccountInternational(DataElementGroup):
     account_number = DataElementField(type='id')
     subaccount_number = DataElementField(type='id')
     bank_identifier = DataElementGroupField(type=BankIdentifier)
+
+class SecurityRole(RepresentableEnum):
+    ISS = '1'
+    CON = '3'
+    WIT = '4'
+
+class CompressionFunction(RepresentableEnum):
+    NULL = '0' #: Keine Kompression
+    LZW = '1' #: Lempel, Ziv, Welch
+    COM = '2' #: Optimized LZW
+    LZSS = '3' #: Lempel, Ziv
+    LZHuf = '4' #: LZ + Huffman Coding
+    ZIP = '5' #: PKZIP
+    GZIP = '6' #: deflate (http://www.gzip.org/zlib)
+    BZIP2 = '7' #: bzip2 (http://sourceware.cygnus.com/bzip2/)
+    ZZZ = '999' #: Gegenseitig vereinbart
+
+class SecurityApplicationArea(RepresentableEnum):
+    SHM = '1' #: Signaturkopf und HBCI-Nutzdaten
+    SHT = '2' #: Von Signaturkopf bis Signaturabschluss

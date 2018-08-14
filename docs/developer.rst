@@ -180,7 +180,7 @@ ____________
     :inherited-members:
     :undoc-members:
     :show-inheritance:
-    :exclude-members: print_nested
+    :exclude-members: print_nested, naive_parse, find_subclass, is_unset
     :member-order: bysource
 
 

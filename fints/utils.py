@@ -1,6 +1,7 @@
 import re
 from contextlib import contextmanager
 from datetime import datetime
+from enum import Enum
 
 import mt940
 
@@ -247,3 +248,11 @@ class Password(str):
 
     def replace(self, *args, **kwargs):
         return self.__str__().replace(*args, **kwargs)
+
+class RepresentableEnum(Enum):
+    def __repr__(self):
+        return "{}.{}.{}".format(self.__class__.__module__, self.__class__.__name__, self.name)
+
+    def __str__(self):
+        return self.value
+    

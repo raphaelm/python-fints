@@ -235,6 +235,26 @@ class CodeField(AlphanumericField):
 
     ## FIXME: Not further implemented, might want to use Enums
 
+    def __init__(self, enum=None, *args, **kwargs):
+        if enum:
+            self._DOC_TYPE = enum
+            self._enum = enum
+        else:
+            self._enum = None
+        super().__init__(*args, **kwargs)
+
+    def _parse_value(self, value):
+        retval = super()._parse_value(value)
+        if self._enum:
+            retval = self._enum(retval)
+        return retval
+
+    def _render_value(self, value):
+        retval = value
+        if self._enum:
+            retval = str(value.value)
+        return super()._render_value(retval)
+
 class CountryField(FixedLengthMixin, DigitsField):
     type = 'ctr'
     _FIXED_LENGTH = [3]
