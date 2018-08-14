@@ -260,7 +260,7 @@ class Container(metaclass=ContainerMeta):
         )
         for name, value in self._repr_items:
             val = getattr(self, name)
-            if print_doc:
+            if print_doc and not name.startswith("_"):
                 docstring = self._fields[name]._inline_doc_comment(val)
             else:
                 docstring = ""
