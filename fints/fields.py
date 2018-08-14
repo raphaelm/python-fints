@@ -1,3 +1,4 @@
+import datetime
 import re
 import warnings
 from contextlib import suppress
@@ -234,6 +235,7 @@ class CodeField(AlphanumericField):
     _DOC_TYPE = str
 
     ## FIXME: Not further implemented, might want to use Enums
+    # FIXME Need tests
 
     def __init__(self, enum=None, *args, **kwargs):
         if enum:
@@ -264,12 +266,32 @@ class CurrencyField(FixedLengthMixin, AlphanumericField):
     _FIXED_LENGTH = [3]
 
 class DateField(FixedLengthMixin, NumericField):
-    type = 'dat'
+    type = 'dat' # FIXME Need test
+    _DOC_TYPE = datetime.date
     _FIXED_LENGTH = [8]
 
+    def _parse_value(self, value):
+        val = super()._parse_value(value)
+        val = str(val)
+        return datetime.date(int(val[0:4]), int(val[4:6]), int(val[6:8]))
+
+    def _render_value(self, value):
+        val = "{:04d}{:02d}{:02d}".format(value.year, value.month, value.day)
+        val = int(val)
+        return super()._render_value(val)
+
 class TimeField(FixedLengthMixin, DigitsField):
-    type = 'tim'
+    type = 'tim' # FIXME Need test
+    _DOC_TYPE = datetime.time
     _FIXED_LENGTH = [6]
+
+    def _parse_value(self, value):
+        val = super()._parse_value(value)
+        return datetime.time(int(val[0:2]), int(val[2:4]), int(val[4:6]))
+
+    def _render_value(self, value):
+        val = "{:02d}{:02d}{:02d}".format(value.hour, value.minute, value.second)
+        return super()._render_value(val)
 
 class PasswordField(AlphanumericField):
     type = ''
