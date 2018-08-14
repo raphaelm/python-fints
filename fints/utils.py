@@ -1,3 +1,4 @@
+import inspect
 import re
 from contextlib import contextmanager
 from datetime import datetime
@@ -118,10 +119,10 @@ class ShortReprMixin:
             )
         )
 
-    def print_nested(self, stream=None, level=0, indent="    ", prefix="", first_level_indent=True, trailer=""):
+    def print_nested(self, stream=None, level=0, indent="    ", prefix="", first_level_indent=True, trailer="", print_doc=True, first_line_suffix=""):
         stream.write(
             ( (prefix + level*indent) if first_level_indent else "")
-            + "{!r}{}\n".format(self, trailer)
+            + "{!r}{}{}\n".format(self, trailer, first_line_suffix)
         )
 
 
@@ -250,9 +251,30 @@ class Password(str):
         return self.__str__().replace(*args, **kwargs)
 
 class RepresentableEnum(Enum):
+    def __init__(self, *args, **kwargs):
+        Enum.__init__(self)
+
+        # Hack alert: Try to parse the docstring from the enum source, if available. Fail softly.
+        # FIXME Needs test
+        try:
+            val_1 = val_2 = repr(args[0])
+            if val_1.startswith("'"):
+                val_2 = '"' + val_1[1:-1] + '"'
+            elif val_1.startswith('"'):
+                val_2 = "'" + val_1[1:-1] + "'"
+            regex = re.compile(r"^.*?\S+\s*=\s*(?:(?:{})|(?:{}))\s*#:\s*(\S.*)$".format(
+                        re.escape(val_1), re.escape(val_2)))
+            for line in inspect.getsourcelines(self.__class__)[0]:
+                m = regex.match(line)
+                if m:
+                    self.__doc__ = m.group(1).strip()
+                    break
+        except:
+            raise
+
     def __repr__(self):
         return "{}.{}.{}".format(self.__class__.__module__, self.__class__.__name__, self.name)
 
     def __str__(self):
         return self.value
-    
+

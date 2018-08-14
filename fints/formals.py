@@ -300,9 +300,9 @@ class AccountInternational(DataElementGroup):
     bank_identifier = DataElementGroupField(type=BankIdentifier)
 
 class SecurityRole(RepresentableEnum):
-    ISS = '1'
-    CON = '3'
-    WIT = '4'
+    ISS = '1' #: Erfasser, Erstsignatur
+    CON = '3' #: Unterstützer, Zweitsignatur
+    WIT = '4' #: Zeuge/Übermittler, nicht Erfasser
 
 class CompressionFunction(RepresentableEnum):
     NULL = '0' #: Keine Kompression

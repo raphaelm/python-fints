@@ -67,13 +67,13 @@ class ValueList:
     def __repr__(self):
         return "{!r}".format(list(self))
 
-    def print_nested(self, stream=None, level=0, indent="    ", prefix="", first_level_indent=True, trailer=""):
+    def print_nested(self, stream=None, level=0, indent="    ", prefix="", first_level_indent=True, trailer="", print_doc=True, first_line_suffix=""):
         import sys
         stream = stream or sys.stdout
 
         stream.write(
             ( (prefix + level*indent) if first_level_indent else "")
-            + "[\n"
+            + "[{}\n".format(first_line_suffix)
         )
         for val in self:
             if not hasattr( getattr(val, 'print_nested', None), '__call__'):
@@ -81,7 +81,7 @@ class ValueList:
                     (prefix + (level+1)*indent) + "{!r},\n".format(val)
                 )
             else:
-                val.print_nested(stream=stream, level=level+2, indent=indent, prefix=prefix, trailer=",")
+                val.print_nested(stream=stream, level=level+2, indent=indent, prefix=prefix, trailer=",", print_doc=print_doc)
         stream.write( (prefix + level*indent) + "]{}\n".format(trailer) )
 
 class SegmentSequence:
@@ -102,15 +102,17 @@ class SegmentSequence:
     def __repr__(self):
         return "{}.{}({!r})".format(self.__class__.__module__, self.__class__.__name__, self.segments)
 
-    def print_nested(self, stream=None, level=0, indent="    ", prefix="", first_level_indent=True, trailer=""):
+    def print_nested(self, stream=None, level=0, indent="    ", prefix="", first_level_indent=True, trailer="", print_doc=True, first_line_suffix=""):
         import sys
         stream = stream or sys.stdout
         stream.write(
             ( (prefix + level*indent) if first_level_indent else "")
-            + "{}.{}([".format(self.__class__.__module__, self.__class__.__name__) + "\n"
+            + "{}.{}([".format(self.__class__.__module__, self.__class__.__name__)
+            + first_line_suffix
+            + "\n"
         )
         for segment in self.segments:
-            segment.print_nested(stream=stream, level=level+1, indent=indent, prefix=prefix, first_level_indent=True, trailer=",")
+            segment.print_nested(stream=stream, level=level+1, indent=indent, prefix=prefix, first_level_indent=True, trailer=",", print_doc=print_doc)
         stream.write( (prefix + level*indent) + "]){}\n".format(trailer) )
 
     def find_segments(self, query=None, version=None, callback=None, recurse=True):
@@ -243,7 +245,7 @@ class Container(metaclass=ContainerMeta):
             )
         )
 
-    def print_nested(self, stream=None, level=0, indent="    ", prefix="", first_level_indent=True, trailer=""):
+    def print_nested(self, stream=None, level=0, indent="    ", prefix="", first_level_indent=True, trailer="", print_doc=True, first_line_suffix=""):
         """Structured nested print of the object to the given stream.
 
         The print-out is eval()able to reconstruct the object."""
@@ -252,17 +254,23 @@ class Container(metaclass=ContainerMeta):
 
         stream.write(
             ( (prefix + level*indent) if first_level_indent else "")
-            + "{}.{}(".format(self.__class__.__module__, self.__class__.__name__) + "\n"
+            + "{}.{}(".format(self.__class__.__module__, self.__class__.__name__)
+            + first_line_suffix
+            + "\n"
         )
         for name, value in self._repr_items:
             val = getattr(self, name)
+            if print_doc:
+                docstring = self._fields[name]._inline_doc_comment(val)
+            else:
+                docstring = ""
             if not hasattr( getattr(val, 'print_nested', None), '__call__'):
                 stream.write(
-                    (prefix + (level+1)*indent) + "{} = {!r},\n".format(name, val)
+                    (prefix + (level+1)*indent) + "{} = {!r},{}\n".format(name, val, docstring)
                 )
             else:
                 stream.write(
                     (prefix + (level+1)*indent) + "{} = ".format(name)
                 )
-                val.print_nested(stream=stream, level=level+2, indent=indent, prefix=prefix, first_level_indent=False, trailer=",")
+                val.print_nested(stream=stream, level=level+2, indent=indent, prefix=prefix, first_level_indent=False, trailer=",", print_doc=print_doc, first_line_suffix=docstring)
         stream.write( (prefix + level*indent) + "){}\n".format(trailer) )

@@ -85,6 +85,13 @@ class Field:
 
         return self._render_value(value)
 
+    def _inline_doc_comment(self, value):
+        if self.__doc__:
+            d = self.__doc__.splitlines()[0].strip()
+            if d:
+                return " # {}".format(d)
+        return ""
+
 class TypedField(Field, SubclassesMixin):
     flat_length = 1
 
@@ -256,6 +263,18 @@ class CodeField(AlphanumericField):
         if self._enum:
             retval = str(value.value)
         return super()._render_value(retval)
+
+    def _inline_doc_comment(self, value):
+        retval = super()._inline_doc_comment(value)
+        if self._enum:
+            addendum = value.__doc__
+            if addendum and not addendum is value.__class__.__doc__:
+                if not retval:
+                    retval = " # "
+                else:
+                    retval = retval + ": "
+                retval = retval + addendum
+        return retval
 
 class CountryField(FixedLengthMixin, DigitsField):
     type = 'ctr'
