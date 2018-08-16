@@ -318,3 +318,14 @@ class CompressionFunction(RepresentableEnum):
 class SecurityApplicationArea(RepresentableEnum):
     SHM = '1' #: Signaturkopf und HBCI-Nutzdaten
     SHT = '2' #: Von Signaturkopf bis Signaturabschluss
+
+class SecurityClass(RepresentableEnum):
+    NONE = 0 #: Kein Sicherheitsdienst erforderlich
+    AUTH = 1 #: Sicherheitsdienst 'Authentikation'
+    AUTH_ADV = 2 #: Sicherheitsdienst 'Authentikation' mit fortgeschrittener elektronischer Signatur, optionaler Zertifikatsprüfung
+    NON_REPUD = 3 #: Sicherheitsdienst 'Non-Repudiation' mit fortgeschrittener elektronischer Signatur, optionaler Zertifikatsprüfung
+    NON_REPUD_QUAL = 4 #: Sicherheitsdienst 'Non-Repudiation' mit fortgeschrittener bzw. qualifizierter elektronischer Signatur, zwingende Zertifikatsprüfung
+
+class UPDUsage(RepresentableEnum):
+    UPD_CONCLUSIVE = '0' #: Die nicht aufgeführten Geschäftsvorfälle sind gesperrt
+    UPD_INCONCLUSIVE = '1' #: Bei nicht aufgeführten Geschäftsvorfällen ist keine Aussage möglich, ob diese erlaubt oder gesperrt sind

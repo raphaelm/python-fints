@@ -10,9 +10,9 @@ from fints.formals import (
     SecurityDateTime, SecurityIdentificationDetails, SecurityProfile, SecurityRole,
     SegmentHeader, SegmentSequenceField, SignatureAlgorithm,
     SupportedHBCIVersions2, SupportedLanguages2, UserDefinedSignature,
-    CompressionFunction, SecurityApplicationArea,
+    CompressionFunction, SecurityApplicationArea, SecurityClass, UPDUsage
 )
-from fints.fields import CodeField
+from fints.fields import CodeField, IntCodeField
 from fints.utils import SubclassesMixin, classproperty
 
 TYPE_VERSION_RE = re.compile(r'^([A-Z]+)(\d+)$')
@@ -82,15 +82,16 @@ class FinTS3Segment(Container, SubclassesMixin, metaclass=FinTS3SegmentMeta):
         return target_cls
 
 class HNHBK3(FinTS3Segment):
-    message_size = DataElementField(type='dig', length=12)
-    hbci_version = DataElementField(type='num', max_length=3)
-    dialogue_id = DataElementField(type='id')
-    message_number = DataElementField(type='num', max_length=4)
-    reference_message = DataElementGroupField(type=ReferenceMessage, required=False)
+    "Nachrichtenkopf"
+    message_size = DataElementField(type='dig', length=12, _d="Größe der Nachricht (nach Verschlüsselung und Komprimierung)")
+    hbci_version = DataElementField(type='num', max_length=3, _d="HBCI-Version")
+    dialogue_id = DataElementField(type='id', _d="Dialog-ID")
+    message_number = DataElementField(type='num', max_length=4, _d="Nachrichtennummer")
+    reference_message = DataElementGroupField(type=ReferenceMessage, required=False, _d="Bezugsnachricht")
 
 class HNHBS1(FinTS3Segment):
     "Nachrichtenabschluss"
-    message_number = DataElementField(type='num', max_length=4)
+    message_number = DataElementField(type='num', max_length=4, _d="Nachrichtennummer")
 
 
 class HNVSD1(FinTS3Segment):
@@ -131,41 +132,46 @@ class HNSHA2(FinTS3Segment):
     user_defined_signature = DataElementGroupField(type=UserDefinedSignature, required=False, _d="Benutzerdefinierte Signatur")
 
 class HIRMG2(FinTS3Segment):
-    responses = DataElementGroupField(type=Response, min_count=1, max_count=99)
+    "Rückmeldungen zur Gesamtnachricht"
+    responses = DataElementGroupField(type=Response, min_count=1, max_count=99, _d="Rückmeldung")
 
 class HIRMS2(FinTS3Segment):
-    responses = DataElementGroupField(type=Response, min_count=1, max_count=99)
+    "Rückmeldungen zu Segmenten"
+    responses = DataElementGroupField(type=Response, min_count=1, max_count=99, _d="Rückmeldung")
 
 class HIUPA4(FinTS3Segment):
-    user_identifier = DataElementField(type='id')
-    upd_version = DataElementField(type='num', max_length=3)
-    upd_usage = DataElementField(type='code', length=1)
-    username = DataElementField(type='an', max_length=35, required=False)
-    extension = DataElementField(type='an', max_length=2048, required=False)
+    "Userparameter allgemein"
+    user_identifier = DataElementField(type='id', _d="Benutzerkennung")
+    upd_version = DataElementField(type='num', max_length=3, _d="UPD-Version")
+    upd_usage = CodeField(UPDUsage, length=1, _d="UPD-Verwendung")
+    username = DataElementField(type='an', max_length=35, required=False, _d="Benutzername")
+    extension = DataElementField(type='an', max_length=2048, required=False, _d="Erweiterung, allgemein")
 
 class HIUPD6(FinTS3Segment):
-    account_information = DataElementGroupField(type=AccountInformation, required=False)
-    iban = DataElementField(type='an', max_length=34)
-    customer_id = DataElementField(type='id')
-    account_type = DataElementField(type='num', max_length=2)
-    account_currency = DataElementField(type='cur')
-    name_account_owner_1 = DataElementField(type='an', max_length=27)
-    name_account_owner_2 = DataElementField(type='an', max_length=27, required=False)
-    account_product_name = DataElementField(type='an', max_length=30, required=False)
-    account_limit = DataElementGroupField(type=AccountLimit, required=False)
-    allowed_transactions = DataElementGroupField(type=AllowedTransaction, max_count=999, required=False)
-    extension = DataElementField(type='an', max_length=2048, required=False)
+    "Kontoinformationen"
+    account_information = DataElementGroupField(type=AccountInformation, required=False, _d="Kontoverbindung")
+    iban = DataElementField(type='an', max_length=34, _d="IBAN")
+    customer_id = DataElementField(type='id', _d="Kunden-ID")
+    account_type = DataElementField(type='num', max_length=2, _d="Kontoart")
+    account_currency = DataElementField(type='cur', _d="Kontowährung")
+    name_account_owner_1 = DataElementField(type='an', max_length=27, _d="Name des Kontoinhabers 1")
+    name_account_owner_2 = DataElementField(type='an', max_length=27, required=False, _d="Name des Kontoinhabers 2")
+    account_product_name = DataElementField(type='an', max_length=30, required=False, _d="Kontoproduktbezeichnung")
+    account_limit = DataElementGroupField(type=AccountLimit, required=False, _d="Kontolimit")
+    allowed_transactions = DataElementGroupField(type=AllowedTransaction, max_count=999, required=False, _d="Erlaubte Geschäftsvorfälle")
+    extension = DataElementField(type='an', max_length=2048, required=False, _d="Erweiterung, kontobezogen")
 
 class HISYN4(FinTS3Segment):
-    customer_system_id = DataElementField(type='id')
-    message_number = DataElementField(type='num', max_length=4, required=False)
-    security_reference_signature_key = DataElementField(type='num', max_length=16, required=False)
-    security_reference_digital_signature = DataElementField(type='num', max_length=16, required=False)
+    "Synchronisierungsantwort"
+    customer_system_id = DataElementField(type='id', _d="Kundensystem-ID")
+    message_number = DataElementField(type='num', max_length=4, required=False, _d="Nachrichtennummer")
+    security_reference_signature_key = DataElementField(type='num', max_length=16, required=False, _d="Sicherheitsreferenznummer für Signierschlüssel")
+    security_reference_digital_signature = DataElementField(type='num', max_length=16, required=False, _d="Sicherheitsreferenznummer für Digitale Signatur")
 
 class ParameterSegment(FinTS3Segment):
     max_number_tasks = DataElementField(type='num', max_length=3, _d="Maximale Anzahl Aufträge")
     min_number_signatures = DataElementField(type='num', length=1, _d="Anzahl Signaturen mindestens")
-    security_class = DataElementField(type='num', length=1, _d="Sicherheitsklasse")
+    security_class = IntCodeField(SecurityClass, length=1, _d="Sicherheitsklasse")
 
 class HITANSBase(ParameterSegment):
     pass
@@ -197,19 +203,22 @@ class HIPINS1(ParameterSegment):
 
 
 class HIBPA3(FinTS3Segment):
-    bpd_version = DataElementField(type='num', max_length=3)
-    bank_identifier = DataElementGroupField(type=BankIdentifier)
-    bank_name = DataElementField(type='an', max_length=60)
-    number_tasks = DataElementField(type='num', max_length=3)
-    supported_languages = DataElementGroupField(type=SupportedLanguages2)
-    supported_hbci_version = DataElementGroupField(type=SupportedHBCIVersions2)
-    max_message_length = DataElementField(type='num', max_length=4, required=False)
-    min_timeout = DataElementField(type='num', max_length=4, required=False)
-    max_timeout = DataElementField(type='num', max_length=4, required=False)
+    """Bankparameter allgemein, version 3
+
+    Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Formals"""
+    bpd_version = DataElementField(type='num', max_length=3, _d="BPD-Version")
+    bank_identifier = DataElementGroupField(type=BankIdentifier, _d="Kreditinstitutskennung")
+    bank_name = DataElementField(type='an', max_length=60, _d="Kreditinstitutsbezeichnung")
+    number_tasks = DataElementField(type='num', max_length=3, _d="Anzahl Geschäftsvorfallarten pro Nachricht")
+    supported_languages = DataElementGroupField(type=SupportedLanguages2, _d="Unterstützte Sprachen")
+    supported_hbci_version = DataElementGroupField(type=SupportedHBCIVersions2, _d="Unterstützte HBCI-Versionen")
+    max_message_length = DataElementField(type='num', max_length=4, required=False, _d="Maximale Nachrichtengröße")
+    min_timeout = DataElementField(type='num', max_length=4, required=False, _d="Minimaler Timeout-Wert")
+    max_timeout = DataElementField(type='num', max_length=4, required=False, _d="Maximaler Timeout-Wert")
 
 class HISPA1(FinTS3Segment):
-    """SEPA-Kontoverbindung anfordern, version 1
+    """SEPA-Kontoverbindung rückmelden, version 1
 
     Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Messages -- Multibankfähige Geschäftsvorfälle 
     """
-    accounts = DataElementGroupField(type=AccountInternational, max_count=999, required=False)
+    accounts = DataElementGroupField(type=AccountInternational, max_count=999, required=False, _d="SEPA-Kontoverbindung")

@@ -76,12 +76,16 @@ class ValueList:
             + "[{}\n".format(first_line_suffix)
         )
         for val in self:
+            if print_doc:
+                docstring = self._parent._inline_doc_comment(val)
+            else:
+                docstring = ""
             if not hasattr( getattr(val, 'print_nested', None), '__call__'):
                 stream.write(
-                    (prefix + (level+1)*indent) + "{!r},\n".format(val)
+                    (prefix + (level+1)*indent) + "{!r}{},\n".format(val, docstring)
                 )
             else:
-                val.print_nested(stream=stream, level=level+2, indent=indent, prefix=prefix, trailer=",", print_doc=print_doc)
+                val.print_nested(stream=stream, level=level+2, indent=indent, prefix=prefix, trailer=",", print_doc=print_doc, first_line_suffix=docstring)
         stream.write( (prefix + level*indent) + "]{}\n".format(trailer) )
 
 class SegmentSequence:
@@ -112,7 +116,14 @@ class SegmentSequence:
             + "\n"
         )
         for segment in self.segments:
-            segment.print_nested(stream=stream, level=level+1, indent=indent, prefix=prefix, first_level_indent=True, trailer=",", print_doc=print_doc)
+            docstring = print_doc and segment.__doc__
+            if docstring:
+                docstring = docstring.splitlines()[0].strip()
+            if docstring:
+                docstring = " # {}".format(docstring)
+            else:
+                docstring = ""
+            segment.print_nested(stream=stream, level=level+1, indent=indent, prefix=prefix, first_level_indent=True, trailer=",", print_doc=print_doc, first_line_suffix=docstring)
         stream.write( (prefix + level*indent) + "]){}\n".format(trailer) )
 
     def find_segments(self, query=None, version=None, callback=None, recurse=True):

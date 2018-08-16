@@ -237,11 +237,7 @@ class BooleanField(FixedLengthMixin, AlphanumericField):
         else:
             raise ValueError("Invalid value {!r} for BooleanField".format(value))
 
-class CodeField(AlphanumericField):
-    type = 'code'
-    _DOC_TYPE = str
-
-    ## FIXME: Not further implemented, might want to use Enums
+class CodeFieldMixin:
     # FIXME Need tests
 
     def __init__(self, enum=None, *args, **kwargs):
@@ -275,6 +271,15 @@ class CodeField(AlphanumericField):
                     retval = retval + ": "
                 retval = retval + addendum
         return retval
+
+class CodeField(CodeFieldMixin, AlphanumericField):
+    type = 'code'
+    _DOC_TYPE = str
+
+class IntCodeField(CodeFieldMixin, NumericField):
+    type = ''
+    _DOC_TYPE = int
+    _FORMAT_STRING = "{}"
 
 class CountryField(FixedLengthMixin, DigitsField):
     type = 'ctr'
