@@ -1,7 +1,8 @@
 from fints.utils import fints_escape
 
-from . import FinTS3SegmentOLD
-
+from . import FinTS3SegmentOLD, FinTS3Segment
+from fints.formals import BankIdentifier, SystemIDStatus, Language2
+from fints.fields import DataElementGroupField, DataElementField, CodeField
 
 class HKIDN(FinTS3SegmentOLD):
     """
@@ -19,6 +20,15 @@ class HKIDN(FinTS3SegmentOLD):
             customerid
         ]
         super().__init__(segmentno, data)
+
+class HKIDN2(FinTS3Segment):
+    """Identifikation, version 2
+
+    Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Formals"""
+    bank_identifier = DataElementGroupField(type=BankIdentifier, _d="Kreditinstitutskennung")
+    customer_id = DataElementField(type='id', _d="Kunden-ID")
+    system_id = DataElementField(type='id', _d="Kundensystem-ID")
+    system_id_status = CodeField(enum=SystemIDStatus, length=1, _d="Kundensystem-Status")
 
 
 class HKVVB(FinTS3SegmentOLD):
@@ -42,6 +52,15 @@ class HKVVB(FinTS3SegmentOLD):
         ]
         super().__init__(segmentno, data)
 
+class HKVVB3(FinTS3Segment):
+    """Verarbeitungsvorbereitung, version 3
+
+    Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Formals"""
+    bpd_version = DataElementField(type='num', max_length=3, _d="BPD-Version")
+    upd_version = DataElementField(type='num', max_length=3, _d="UPD-Version")
+    language = CodeField(enum=Language2, max_length=3, _d="Dialogsprache")
+    product_name = DataElementField(type='an', max_length=25, _d="Produktbezeichnung")
+    product_version = DataElementField(type='an', max_length=5, _d="Produktversion")
 
 class HKSYN(FinTS3SegmentOLD):
     """

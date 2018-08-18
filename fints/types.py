@@ -82,7 +82,7 @@ class ValueList:
                 docstring = ""
             if not hasattr( getattr(val, 'print_nested', None), '__call__'):
                 stream.write(
-                    (prefix + (level+1)*indent) + "{!r}{},\n".format(val, docstring)
+                    (prefix + (level+1)*indent) + "{!r},{}\n".format(val, docstring)
                 )
             else:
                 val.print_nested(stream=stream, level=level+2, indent=indent, prefix=prefix, trailer=",", print_doc=print_doc, first_line_suffix=docstring)

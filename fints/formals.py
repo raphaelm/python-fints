@@ -104,7 +104,7 @@ class KeyName(DataElementGroup):
     user_id = DataElementField(type='id')
     key_type = CodeField(KeyType, length=1, _d="Schlüsselart")
     key_number = DataElementField(type='num', max_length=3)
-    key_version = DataElementField(type='num', max_length=3) 
+    key_version = DataElementField(type='num', max_length=3)
 
 class Certificate(DataElementGroup):
     certificate_type = DataElementField(type='code')
@@ -285,26 +285,47 @@ class ParameterPinTan(DataElementGroup):
     customer_id_field_text = DataElementField(type='an', max_length=30, required=False)
     transaction_tans_required = DataElementGroupField(type=TransactionTanRequired, max_count=999, required=False)
 
+class Language2(RepresentableEnum):
+    """Dialogsprache
+
+    Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Formals"""
+    STANDARD = '0' #: Standard
+    DE = '1' #: Deutsch, 'de', Subset Deutsch, Codeset 1 (Latin 1)
+    EN = '2' #: Englisch, 'en', Subset Englisch, Codeset 1 (Latin 1)
+    FR = '3' #: Französisch, 'fr', Subset Französisch, Codeset 1 (Latin 1)
+
 class SupportedLanguages2(DataElementGroup):
-    languages = DataElementField(type='code', max_length=3, min_count=1, max_count=9)
+    languages = CodeField(enum=Language2, max_length=3, min_count=1, max_count=9)
 
 class SupportedHBCIVersions2(DataElementGroup):
     versions = DataElementField(type='code', max_length=3, min_count=1, max_count=9)
 
 class AccountInternational(DataElementGroup):
-    is_sepa = DataElementField(type='jn')
-    iban = DataElementField(type='an', max_length=34)
-    bic = DataElementField(type='an', max_length=11)
-    account_number = DataElementField(type='id')
-    subaccount_number = DataElementField(type='id')
-    bank_identifier = DataElementGroupField(type=BankIdentifier)
+    """Kontoverbindung ZV international, version 1
+
+    Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Messages -- Multibankfähige Geschäftsvorfälle """
+    is_sepa = DataElementField(type='jn', _d="Kontoverwendung SEPA")
+    iban = DataElementField(type='an', max_length=34, _d="IBAN")
+    bic = DataElementField(type='an', max_length=11, _d="BIC")
+    account_number = DataElementField(type='id', _d="Konto-/Depotnummer")
+    subaccount_number = DataElementField(type='id', _d="Unterkontomerkmal")
+    bank_identifier = DataElementGroupField(type=BankIdentifier, _d="Kreditinstitutskennung")
 
 class SecurityRole(RepresentableEnum):
+    """Rolle des Sicherheitslieferanten, kodiert, version 2
+
+    Kodierte Information über das Verhältnis desjenigen, der bezüglich der zu si-chernden Nachricht die Sicherheit gewährleistet.
+    Die Wahl ist von der bankfachlichen Auslegung der Signatur, respektive vom vertraglichen Zustand zwischen Kunde und Kreditinstitut abhängig.
+
+    Source: FinTS Financial Transaction Services, Sicherheitsverfahren HBCI"""
     ISS = '1' #: Erfasser, Erstsignatur
     CON = '3' #: Unterstützer, Zweitsignatur
     WIT = '4' #: Zeuge/Übermittler, nicht Erfasser
 
 class CompressionFunction(RepresentableEnum):
+    """Komprimierungsfunktion, version 2
+
+    Source: FinTS Financial Transaction Services, Sicherheitsverfahren HBCI"""
     NULL = '0' #: Keine Kompression
     LZW = '1' #: Lempel, Ziv, Welch
     COM = '2' #: Optimized LZW
@@ -316,10 +337,20 @@ class CompressionFunction(RepresentableEnum):
     ZZZ = '999' #: Gegenseitig vereinbart
 
 class SecurityApplicationArea(RepresentableEnum):
+    """Bereich der Sicherheitsapplikation, kodiert, version 2
+
+    Informationen darüber, welche Daten vom kryptographischen Prozess verarbeitet werden.
+
+    Source: FinTS Financial Transaction Services, Sicherheitsverfahren HBCI"""
     SHM = '1' #: Signaturkopf und HBCI-Nutzdaten
     SHT = '2' #: Von Signaturkopf bis Signaturabschluss
 
 class SecurityClass(RepresentableEnum):
+    """Sicherheitsklasse, version 1
+
+    Die Sicherheitsklasse gibt für jede Signatur den erforderlichen Sicherheitsdienst an.
+
+    Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Formals"""
     NONE = 0 #: Kein Sicherheitsdienst erforderlich
     AUTH = 1 #: Sicherheitsdienst 'Authentikation'
     AUTH_ADV = 2 #: Sicherheitsdienst 'Authentikation' mit fortgeschrittener elektronischer Signatur, optionaler Zertifikatsprüfung
@@ -327,5 +358,17 @@ class SecurityClass(RepresentableEnum):
     NON_REPUD_QUAL = 4 #: Sicherheitsdienst 'Non-Repudiation' mit fortgeschrittener bzw. qualifizierter elektronischer Signatur, zwingende Zertifikatsprüfung
 
 class UPDUsage(RepresentableEnum):
+    """UPD-Verwendung, version 2
+
+    Kennzeichen dafür, wie diejenigen Geschäftsvorfälle zu interpretieren sind, die bei der Beschreibung der Kontoinformationen nicht unter den erlaubten Geschäftsvorfällen aufgeführt sind.
+
+    Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Formals"""
     UPD_CONCLUSIVE = '0' #: Die nicht aufgeführten Geschäftsvorfälle sind gesperrt
     UPD_INCONCLUSIVE = '1' #: Bei nicht aufgeführten Geschäftsvorfällen ist keine Aussage möglich, ob diese erlaubt oder gesperrt sind
+
+class SystemIDStatus(RepresentableEnum):
+    """Kundensystem-Status, version 2
+
+    Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Formals"""
+    ID_UNNECESSARY = '0' #: Kundensystem-ID wird nicht benötigt
+    ID_NECESSARY = '1' #: Kundensystem-ID wird benötigt
