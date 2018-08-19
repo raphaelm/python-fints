@@ -342,7 +342,7 @@ def test_container_generic():
 def test_find_1():
     from conftest import TEST_MESSAGES
     from fints.parser import FinTS3Parser
-    from fints.segments import HNHBS1, HNHBK3
+    from fints.segments.message import HNHBS1, HNHBK3
 
     m = FinTS3Parser().parse_message(TEST_MESSAGES['basic_complicated'])
 
@@ -365,7 +365,7 @@ def test_find_1():
 def test_find_by_class():
     from conftest import TEST_MESSAGES
     from fints.parser import FinTS3Parser
-    from fints.segments import HNHBS1
+    from fints.segments.message import HNHBS1
 
     m = FinTS3Parser().parse_message(TEST_MESSAGES['basic_complicated'])
 

@@ -1,17 +1,139 @@
 import logging
 
-from .message import FinTSMessage
+from .message import FinTSMessageOLD, MessageDirection, FinTSMessage, FinTSCustomerMessage
 from .segments.auth import HKIDN, HKSYN, HKVVB
-from .segments.dialog import HKEND
+from .segments.dialog import HKEND, HKEND1
+from .segments.auth import HKIDN2, HKVVB3
+from .segments.message import HNHBK3, HNHBS1
+from .formals import BankIdentifier, SystemIDStatus, Language2, SynchronisationMode
 
 logger = logging.getLogger(__name__)
 
+DIALOGUE_ID_UNASSIGNED = '0'
 
 class FinTSDialogError(Exception):
     pass
 
 
 class FinTSDialog:
+    def __init__(self, client=None, lazy_init=False):
+        self.client = client
+        self.next_message_number = dict((v, 1) for v in  MessageDirection)
+        self.messages = dict((v, {}) for v in MessageDirection)
+        self.auth_mechanisms = []
+        self.enc_mechanism = None
+        self.open = False
+        self.need_init = True
+        self.lazy_init = lazy_init
+        self.dialogue_id = DIALOGUE_ID_UNASSIGNED
+
+    def __enter__(self):
+        if not self.lazy_init:
+            self.init()
+        return self
+    
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.end()
+
+    def init(self, *extra_segments):
+        if self.need_init and not self.open:
+            segments = [
+                HKIDN2(
+                    self.client.bank_identifier,
+                    self.client.customer_id,
+                    self.client.system_id,
+                    SystemIDStatus.ID_NECESSARY
+                ),
+                HKVVB3(
+                    self.client.bpd_version,
+                    self.client.upd_version,
+                    Language2.DE,
+                    self.client.product_name,
+                    self.client.product_version
+                )
+            ]
+            for s in extra_segments:
+                segments.append(s)
+
+            try:
+                self.open = True
+                retval = self.send(*segments)
+                self.need_init = False
+                return retval
+            except:
+                self.open = False
+                raise
+            finally:
+                self.lazy_init = False
+
+    def end(self):
+        if self.open:
+            self.send(HKEND1(self.dialogue_id))
+            self.open = False
+
+    def send(self, *segments):
+        if not self.open:
+            if self.lazy_init and self.need_init:
+                self.init()
+
+        if not self.open:
+            raise Exception("Cannot send on dialog that is not open")
+
+        message = self.new_customer_message()
+        for s in segments:
+            message += s
+        self.finish_message(message)
+
+        assert message.segments[0].message_number == self.next_message_number[message.DIRECTION]
+        self.messages[message.segments[0].message_number] = message
+        self.next_message_number[message.DIRECTION] += 1
+
+        response = self.client.connection.send(message)
+
+        ##assert response.segments[0].message_number == self.next_message_number[response.DIRECTION]
+        # FIXME Better handling
+        self.messages[response.segments[0].message_number] = message
+        self.next_message_number[response.DIRECTION] += 1
+
+        if self.enc_mechanism:
+            self.enc_mechanism.decrypt(message)
+
+        for auth_mech in self.auth_mechanisms:
+            auth_mech.verify(message)
+
+        if self.dialogue_id == DIALOGUE_ID_UNASSIGNED:
+            seg = response.find_segment_first(HNHBK3)
+            if not seg:
+                raise ValueError('Could not find dialogue_id')
+            self.dialogue_id = seg.dialogue_id
+
+        self.client.process_institute_response(response)
+
+        return response
+
+    def new_customer_message(self):
+        message = FinTSCustomerMessage(self)
+        message += HNHBK3(0, 300, self.dialogue_id, self.next_message_number[message.DIRECTION])
+        
+        for auth_mech in self.auth_mechanisms:
+            auth_mech.sign_prepare(message)
+        
+        return message
+
+    def finish_message(self, message):
+        message += HNHBS1(message.segments[0].message_number)
+
+        # Create signature(s) in reverse order: from inner to outer
+        for auth_mech in reversed(self.auth_mechanisms):
+            auth_mech.sign_commit(message)
+
+        if self.enc_mechanism:
+            self.enc_mechanism.encrypt(message)
+
+        message.segments[0].message_size = len(message.render_bytes())
+
+
+class FinTSDialogOLD:
     def __init__(self, blz, username, pin, systemid, connection):
         self.blz = blz
         self.username = username
@@ -29,7 +151,7 @@ class FinTSDialog:
         seg_prepare = HKVVB(4)
         seg_sync = HKSYN(5)
 
-        return FinTSMessage(self.blz, self.username, self.pin, self.systemid, self.dialogid, self.msgno, [
+        return FinTSMessageOLD(self.blz, self.username, self.pin, self.systemid, self.dialogid, self.msgno, [
             seg_identification,
             seg_prepare,
             seg_sync
@@ -39,13 +161,13 @@ class FinTSDialog:
         seg_identification = HKIDN(3, self.blz, self.username, self.systemid)
         seg_prepare = HKVVB(4)
 
-        return FinTSMessage(self.blz, self.username, self.pin, self.systemid, self.dialogid, self.msgno, [
+        return FinTSMessageOLD(self.blz, self.username, self.pin, self.systemid, self.dialogid, self.msgno, [
             seg_identification,
             seg_prepare,
         ], self.tan_mechs)
 
     def _get_msg_end(self):
-        return FinTSMessage(self.blz, self.username, self.pin, self.systemid, self.dialogid, self.msgno, [
+        return FinTSMessageOLD(self.blz, self.username, self.pin, self.systemid, self.dialogid, self.msgno, [
             HKEND(3, self.dialogid)
         ])
 

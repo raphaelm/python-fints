@@ -2,7 +2,21 @@ import time
 
 from fints.utils import fints_escape
 
-from . import FinTS3SegmentOLD
+from . import FinTS3SegmentOLD, FinTS3Segment
+from fints.formals import ReferenceMessage
+from fints.fields import DataElementGroupField, DataElementField, ZeroPaddedNumericField
+
+class HNHBK3(FinTS3Segment):
+    "Nachrichtenkopf"
+    message_size = ZeroPaddedNumericField(length=12, _d="Größe der Nachricht (nach Verschlüsselung und Komprimierung)")
+    hbci_version = DataElementField(type='num', max_length=3, _d="HBCI-Version")
+    dialogue_id = DataElementField(type='id', _d="Dialog-ID")
+    message_number = DataElementField(type='num', max_length=4, _d="Nachrichtennummer")
+    reference_message = DataElementGroupField(type=ReferenceMessage, required=False, _d="Bezugsnachricht")
+
+class HNHBS1(FinTS3Segment):
+    "Nachrichtenabschluss"
+    message_number = DataElementField(type='num', max_length=4, _d="Nachrichtennummer")
 
 
 class HNHBK(FinTS3SegmentOLD):
@@ -48,7 +62,7 @@ class HNSHK(FinTS3SegmentOLD):
             secref,
             self.SECURITY_BOUNDARY,
             self.SECURITY_SUPPLIER_ROLE,
-            ':'.join(['1', '', str(systemid)]),
+            ':'.join(['1', '', fints_escape(str(systemid))]),
             1,
             ':'.join(['1', time.strftime('%Y%m%d'), time.strftime('%H%M%S')]),
             ':'.join(['1', '999', '1']),  # Negotiate hash algorithm

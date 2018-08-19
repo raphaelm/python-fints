@@ -4,7 +4,7 @@ import requests
 from fints.parser import FinTS3Parser
 from fints.utils import Password
 
-from .message import FinTSMessage, FinTSResponse
+from .message import FinTSMessage, FinTSInstituteMessage
 
 
 class FinTSConnectionError(Exception):
@@ -18,15 +18,15 @@ class FinTSHTTPSConnection:
     def send(self, msg: FinTSMessage):
         print("Sending >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
         with Password.protect():
-            FinTS3Parser().parse_message(str(msg).encode('iso-8859-1')).print_nested()
+            msg.print_nested()
         print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
         r = requests.post(
-            self.url, data=base64.b64encode(str(msg).encode('iso-8859-1')),
+            self.url, data=base64.b64encode(msg.render_bytes()),
         )
         if r.status_code < 200 or r.status_code > 299:
             raise FinTSConnectionError('Bad status code {}'.format(r.status_code))
         response = base64.b64decode(r.content.decode('iso-8859-1'))
-        retval = FinTSResponse(response)
+        retval = FinTSInstituteMessage(segments=response)
         #import pprint; pprint.pprint(response)  FIXME Remove
         print("Received <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
         with Password.protect():

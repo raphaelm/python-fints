@@ -1,11 +1,52 @@
 import random
+from enum import Enum
 
 from .formals import SegmentSequence
-from .segments import HIBPA3, HIRMG2, HIRMS2, HISYN4, HNHBK3, HITANSBase
-from .segments.message import HNHBK, HNHBS, HNSHA, HNSHK, HNVSD, HNVSK
+from .segments import FinTS3Segment, HIBPA3, HIRMG2, HIRMS2, HITANSBase
+from .segments.message import HNHBK3, HNHBS1, HNSHA, HNSHK, HNVSD, HNVSK
+
+class MessageDirection(Enum):
+    FROM_CUSTOMER = 1
+    FROM_INSTITUTE = 2
+
+class FinTSMessage(SegmentSequence):
+    DIRECTION = None
+    # Auto-Numbering, dialog relation, security base
+
+    def __init__(self, dialog=None, *args, **kwargs):
+        self.dialog = dialog
+        self.next_segment_number = 1
+        super().__init__(*args, **kwargs)
+
+    def __iadd__(self, segment: FinTS3Segment):
+        if not isinstance(segment, FinTS3Segment):
+            raise TypeError("Can only append FinTS3Segment instances, not {!r}".format(segment))
+        segment.header.number = self.next_segment_number
+        self.next_segment_number += 1
+        self.segments.append(segment)
+        return self
+
+    def sign_prepare(self, auth_mech):
+        pass
+
+    def sign_commit(self, auth_mech):
+        pass
+
+    def encrypt(self, enc_mech):
+        pass
+
+    def decrypt(self, enc_mech):
+        pass
 
 
-class FinTSMessage:
+class FinTSCustomerMessage(FinTSMessage):
+    DIRECTION = MessageDirection.FROM_CUSTOMER
+    # Identification, authentication
+
+class FinTSInstituteMessage(FinTSMessage):
+    DIRECTION = MessageDirection.FROM_INSTITUTE
+
+class FinTSMessageOLD:
     def __init__(self, blz, username, pin, systemid, dialogid, msgno, encrypted_segments, tan_mechs=None, tan=None):
         self.blz = blz
         self.username = username
@@ -112,7 +153,7 @@ class FinTSResponse(SegmentSequence):
             if seg.header.reference == int(str(ref.segmentno)):
                 return seg
 
-    def get_touchdowns(self, msg: FinTSMessage):
+    def get_touchdowns(self, msg: FinTSMessageOLD):
         touchdown = {}
         for msgseg in msg.encrypted_segments:
             seg = self._find_segment_for_reference(HIRMS2, msgseg)

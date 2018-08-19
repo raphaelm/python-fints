@@ -129,7 +129,7 @@ class SegmentSequence:
     def find_segments(self, query=None, version=None, callback=None, recurse=True):
         """Yields an iterable of all matching segments.
 
-        :param query: Either a str or class specifying a segment type (such as 'HNHBK', or :class:`~fints.segments.HNHBK3`), or a list or tuple of strings or classes.
+        :param query: Either a str or class specifying a segment type (such as 'HNHBK', or :class:`~fints.segments.message.HNHBK3`), or a list or tuple of strings or classes.
                      If a list/tuple is specified, segments returning any matching type will be returned.
         :param version: Either an int specifying a segment version, or a list or tuple of ints.
                         If a list/tuple is specified, segments returning any matching version will be returned.

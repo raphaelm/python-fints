@@ -2,41 +2,81 @@ import datetime
 import logging
 from decimal import Decimal
 
-from fints.segments import HISPA1
 from fints.segments.debit import HKDME, HKDSE
 from mt940.models import Balance
 from sepaxml import SepaTransfer
 
 from .connection import FinTSHTTPSConnection
-from .dialog import FinTSDialog
+from .dialog import FinTSDialogOLD, FinTSDialog
 from .formals import TwoStepParametersCommon
-from .message import FinTSMessage
+from .message import FinTSMessageOLD
 from .models import (
     SEPAAccount, TANChallenge, TANChallenge3,
     TANChallenge4, TANChallenge5, TANChallenge6,
 )
-from .segments.accounts import HKSPA
+from .segments import HIUPA4, HIBPA3
+from .segments.accounts import HKSPA, HKSPA1, HISPA1
 from .segments.auth import HKTAB, HKTAN
+from .segments.dialog import HKSYN3, HISYN4
 from .segments.depot import HKWPD
-from .segments.saldo import HKSAL
+from .segments.saldo import HKSAL6, HKSAL7, HISAL6, HISAL7
 from .segments.statement import HKKAZ
 from .segments.transfer import HKCCM, HKCCS
 from .utils import MT535_Miniparser, Password, mt940_to_array
+from .formals import Account3, KTI1, BankIdentifier, SynchronisationMode
 
 logger = logging.getLogger(__name__)
 
+SYSTEM_ID_UNASSIGNED = '0'
 
 class FinTS3Client:
     version = 300
 
-    def __init__(self):
+    def __init__(self, bank_identifier, user_id, customer_id=None):
         self.accounts = []
+        if isinstance(bank_identifier, BankIdentifier):
+            self.bank_identifier = bank_identifier
+        elif isinstance(bank_identifier, str):
+            self.bank_identifier = BankIdentifier('280', bank_identifier)
+        else:
+            raise TypeError("bank_identifier must be BankIdentifier or str (BLZ)")
+        self.system_id = SYSTEM_ID_UNASSIGNED
+        self.user_id = user_id
+        self.customer_id = customer_id or user_id
+        self.bpd_version = 0
+        self.bpa = None
+        self.bpd = []
+        self.upd_version = 0
+        self.product_name = 'pyfints'
+        self.product_version = '0.2'
 
-    def _new_dialog(self):
+    def _new_dialog(self, lazy_init=False):
         raise NotImplemented()
 
-    def _new_message(self, dialog: FinTSDialog, segments, tan=None):
+    def _new_message(self, dialog: FinTSDialogOLD, segments, tan=None):
         raise NotImplemented()
+
+    def _ensure_system_id(self):
+        raise NotImplemented()
+
+    def process_institute_response(self, message):
+        bpa = message.find_segment_first(HIBPA3)
+        if bpa:
+            self.bpa = bpa
+            self.bpd_version = bpa.bpd_version
+            self.bpd = list(
+                message.find_segments(
+                    callback = lambda m: len(m.header.type) == 6 and m.header.type[1] == 'I' and m.header.type[5] == 'S'
+                )
+            )
+
+        for seg in message.find_segments(HIUPA4):
+            self.upd_version = seg.upd_version
+
+    def find_bpd(self, type):
+        for seg in self.bpd:
+            if seg.header.type == type:
+                yield seg
 
     def get_sepa_accounts(self):
         """
@@ -44,27 +84,15 @@ class FinTS3Client:
 
         :return: List of SEPAAccount objects.
         """
-        dialog = self._new_dialog()
-        dialog.sync()
-        dialog.init()
 
-        def _get_msg():
-            return self._new_message(dialog, [
-                HKSPA(3, None, None, None)
-            ])
-
-        with self.pin.protect():
-            logger.debug('Sending HKSPA: {}'.format(_get_msg()))
-
-        resp = dialog.send(_get_msg())
-        logger.debug('Got HKSPA response: {}'.format(resp))
-        dialog.end()
-
+        with self._new_dialog() as dialog:
+            response = dialog.send(HKSPA1())
+            
         self.accounts = []
-        for seg in resp.find_segments(HISPA1):
+        for seg in response.find_segments(HISPA1):
             self.accounts.extend(seg.accounts)
 
-        return self.accounts
+        return [a for a in [acc.as_sepa_account() for acc in self.accounts] if a]
 
     def get_statement(self, account: SEPAAccount, start_date: datetime.datetime, end_date: datetime.date):
         """
@@ -121,7 +149,7 @@ class FinTS3Client:
         dialog.end()
         return statement
 
-    def _create_statement_message(self, dialog: FinTSDialog, account: SEPAAccount, start_date, end_date, touchdown):
+    def _create_statement_message(self, dialog: FinTSDialogOLD, account: SEPAAccount, start_date, end_date, touchdown):
         hversion = dialog.hkkazversion
 
         if hversion in (4, 5, 6):
@@ -153,35 +181,35 @@ class FinTS3Client:
         :param account: SEPA account to fetch the balance
         :return: A mt940.models.Balance object
         """
-        # init dialog
-        dialog = self._new_dialog()
-        dialog.sync()
-        dialog.init()
 
-        # execute job
-        def _get_msg():
-            return self._create_balance_message(dialog, account)
+        max_hksal_version = max(
+            (seg.header.version for seg in self.find_bpd('HISALS')),
+            default=6
+        )
 
-        with self.pin.protect():
-            logger.debug('Sending HKSAL: {}'.format(_get_msg()))
+        if max_hksal_version in (1, 2, 3, 4, 5, 6):
+            seg = HKSAL6(
+                Account3.from_sepa_account(account),
+                False
+            )
+        elif max_hksal_version == 7:
+            seg = HKSAL7(
+                KTI1.from_sepa_account(account),
+                False
+            )
+        else:
+            raise ValueError('Unsupported HKSAL version {}'.format(max_hksal_version))
 
-        resp = dialog.send(_get_msg())
-        logger.debug('Got HKSAL response: {}'.format(resp))
 
-        # end dialog
-        dialog.end()
+        with self._new_dialog() as dialog:
+            response = dialog.send(seg)
+        
+        # find segment
+        seg = response.find_segment_first((HISAL6, HISAL7))
+        if seg:
+            return seg.balance_booked.as_mt940_Balance()
 
-        # find segment and split up to balance part
-        seg = resp._find_segment('HISAL')
-        arr = seg[4]
-
-        # get balance date
-        date = datetime.datetime.strptime(arr[3], "%Y%m%d").date()
-
-        # return balance
-        return Balance(arr[0], arr[1], date, currency=arr[2])
-
-    def _create_balance_message(self, dialog: FinTSDialog, account: SEPAAccount):
+    def _create_balance_message(self, dialog: FinTSDialogOLD, account: SEPAAccount):
         hversion = dialog.hksalversion
 
         if hversion in (1, 2, 3, 4, 5, 6):
@@ -242,7 +270,7 @@ class FinTS3Client:
             logger.debug('No HIWPD response segment found - maybe account has no holdings?')
             return []
 
-    def _create_get_holdings_message(self, dialog: FinTSDialog, account: SEPAAccount):
+    def _create_get_holdings_message(self, dialog: FinTSDialogOLD, account: SEPAAccount):
         hversion = dialog.hksalversion
 
         if hversion in (1, 2, 3, 4, 5, 6):
@@ -264,7 +292,7 @@ class FinTS3Client:
             )
         ])
 
-    def _create_send_tan_message(self, dialog: FinTSDialog, challenge: TANChallenge, tan):
+    def _create_send_tan_message(self, dialog: FinTSDialogOLD, challenge: TANChallenge, tan):
         return self._new_message(dialog, [
             HKTAN(3, '2', challenge.reference, '', challenge.version)
         ], tan)
@@ -454,7 +482,7 @@ class FinTS3Client:
         dialog.end()
         return dialog.tan_mechs
 
-    def _create_get_tan_description_message(self, dialog: FinTSDialog):
+    def _create_get_tan_description_message(self, dialog: FinTSDialogOLD):
         return self._new_message(dialog, [
             HKTAB(3)
         ])
@@ -483,18 +511,35 @@ class FinTS3Client:
 
 class FinTS3PinTanClient(FinTS3Client):
 
-    def __init__(self, blz, username, pin, server):
-        self.username = username
-        self.blz = blz
+    def __init__(self, bank_identifier, user_id, pin, server, customer_id=None):
         self.pin = Password(pin)
         self.connection = FinTSHTTPSConnection(server)
-        self.systemid = 0
-        super().__init__()
+        super().__init__(bank_identifier=bank_identifier, user_id=user_id, customer_id=customer_id)
 
-    def _new_dialog(self):
-        dialog = FinTSDialog(self.blz, self.username, self.pin, self.systemid, self.connection)
-        return dialog
+    def _new_dialog(self, lazy_init=False):
+        if not lazy_init:
+            self._ensure_system_id()
 
-    def _new_message(self, dialog: FinTSDialog, segments, tan=None):
-        return FinTSMessage(self.blz, self.username, self.pin, dialog.systemid, dialog.dialogid, dialog.msgno,
+        return FinTSDialog(self, lazy_init=lazy_init)
+
+        # FIXME
+        # dialog = FinTSDialogOLD(self.blz, self.username, self.pin, self.systemid, self.connection)
+        # return dialog
+
+    def _new_message(self, dialog: FinTSDialogOLD, segments, tan=None):
+        return FinTSMessageOLD(self.blz, self.username, self.pin, dialog.systemid, dialog.dialogid, dialog.msgno,
                             segments, dialog.tan_mechs, tan)
+
+    def _ensure_system_id(self):
+        if self.system_id != SYSTEM_ID_UNASSIGNED:
+            return
+
+        with self._new_dialog(lazy_init=True) as dialog:
+            response = dialog.init(
+                HKSYN3(SynchronisationMode.NEW_SYSTEM_ID),
+            )
+            
+        seg = response.find_segment_first(HISYN4)
+        if not seg:
+            raise ValueError('Could not find system_id')
+        self.system_id = seg.system_id

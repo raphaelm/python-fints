@@ -217,7 +217,28 @@ class DigitsField(FieldRenderFormatStringMixin, DataElementField):
 
 class FloatField(FieldRenderFormatStringMixin, DataElementField):
     type = 'float'
-    ## FIXME: Not implemented, no one uses this?
+    _DOC_TYPE = float
+    _FORMAT_STRING = "{:.12f}"  # Warning: Python's float is not exact!
+    ## FIXME: Needs test
+
+    def _parse_value(self, value):
+        if isinstance(value, float):
+            return value
+
+        _value = str(value)
+        if not re.match(r'^(?:0|[1-9]\d*),(?:\d*[1-9]|)$', _value):
+            raise TypeError("Only digits and ',' allowed for value of type 'float', no superfluous leading or trailing zeroes allowed: {!r}".format(value))
+
+        return float(_value.replace(",", "."))
+
+    def _render_value(self, value):
+        retval = super()._render_value(value)
+        return retval.replace('.', ',').rstrip('0')
+
+class AmountField(FixedLengthMixin, FloatField):
+    type = 'wrt'
+    _FIXED_LENGTH = [None, None, 15]
+    # FIXME Needs test
 
 class BinaryField(DataElementField):
     type = 'bin'

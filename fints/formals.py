@@ -300,7 +300,7 @@ class SupportedLanguages2(DataElementGroup):
 class SupportedHBCIVersions2(DataElementGroup):
     versions = DataElementField(type='code', max_length=3, min_count=1, max_count=9)
 
-class AccountInternational(DataElementGroup):
+class KTZ1(DataElementGroup):
     """Kontoverbindung ZV international, version 1
 
     Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Messages -- Multibankfähige Geschäftsvorfälle """
@@ -310,6 +310,71 @@ class AccountInternational(DataElementGroup):
     account_number = DataElementField(type='id', _d="Konto-/Depotnummer")
     subaccount_number = DataElementField(type='id', _d="Unterkontomerkmal")
     bank_identifier = DataElementGroupField(type=BankIdentifier, _d="Kreditinstitutskennung")
+
+    def as_sepa_account(self):
+        from fints.models import SEPAAccount
+        if not self.is_sepa:
+            return None
+        if not self.bank_identifier.country_identifier == '280':
+            # FIXME Limitation of SEPAAccount object
+            return None
+        return SEPAAccount(self.iban, self.bic, self.account_number, self.subaccount_number, self.bank_identifier.bank_code)
+
+    @classmethod
+    def from_sepa_account(cls, acc):
+        return cls(
+            is_sepa=True,
+            iban=acc.iban,
+            bic=acc.bic,
+            account_number=acc.accountnumber,
+            subaccount_number=acc.subaccount,
+            bank_identifier=BankIdentifier(
+                country_identifier='280',
+                bank_code=acc.blz
+            )
+        )
+
+class KTI1(DataElementGroup):
+    """Kontoverbindung international, version 1
+
+    Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Messages -- Multibankfähige Geschäftsvorfälle """
+    iban = DataElementField(type='an', max_length=34, required=False, _d="IBAN")
+    bic = DataElementField(type='an', max_length=11, required=False, _d="BIC")
+    account_number = DataElementField(type='id', required=False, _d="Konto-/Depotnummer")
+    subaccount_number = DataElementField(type='id', required=False, _d="Unterkontomerkmal")
+    bank_identifier = DataElementGroupField(type=BankIdentifier, required=False, _d="Kreditinstitutskennung")
+
+    @classmethod
+    def from_sepa_account(cls, acc):
+        return cls(
+            iban=acc.iban,
+            bic=acc.bic,
+            account_number=acc.accountnumber,
+            subaccount_number=acc.subaccount,
+            bank_identifier=BankIdentifier(
+                country_identifier='280',
+                bank_code=acc.blz
+            )
+        )
+
+class Account3(DataElementGroup):
+    """Kontoverbindung, version 3
+
+    Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Messages -- Multibankfähige Geschäftsvorfälle """
+    account_number = DataElementField(type='id', _d="Konto-/Depotnummer")
+    subaccount_number = DataElementField(type='id', _d="Unterkontomerkmal")
+    bank_identifier = DataElementGroupField(type=BankIdentifier, _d="Kreditinstitutskennung")
+
+    @classmethod
+    def from_sepa_account(cls, acc):
+        return cls(
+            account_number=acc.accountnumber,
+            subaccount_number=acc.subaccount,
+            bank_identifier=BankIdentifier(
+                country_identifier='280',
+                bank_code=acc.blz
+            )
+        )
 
 class SecurityRole(RepresentableEnum):
     """Rolle des Sicherheitslieferanten, kodiert, version 2
@@ -372,3 +437,50 @@ class SystemIDStatus(RepresentableEnum):
     Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Formals"""
     ID_UNNECESSARY = '0' #: Kundensystem-ID wird nicht benötigt
     ID_NECESSARY = '1' #: Kundensystem-ID wird benötigt
+
+class SynchronisationMode(RepresentableEnum):
+    """Synchronisierungsmodus, version 2
+
+    Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Formals"""
+    NEW_SYSTEM_ID = '0' #: Neue Kundensystem-ID zurückmelden
+    LAST_MESSAGE = '1' #: Letzte verarbeitete Nachrichtennummer zurückmelden
+    SIGNATURE_ID = '2' #: Signatur-ID zurückmelden
+
+class Amount1(DataElementGroup):
+    """Betrag
+
+    Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Messages -- Multibankfähige Geschäftsvorfälle """
+    amount = DataElementField(type='wrt', _d="Wert")
+    currency = DataElementField(type='cur', _d="Währung")
+
+class CreditDebit2(RepresentableEnum):
+    """Soll-Haben-Kennzeichen, version 2
+
+    Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Messages -- Multibankfähige Geschäftsvorfälle """
+    CREDIT = 'C' #: Haben
+    DEBIT = 'D' #: Soll
+
+class Balance2(DataElementGroup):
+    """Saldo, version 2
+
+    Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Messages -- Multibankfähige Geschäftsvorfälle """
+    credit_debit = CodeField(enum=CreditDebit2, length=1, _d="Soll-Haben-Kennzeichen")
+    amount = DataElementGroupField(type=Amount1, _d="Betrag")
+    date = DataElementField(type='dat', _d="Datum")
+    time = DataElementField(type='tim', required=False, _d="Uhrzeit")
+
+    def as_mt940_Balance(self):
+        from mt940.models import Balance
+        return Balance(
+            self.credit_debit.value,
+            "{:.12f}".format(self.amount.amount).rstrip('0'),
+            self.date,
+            currency=self.amount.currency
+        )
+
+class Timestamp1(DataElementGroup):
+    """Zeitstempel
+
+    Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Messages -- Multibankfähige Geschäftsvorfälle """
+    date = DataElementField(type='dat', _d="Datum")
+    time = DataElementField(type='tim', required=False, _d="Uhrzeit")

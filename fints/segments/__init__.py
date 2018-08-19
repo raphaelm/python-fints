@@ -1,7 +1,7 @@
 import re
 
 from fints.formals import (
-    AccountInformation, AccountInternational, AccountLimit,
+    AccountInformation, KTZ1, AccountLimit,
     AllowedTransaction, BankIdentifier, Certificate, Container, ContainerMeta,
     DataElementField, DataElementGroupField, EncryptionAlgorithm,
     HashAlgorithm, KeyName, ParameterPinTan, ParameterTwostepTAN1,
@@ -81,18 +81,6 @@ class FinTS3Segment(Container, SubclassesMixin, metaclass=FinTS3SegmentMeta):
 
         return target_cls
 
-class HNHBK3(FinTS3Segment):
-    "Nachrichtenkopf"
-    message_size = DataElementField(type='dig', length=12, _d="Größe der Nachricht (nach Verschlüsselung und Komprimierung)")
-    hbci_version = DataElementField(type='num', max_length=3, _d="HBCI-Version")
-    dialogue_id = DataElementField(type='id', _d="Dialog-ID")
-    message_number = DataElementField(type='num', max_length=4, _d="Nachrichtennummer")
-    reference_message = DataElementGroupField(type=ReferenceMessage, required=False, _d="Bezugsnachricht")
-
-class HNHBS1(FinTS3Segment):
-    "Nachrichtenabschluss"
-    message_number = DataElementField(type='num', max_length=4, _d="Nachrichtennummer")
-
 
 class HNVSD1(FinTS3Segment):
     "Verschlüsselte Daten"
@@ -161,13 +149,6 @@ class HIUPD6(FinTS3Segment):
     allowed_transactions = DataElementGroupField(type=AllowedTransaction, max_count=999, required=False, _d="Erlaubte Geschäftsvorfälle")
     extension = DataElementField(type='an', max_length=2048, required=False, _d="Erweiterung, kontobezogen")
 
-class HISYN4(FinTS3Segment):
-    "Synchronisierungsantwort"
-    customer_system_id = DataElementField(type='id', _d="Kundensystem-ID")
-    message_number = DataElementField(type='num', max_length=4, required=False, _d="Nachrichtennummer")
-    security_reference_signature_key = DataElementField(type='num', max_length=16, required=False, _d="Sicherheitsreferenznummer für Signierschlüssel")
-    security_reference_digital_signature = DataElementField(type='num', max_length=16, required=False, _d="Sicherheitsreferenznummer für Digitale Signatur")
-
 class ParameterSegment(FinTS3Segment):
     max_number_tasks = DataElementField(type='num', max_length=3, _d="Maximale Anzahl Aufträge")
     min_number_signatures = DataElementField(type='num', length=1, _d="Anzahl Signaturen mindestens")
@@ -216,9 +197,4 @@ class HIBPA3(FinTS3Segment):
     min_timeout = DataElementField(type='num', max_length=4, required=False, _d="Minimaler Timeout-Wert")
     max_timeout = DataElementField(type='num', max_length=4, required=False, _d="Maximaler Timeout-Wert")
 
-class HISPA1(FinTS3Segment):
-    """SEPA-Kontoverbindung rückmelden, version 1
-
-    Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Messages -- Multibankfähige Geschäftsvorfälle 
-    """
-    accounts = DataElementGroupField(type=AccountInternational, max_count=999, required=False, _d="SEPA-Kontoverbindung")
+from . import accounts, auth, debit, depot, dialog, message, saldo, statement, transfer
