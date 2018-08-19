@@ -187,6 +187,23 @@ class NumericField(FieldRenderFormatStringMixin, DataElementField):
             raise TypeError("Leading zeroes not allowed for value of type 'num': {!r}".format(value))
         return int(_value, 10)
 
+class ZeroPaddedNumericField(NumericField):
+    type = ''
+    _DOC_TYPE = int
+
+    def __init__(self, *args, **kwargs):
+        if not kwargs.get('length', None):
+            raise ValueError("ZeroPaddedNumericField needs length argument")
+        super().__init__(*args, **kwargs)
+
+    @property
+    def _FORMAT_STRING(self):
+        return "{:0" + str(self.length) + "d}"
+
+    def _parse_value(self, value):
+        _value = str(value)
+        return int(_value, 10)
+
 class DigitsField(FieldRenderFormatStringMixin, DataElementField):
     type = 'dig'
     _DOC_TYPE = str
@@ -230,9 +247,9 @@ class BooleanField(FixedLengthMixin, AlphanumericField):
     def _parse_value(self, value):
         if value is None:
             return None
-        if value == "J":
+        if value == "J" or value is True:
             return True
-        elif value == "N":
+        elif value == "N" or value is False:
             return False
         else:
             raise ValueError("Invalid value {!r} for BooleanField".format(value))
