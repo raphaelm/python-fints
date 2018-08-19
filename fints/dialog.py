@@ -16,12 +16,12 @@ class FinTSDialogError(Exception):
 
 
 class FinTSDialog:
-    def __init__(self, client=None, lazy_init=False):
+    def __init__(self, client=None, lazy_init=False, enc_mechanism=None, auth_mechanisms=[]):
         self.client = client
         self.next_message_number = dict((v, 1) for v in  MessageDirection)
         self.messages = dict((v, {}) for v in MessageDirection)
-        self.auth_mechanisms = []
-        self.enc_mechanism = None
+        self.auth_mechanisms = auth_mechanisms
+        self.enc_mechanism = enc_mechanism
         self.open = False
         self.need_init = True
         self.lazy_init = lazy_init
@@ -91,7 +91,7 @@ class FinTSDialog:
         response = self.client.connection.send(message)
 
         ##assert response.segments[0].message_number == self.next_message_number[response.DIRECTION]
-        # FIXME Better handling
+        # FIXME Better handling of HKEND in exception case
         self.messages[response.segments[0].message_number] = message
         self.next_message_number[response.DIRECTION] += 1
 
@@ -121,11 +121,11 @@ class FinTSDialog:
         return message
 
     def finish_message(self, message):
-        message += HNHBS1(message.segments[0].message_number)
-
         # Create signature(s) in reverse order: from inner to outer
         for auth_mech in reversed(self.auth_mechanisms):
             auth_mech.sign_commit(message)
+
+        message += HNHBS1(message.segments[0].message_number)
 
         if self.enc_mechanism:
             self.enc_mechanism.encrypt(message)

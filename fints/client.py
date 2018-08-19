@@ -10,6 +10,7 @@ from .connection import FinTSHTTPSConnection
 from .dialog import FinTSDialogOLD, FinTSDialog
 from .formals import TwoStepParametersCommon
 from .message import FinTSMessageOLD
+from .security import PinTanDummyEncryptionMechanism, PinTanOneStepAuthenticationMechanism
 from .models import (
     SEPAAccount, TANChallenge, TANChallenge3,
     TANChallenge4, TANChallenge5, TANChallenge6,
@@ -47,6 +48,8 @@ class FinTS3Client:
         self.bpa = None
         self.bpd = []
         self.upd_version = 0
+        self.upa = None
+        self.upd = []
         self.product_name = 'pyfints'
         self.product_version = '0.2'
 
@@ -70,8 +73,13 @@ class FinTS3Client:
                 )
             )
 
-        for seg in message.find_segments(HIUPA4):
-            self.upd_version = seg.upd_version
+        upa = message.find_segment_first(HIUPA4)
+        if upa:
+            self.upa = upa
+            self.upd_version = upa.upd_version
+            self.upd = list(
+                message.find_segments('HIUPD')
+            )
 
     def find_bpd(self, type):
         for seg in self.bpd:
@@ -208,28 +216,6 @@ class FinTS3Client:
         seg = response.find_segment_first((HISAL6, HISAL7))
         if seg:
             return seg.balance_booked.as_mt940_Balance()
-
-    def _create_balance_message(self, dialog: FinTSDialogOLD, account: SEPAAccount):
-        hversion = dialog.hksalversion
-
-        if hversion in (1, 2, 3, 4, 5, 6):
-            acc = ':'.join([
-                account.accountnumber, account.subaccount or '', str(280), account.blz
-            ])
-        elif hversion == 7:
-            acc = ':'.join([
-                account.iban, account.bic, account.accountnumber, account.subaccount or '', str(280), account.blz
-            ])
-        else:
-            raise ValueError('Unsupported HKSAL version {}'.format(hversion))
-
-        return self._new_message(dialog, [
-            HKSAL(
-                3,
-                hversion,
-                acc
-            )
-        ])
 
     def get_holdings(self, account: SEPAAccount):
         """
@@ -520,11 +506,11 @@ class FinTS3PinTanClient(FinTS3Client):
         if not lazy_init:
             self._ensure_system_id()
 
-        return FinTSDialog(self, lazy_init=lazy_init)
-
-        # FIXME
-        # dialog = FinTSDialogOLD(self.blz, self.username, self.pin, self.systemid, self.connection)
-        # return dialog
+        return FinTSDialog(self, 
+            lazy_init=lazy_init,
+            enc_mechanism=PinTanDummyEncryptionMechanism(1),
+            auth_mechanisms=[PinTanOneStepAuthenticationMechanism(self.pin)],
+        )
 
     def _new_message(self, dialog: FinTSDialogOLD, segments, tan=None):
         return FinTSMessageOLD(self.blz, self.username, self.pin, dialog.systemid, dialog.dialogid, dialog.msgno,

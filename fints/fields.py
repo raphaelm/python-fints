@@ -333,6 +333,8 @@ class DateField(FixedLengthMixin, NumericField):
     _FIXED_LENGTH = [8]
 
     def _parse_value(self, value):
+        if isinstance(value, datetime.date):
+            return value
         val = super()._parse_value(value)
         val = str(val)
         return datetime.date(int(val[0:4]), int(val[4:6]), int(val[6:8]))
@@ -348,6 +350,8 @@ class TimeField(FixedLengthMixin, DigitsField):
     _FIXED_LENGTH = [6]
 
     def _parse_value(self, value):
+        if isinstance(value, datetime.time):
+            return value
         val = super()._parse_value(value)
         return datetime.time(int(val[0:2]), int(val[2:4]), int(val[4:6]))
 
