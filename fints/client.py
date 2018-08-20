@@ -10,12 +10,12 @@ from .connection import FinTSHTTPSConnection
 from .dialog import FinTSDialogOLD, FinTSDialog
 from .formals import TwoStepParametersCommon
 from .message import FinTSMessageOLD
-from .security import PinTanDummyEncryptionMechanism, PinTanOneStepAuthenticationMechanism
+from .security import PinTanDummyEncryptionMechanism, PinTanOneStepAuthenticationMechanism, PinTanTwoStepAuthenticationMechanism
 from .models import (
     SEPAAccount, TANChallenge, TANChallenge3,
     TANChallenge4, TANChallenge5, TANChallenge6,
 )
-from .segments import HIUPA4, HIBPA3
+from .segments import HIUPA4, HIBPA3, HIRMS2
 from .segments.accounts import HKSPA, HKSPA1, HISPA1
 from .segments.auth import HKTAB, HKTAN
 from .segments.dialog import HKSYN3, HISYN4
@@ -50,6 +50,8 @@ class FinTS3Client:
         self.upd_version = 0
         self.upa = None
         self.upd = []
+        self.allowed_security_functions = []
+        self.selected_security_function = None
         self.product_name = 'pyfints'
         self.product_version = '0.2'
 
@@ -80,6 +82,13 @@ class FinTS3Client:
             self.upd = list(
                 message.find_segments('HIUPD')
             )
+
+        for seg in message.find_segments(HIRMS2):
+            for response in seg.responses:
+                if response.code == '3920':
+                    self.allowed_security_functions = response.parameters
+                    if self.selected_security_function is None:
+                        self.selected_security_function = self.allowed_security_functions[0]
 
     def find_bpd(self, type):
         for seg in self.bpd:
@@ -506,10 +515,21 @@ class FinTS3PinTanClient(FinTS3Client):
         if not lazy_init:
             self._ensure_system_id()
 
+        if not self.selected_security_function or self.selected_security_function == '999':
+            enc = PinTanDummyEncryptionMechanism(1)
+            auth = PinTanOneStepAuthenticationMechanism(self.pin)
+        else:
+            enc = PinTanDummyEncryptionMechanism(2)
+            auth = PinTanTwoStepAuthenticationMechanism(
+                self,
+                self.selected_security_function,
+                self.pin,
+            )
+
         return FinTSDialog(self, 
             lazy_init=lazy_init,
-            enc_mechanism=PinTanDummyEncryptionMechanism(1),
-            auth_mechanisms=[PinTanOneStepAuthenticationMechanism(self.pin)],
+            enc_mechanism=enc,
+            auth_mechanisms=[auth],
         )
 
     def _new_message(self, dialog: FinTSDialogOLD, segments, tan=None):

@@ -80,11 +80,12 @@ class PinTanDummyEncryptionMechanism(EncryptionMechanism):
         pass
 
 
-class PinTanOneStepAuthenticationMechanism(AuthenticationMechanism):
+class PinTanAuthenticationMechanism(AuthenticationMechanism):
     def __init__(self, pin, tan=None):
         self.pin=pin
         self.tan=tan
         self.pending_signature=None
+        self.security_function=None
 
     def sign_prepare(self, message: FinTSMessage):
         _now = datetime.datetime.now()
@@ -92,7 +93,7 @@ class PinTanOneStepAuthenticationMechanism(AuthenticationMechanism):
 
         self.pending_signature = HNSHK4(
             security_profile = SecurityProfile(SecurityMethod.PIN, 1),
-            security_function = '999',
+            security_function = self.security_function,
             security_reference = rand.randint(1000000, 9999999),
             security_application_area = SecurityApplicationArea.SHM,
             security_role = SecurityRole.ISS,
@@ -148,3 +149,14 @@ class PinTanOneStepAuthenticationMechanism(AuthenticationMechanism):
 
     def verify(self, message: FinTSMessage):
         pass
+
+class PinTanOneStepAuthenticationMechanism(PinTanAuthenticationMechanism):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.security_function = '999'
+
+class PinTanTwoStepAuthenticationMechanism(PinTanAuthenticationMechanism):
+    def __init__(self, client, security_function, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.client = client
+        self.security_function = security_function
