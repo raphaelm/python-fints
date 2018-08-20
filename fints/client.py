@@ -26,8 +26,8 @@ from .segments.accounts import HISPA1, HKSPA, HKSPA1
 from .segments.auth import HKTAB, HKTAN
 from .segments.depot import HKWPD
 from .segments.dialog import HISYN4, HKSYN3
-from .segments.saldo import HISAL5, HISAL6, HISAL7, HKSAL5, HKSAL6, HKSAL7
-from .segments.statement import HKKAZ
+from .segments.saldo import HKSAL5, HKSAL6, HKSAL7
+from .segments.statement import HKKAZ5, HKKAZ6, HKKAZ7
 from .segments.transfer import HKCCM, HKCCS
 from .types import SegmentSequence
 from .utils import MT535_Miniparser, Password, mt940_to_array
@@ -110,7 +110,7 @@ class FinTS3Client:
 
         return [a for a in [acc.as_sepa_account() for acc in self.accounts] if a]
 
-    def get_statement(self, account: SEPAAccount, start_date: datetime.datetime, end_date: datetime.date):
+    def get_statement(self, account: SEPAAccount, start_date: datetime.date, end_date: datetime.date):
         """
         Fetches the statement of a bank account in a certain timeframe.
 
@@ -119,76 +119,57 @@ class FinTS3Client:
         :param end_date: Last day to fetch
         :return: A list of mt940.models.Transaction objects
         """
-        logger.info('Start fetching from {} to {}'.format(start_date, end_date))
 
-        dialog = self._new_dialog()
-        dialog.sync()
-        dialog.init()
+        with self._new_dialog() as dialog:
+            max_hikazs = self.bpd.find_segment_highest_version('HIKAZS', (5, 6, 7))
+            if not max_hikazs:
+                raise ValueError('No supported HIKAZS version found')
 
-        def _get_msg():
-            return self._create_statement_message(dialog, account, start_date, end_date, None)
+            hkkaz = {
+                5: HKKAZ5,
+                6: HKKAZ6,
+                7: HKKAZ7,
+            }.get(max_hikazs.header.version)
 
-        with self.pin.protect():
-            logger.debug('Send message: {}'.format(_get_msg()))
+            responses = []
+            touchdown_counter = 1
+            touchdown = None
 
-        msg = _get_msg()
-        resp = dialog.send(msg)
-        touchdowns = resp.get_touchdowns(msg)
-        responses = [resp]
-        touchdown_counter = 1
+            logger.info('Start fetching from {} to {}'.format(start_date, end_date))
+            while touchdown or touchdown_counter == 1:
+                seg = hkkaz(
+                    account=hkkaz._fields['account'].type.from_sepa_account(account),
+                    all_accounts=False,
+                    date_start=start_date,
+                    date_end=end_date,
+                    touchdown_point=touchdown,
+                )
 
-        while HKKAZ.type in touchdowns:
-            logger.info('Fetching more results ({})...'.format(touchdown_counter))
+                rm = dialog.send(seg)
 
-            with self.pin.protect():
-                logger.debug('Send message: {}'.format(
-                    self._create_statement_message(dialog, account, start_date, end_date, touchdowns[HKKAZ.type])
-                ))
+                for resp in rm.response_segments(seg, 'HIKAZ'):
+                    responses.append(resp)
 
-            msg = self._create_statement_message(dialog, account, start_date, end_date, touchdowns[HKKAZ.type])
-            resp = dialog.send(msg)
-            responses.append(resp)
-            touchdowns = resp.get_touchdowns(msg)
+                touchdown = None
+                for response in rm.responses(seg, '3040'):
+                    touchdown = response.parameters[0]
+                    break
 
-            touchdown_counter += 1
+                if touchdown:
+                    logger.info('Fetching more results ({})...'.format(touchdown_counter))
 
-        logger.info('Fetching done.')
+                touchdown_counter += 1
+            logger.info('Fetching done.')
+
 
         statement = []
-        for resp in responses:
-            seg = resp._find_segment('HIKAZ')
+        for seg in responses:
             ## FIXME What is the encoding of MT940 messages?
-            statement += mt940_to_array(seg[1].decode('iso-8859-1'))
+            statement += mt940_to_array(seg.statement_booked.decode('iso-8859-1'))
 
         logger.debug('Statement: {}'.format(statement))
 
-        dialog.end()
         return statement
-
-    def _create_statement_message(self, dialog: FinTSDialogOLD, account: SEPAAccount, start_date, end_date, touchdown):
-        hversion = dialog.hkkazversion
-
-        if hversion in (4, 5, 6):
-            acc = ':'.join([
-                account.accountnumber, account.subaccount or '', str(280), account.blz
-            ])
-        elif hversion == 7:
-            acc = ':'.join([
-                account.iban, account.bic, account.accountnumber, account.subaccount or '', str(280), account.blz
-            ])
-        else:
-            raise ValueError('Unsupported HKKAZ version {}'.format(hversion))
-
-        return self._new_message(dialog, [
-            HKKAZ(
-                3,
-                hversion,
-                acc,
-                start_date,
-                end_date,
-                touchdown
-            )
-        ])
 
     def get_balance(self, account: SEPAAccount):
         """
@@ -207,7 +188,7 @@ class FinTS3Client:
                 5: HKSAL5,
                 6: HKSAL6,
                 7: HKSAL7,
-            }.get(max_hisals.header.version, None)
+            }.get(max_hisals.header.version)
 
             seg = hksal(
                 account=hksal._fields['account'].type.from_sepa_account(account),

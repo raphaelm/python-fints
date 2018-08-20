@@ -32,6 +32,12 @@ class FinTSMessage(SegmentSequence):
             if segment.header.reference == ref.header.number:
                 yield segment
 
+    def responses(self, ref, code=None):
+        for segment in self.response_segments(ref, HIRMS2):
+            for response in segment.responses:
+                if code is None or response.code == code:
+                    yield response
+
 class FinTSCustomerMessage(FinTSMessage):
     DIRECTION = MessageDirection.FROM_CUSTOMER
     # Identification, authentication
