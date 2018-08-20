@@ -7,24 +7,29 @@ from mt940.models import Balance
 from sepaxml import SepaTransfer
 
 from .connection import FinTSHTTPSConnection
-from .dialog import FinTSDialogOLD, FinTSDialog
-from .formals import TwoStepParametersCommon
+from .dialog import FinTSDialog, FinTSDialogOLD
+from .formals import (
+    KTI1, Account3, BankIdentifier,
+    SynchronisationMode, TwoStepParametersCommon,
+)
 from .message import FinTSMessageOLD
-from .security import PinTanDummyEncryptionMechanism, PinTanOneStepAuthenticationMechanism, PinTanTwoStepAuthenticationMechanism
 from .models import (
     SEPAAccount, TANChallenge, TANChallenge3,
     TANChallenge4, TANChallenge5, TANChallenge6,
 )
-from .segments import HIUPA4, HIBPA3, HIRMS2
-from .segments.accounts import HKSPA, HKSPA1, HISPA1
+from .security import (
+    PinTanDummyEncryptionMechanism, PinTanOneStepAuthenticationMechanism,
+    PinTanTwoStepAuthenticationMechanism,
+)
+from .segments import HIBPA3, HIRMS2, HIUPA4
+from .segments.accounts import HISPA1, HKSPA, HKSPA1
 from .segments.auth import HKTAB, HKTAN
-from .segments.dialog import HKSYN3, HISYN4
 from .segments.depot import HKWPD
-from .segments.saldo import HKSAL5, HKSAL6, HKSAL7, HISAL5, HISAL6, HISAL7
+from .segments.dialog import HISYN4, HKSYN3
+from .segments.saldo import HISAL5, HISAL6, HISAL7, HKSAL5, HKSAL6, HKSAL7
 from .segments.statement import HKKAZ
 from .segments.transfer import HKCCM, HKCCS
 from .utils import MT535_Miniparser, Password, mt940_to_array
-from .formals import Account3, KTI1, BankIdentifier, SynchronisationMode
 
 logger = logging.getLogger(__name__)
 

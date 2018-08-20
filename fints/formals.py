@@ -4,6 +4,7 @@ from fints.types import *  # The order is important!
 from fints.fields import *
 from fints.utils import RepresentableEnum, ShortReprMixin
 
+
 class DataElementGroup(Container):
     pass
 

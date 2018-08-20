@@ -4,7 +4,7 @@ import requests
 from fints.parser import FinTS3Parser
 from fints.utils import Password
 
-from .message import FinTSMessage, FinTSInstituteMessage
+from .message import FinTSInstituteMessage, FinTSMessage
 
 
 class FinTSConnectionError(Exception):

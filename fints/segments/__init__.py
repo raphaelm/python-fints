@@ -1,18 +1,18 @@
 import re
 
-from fints.formals import (
-    AccountInformation, KTZ1, AccountLimit,
-    AllowedTransaction, BankIdentifier, Certificate, Container, ContainerMeta,
-    DataElementField, DataElementGroupField, EncryptionAlgorithm,
-    HashAlgorithm, KeyName, ParameterPinTan, ParameterTwostepTAN1,
-    ParameterTwostepTAN2, ParameterTwostepTAN3, ParameterTwostepTAN4,
-    ParameterTwostepTAN5, ParameterTwostepTAN6, ReferenceMessage, Response,
-    SecurityDateTime, SecurityIdentificationDetails, SecurityProfile, SecurityRole,
-    SegmentHeader, SegmentSequenceField, SignatureAlgorithm,
-    SupportedHBCIVersions2, SupportedLanguages2, UserDefinedSignature,
-    CompressionFunction, SecurityApplicationArea, SecurityClass, UPDUsage
-)
 from fints.fields import CodeField, IntCodeField
+from fints.formals import (
+    KTZ1, AccountInformation, AccountLimit, AllowedTransaction, BankIdentifier,
+    Certificate, CompressionFunction, Container, ContainerMeta,
+    DataElementField, DataElementGroupField, EncryptionAlgorithm, HashAlgorithm,
+    KeyName, ParameterPinTan, ParameterTwostepTAN1, ParameterTwostepTAN2,
+    ParameterTwostepTAN3, ParameterTwostepTAN4, ParameterTwostepTAN5,
+    ParameterTwostepTAN6, ReferenceMessage, Response, SecurityApplicationArea,
+    SecurityClass, SecurityDateTime, SecurityIdentificationDetails,
+    SecurityProfile, SecurityRole, SegmentHeader, SegmentSequenceField,
+    SignatureAlgorithm, SupportedHBCIVersions2, SupportedLanguages2, UPDUsage,
+    UserDefinedSignature,
+)
 from fints.utils import SubclassesMixin, classproperty
 
 TYPE_VERSION_RE = re.compile(r'^([A-Z]+)(\d+)$')
@@ -160,4 +160,6 @@ class HIBPA3(FinTS3Segment):
     min_timeout = DataElementField(type='num', max_length=4, required=False, _d="Minimaler Timeout-Wert")
     max_timeout = DataElementField(type='num', max_length=4, required=False, _d="Maximaler Timeout-Wert")
 
-from . import accounts, auth, debit, depot, dialog, message, saldo, statement, transfer
+from . import (
+    accounts, auth, debit, depot, dialog, message, saldo, statement, transfer,
+)

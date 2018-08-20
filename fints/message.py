@@ -2,8 +2,9 @@ import random
 from enum import Enum
 
 from .formals import SegmentSequence
-from .segments import FinTS3Segment, HIBPA3, HIRMG2, HIRMS2, HITANSBase
+from .segments import HIBPA3, HIRMG2, HIRMS2, FinTS3Segment, HITANSBase
 from .segments.message import HNHBK3, HNHBS1, HNSHA, HNSHK, HNVSD, HNVSK
+
 
 class MessageDirection(Enum):
     FROM_CUSTOMER = 1

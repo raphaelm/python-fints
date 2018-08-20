@@ -1,11 +1,14 @@
 import logging
 
-from .message import FinTSMessageOLD, MessageDirection, FinTSMessage, FinTSCustomerMessage
-from .segments.auth import HKIDN, HKSYN, HKVVB
+from .formals import (
+    BankIdentifier, Language2, SynchronisationMode, SystemIDStatus,
+)
+from .message import (
+    FinTSCustomerMessage, FinTSMessage, FinTSMessageOLD, MessageDirection,
+)
+from .segments.auth import HKIDN, HKIDN2, HKSYN, HKVVB, HKVVB3
 from .segments.dialog import HKEND, HKEND1
-from .segments.auth import HKIDN2, HKVVB3
 from .segments.message import HNHBK3, HNHBS1
-from .formals import BankIdentifier, SystemIDStatus, Language2, SynchronisationMode
 
 logger = logging.getLogger(__name__)
 

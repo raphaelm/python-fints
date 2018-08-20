@@ -1,8 +1,7 @@
-from . import FinTS3SegmentOLD
-
-from . import FinTS3Segment
+from . import FinTS3Segment, FinTS3SegmentOLD
 from ..fields import CodeField, DataElementField
 from ..formals import SynchronisationMode
+
 
 class HKSYN3(FinTS3Segment):
     """Synchronisierung, version 3

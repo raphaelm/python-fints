@@ -1,8 +1,11 @@
+from fints.fields import CodeField, DataElementField, DataElementGroupField
+from fints.formals import (
+    BankIdentifier, Language2, SynchronisationMode, SystemIDStatus,
+)
 from fints.utils import fints_escape
 
-from . import FinTS3SegmentOLD, FinTS3Segment
-from fints.formals import BankIdentifier, SystemIDStatus, Language2, SynchronisationMode
-from fints.fields import DataElementGroupField, DataElementField, CodeField
+from . import FinTS3Segment, FinTS3SegmentOLD
+
 
 class HKIDN(FinTS3SegmentOLD):
     """

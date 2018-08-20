@@ -1,7 +1,9 @@
-from . import FinTS3SegmentOLD, FinTS3Segment
+from fints.fields import DataElementField, DataElementGroupField
+from fints.formals import (
+    KTI1, Account2, Account3, Amount1, Balance1, Balance2, Timestamp1,
+)
 
-from fints.formals import Account2, Account3, KTI1, Balance1, Balance2, Amount1, Timestamp1
-from fints.fields import DataElementGroupField, DataElementField
+from . import FinTS3Segment, FinTS3SegmentOLD
 
 
 class HKSAL(FinTS3SegmentOLD):

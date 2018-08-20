@@ -6,7 +6,7 @@ from fints.formals import (
     NumericField, SegmentHeader, SegmentSequence,
 )
 from fints.segments import FinTS3Segment
-from fints.segments.message import HNHBK3, HNHBS1 
+from fints.segments.message import HNHBK3, HNHBS1
 
 
 def test_metaclass_foo():

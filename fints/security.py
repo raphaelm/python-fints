@@ -1,9 +1,18 @@
-import datetime, random
+import datetime
+import random
 
+from .formals import (
+    AlgorithmParameterIVName, AlgorithmParameterName, CompressionFunction,
+    DateTimeType, EncryptionAlgorithm, EncryptionAlgorithmCoded,
+    HashAlgorithm, IdentifiedRole, KeyName, KeyType, OperationMode,
+    SecurityApplicationArea, SecurityDateTime,
+    SecurityIdentificationDetails, SecurityMethod, SecurityProfile,
+    SecurityRole, SignatureAlgorithm, UsageEncryption, UserDefinedSignature,
+)
 from .message import FinTSMessage
+from .segments.message import HNSHA2, HNSHK4, HNVSD1, HNVSK3
 from .types import SegmentSequence
-from .formals import SecurityProfile, SecurityRole, IdentifiedRole, DateTimeType, UsageEncryption, SecurityIdentificationDetails, SecurityDateTime, EncryptionAlgorithm, KeyName, CompressionFunction, OperationMode, EncryptionAlgorithmCoded, AlgorithmParameterName, AlgorithmParameterIVName, KeyType, SecurityMethod, SecurityApplicationArea, UserDefinedSignature, HashAlgorithm, SignatureAlgorithm, UserDefinedSignature
-from .segments.message import HNVSK3, HNVSD1, HNSHK4, HNSHA2
+
 
 class EncryptionMechanism:
     def encrypt(self, message: FinTSMessage):

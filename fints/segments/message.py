@@ -1,10 +1,19 @@
 import time
 
+from fints.fields import (
+    CodeField, DataElementField, DataElementGroupField,
+    SegmentSequenceField, ZeroPaddedNumericField,
+)
+from fints.formals import (
+    Certificate, CompressionFunction, EncryptionAlgorithm,
+    HashAlgorithm, KeyName, ReferenceMessage, SecurityApplicationArea,
+    SecurityDateTime, SecurityIdentificationDetails, SecurityProfile,
+    SecurityRole, SignatureAlgorithm, UserDefinedSignature,
+)
 from fints.utils import fints_escape
 
-from . import FinTS3SegmentOLD, FinTS3Segment
-from fints.formals import ReferenceMessage, SecurityProfile, SecurityRole, SecurityIdentificationDetails, SecurityDateTime, EncryptionAlgorithm, KeyName, CompressionFunction, Certificate, SecurityApplicationArea, HashAlgorithm, SignatureAlgorithm, UserDefinedSignature
-from fints.fields import DataElementGroupField, DataElementField, ZeroPaddedNumericField, CodeField, SegmentSequenceField
+from . import FinTS3Segment, FinTS3SegmentOLD
+
 
 class HNHBK3(FinTS3Segment):
     "Nachrichtenkopf"
@@ -202,4 +211,3 @@ class HNSHA2(FinTS3Segment):
     security_reference = DataElementField(type='an', max_length=14, _d="Sicherheitskontrollreferenz")
     validation_result = DataElementField(type='bin', max_length=512, required=False, _d="Validierungsresultat")
     user_defined_signature = DataElementGroupField(type=UserDefinedSignature, required=False, _d="Benutzerdefinierte Signatur")
-

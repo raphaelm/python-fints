@@ -1,7 +1,7 @@
-from . import FinTS3SegmentOLD, FinTS3Segment
-
+from . import FinTS3Segment, FinTS3SegmentOLD
 from ..fields import DataElementGroupField
 from ..formals import KTZ1, Account3
+
 
 class HKSPA(FinTS3SegmentOLD):
     """
@@ -33,4 +33,3 @@ class HISPA1(FinTS3Segment):
     Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Messages -- Multibankfähige Geschäftsvorfälle 
     """
     accounts = DataElementGroupField(type=KTZ1, max_count=999, required=False, _d="SEPA-Kontoverbindung")
-
