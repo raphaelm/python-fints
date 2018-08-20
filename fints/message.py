@@ -27,18 +27,10 @@ class FinTSMessage(SegmentSequence):
         self.segments.append(segment)
         return self
 
-    def sign_prepare(self, auth_mech):
-        pass
-
-    def sign_commit(self, auth_mech):
-        pass
-
-    def encrypt(self, enc_mech):
-        pass
-
-    def decrypt(self, enc_mech):
-        pass
-
+    def response_segments(self, ref, *args, **kwargs):
+        for segment in self.find_segments(*args, **kwargs):
+            if segment.header.reference == ref.header.number:
+                yield segment
 
 class FinTSCustomerMessage(FinTSMessage):
     DIRECTION = MessageDirection.FROM_CUSTOMER

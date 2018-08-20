@@ -29,6 +29,7 @@ from .segments.dialog import HISYN4, HKSYN3
 from .segments.saldo import HISAL5, HISAL6, HISAL7, HKSAL5, HKSAL6, HKSAL7
 from .segments.statement import HKKAZ
 from .segments.transfer import HKCCM, HKCCS
+from .types import SegmentSequence
 from .utils import MT535_Miniparser, Password, mt940_to_array
 
 logger = logging.getLogger(__name__)
@@ -36,8 +37,6 @@ logger = logging.getLogger(__name__)
 SYSTEM_ID_UNASSIGNED = '0'
 
 class FinTS3Client:
-    version = 300
-
     def __init__(self, bank_identifier, user_id, customer_id=None):
         self.accounts = []
         if isinstance(bank_identifier, BankIdentifier):
@@ -51,10 +50,10 @@ class FinTS3Client:
         self.customer_id = customer_id or user_id
         self.bpd_version = 0
         self.bpa = None
-        self.bpd = []
+        self.bpd = SegmentSequence()
         self.upd_version = 0
         self.upa = None
-        self.upd = []
+        self.upd = SegmentSequence()
         self.allowed_security_functions = []
         self.selected_security_function = None
         self.product_name = 'pyfints'
@@ -74,7 +73,7 @@ class FinTS3Client:
         if bpa:
             self.bpa = bpa
             self.bpd_version = bpa.bpd_version
-            self.bpd = list(
+            self.bpd = SegmentSequence(
                 message.find_segments(
                     callback = lambda m: len(m.header.type) == 6 and m.header.type[1] == 'I' and m.header.type[5] == 'S'
                 )
@@ -84,7 +83,7 @@ class FinTS3Client:
         if upa:
             self.upa = upa
             self.upd_version = upa.upd_version
-            self.upd = list(
+            self.upd = SegmentSequence(
                 message.find_segments('HIUPD')
             )
 
@@ -94,11 +93,6 @@ class FinTS3Client:
                     self.allowed_security_functions = response.parameters
                     if self.selected_security_function is None:
                         self.selected_security_function = self.allowed_security_functions[0]
-
-    def find_bpd(self, type):
-        for seg in self.bpd:
-            if seg.header.type == type:
-                yield seg
 
     def get_sepa_accounts(self):
         """
@@ -204,32 +198,26 @@ class FinTS3Client:
         :return: A mt940.models.Balance object
         """
 
-        max_hksal_version = max(
-            (seg.header.version for seg in self.find_bpd('HISALS')),
-            default=6
-        )
-
-        clazz = {
-            5: HKSAL5,
-            6: HKSAL6,
-            7: HKSAL7,
-        }.get(max_hksal_version, None)
-
-        if clazz is None:
-            raise ValueError('Unsupported HKSAL version {}'.format(max_hksal_version))
-
-        seg = clazz(
-            account=clazz._fields['account'].type.from_sepa_account(account),
-            all_accounts=False,
-        )
-
         with self._new_dialog() as dialog:
+            max_hisals = self.bpd.find_segment_highest_version('HISALS', (5, 6, 7))
+            if not max_hisals:
+                raise ValueError('No supported HISALS version found')
+
+            hksal = {
+                5: HKSAL5,
+                6: HKSAL6,
+                7: HKSAL7,
+            }.get(max_hisals.header.version, None)
+
+            seg = hksal(
+                account=hksal._fields['account'].type.from_sepa_account(account),
+                all_accounts=False,
+            )
+
             response = dialog.send(seg)
-        
-        # find segment
-        seg = response.find_segment_first((HISAL5, HISAL6, HISAL7))
-        if seg:
-            return seg.balance_booked.as_mt940_Balance()
+
+            for resp in response.response_segments(seg, 'HISAL'):
+                return resp.balance_booked.as_mt940_Balance()
 
     def get_holdings(self, account: SEPAAccount):
         """

@@ -97,7 +97,7 @@ class SegmentSequence:
             parser = FinTS3Parser()
             data = parser.explode_segments(segments)
             segments = [parser.parse_segment(segment) for segment in data]
-        self.segments = segments or []
+        self.segments = list(segments) if segments else []
 
     def render_bytes(self) -> bytes:
         from .parser import FinTS3Serializer
@@ -174,6 +174,24 @@ class SegmentSequence:
             return m
 
         return None
+
+    def find_segment_highest_version(self, query=None, version=None, callback=None, recurse=True, default=None, *args, **kwargs):
+        """Finds the highest matching segment.
+
+        Same parameters as find_segments(), but returns the match with the highest version, or default if no match is found."""
+        # FIXME Test
+
+        retval = None
+
+        for s in self.find_segments(query=query, version=version, callback=callback, recurse=recurse, *args, **kwargs):
+            if not retval or s.header.version > retval.header.version:
+                retval = s
+
+        if retval is None:
+            return default
+
+        return retval
+
 
 class ContainerMeta(type):
     @classmethod
