@@ -20,7 +20,7 @@ from .segments.accounts import HKSPA, HKSPA1, HISPA1
 from .segments.auth import HKTAB, HKTAN
 from .segments.dialog import HKSYN3, HISYN4
 from .segments.depot import HKWPD
-from .segments.saldo import HKSAL6, HKSAL7, HISAL6, HISAL7
+from .segments.saldo import HKSAL5, HKSAL6, HKSAL7, HISAL5, HISAL6, HISAL7
 from .segments.statement import HKKAZ
 from .segments.transfer import HKCCM, HKCCS
 from .utils import MT535_Miniparser, Password, mt940_to_array
@@ -204,25 +204,25 @@ class FinTS3Client:
             default=6
         )
 
-        if max_hksal_version in (1, 2, 3, 4, 5, 6):
-            seg = HKSAL6(
-                Account3.from_sepa_account(account),
-                False
-            )
-        elif max_hksal_version == 7:
-            seg = HKSAL7(
-                KTI1.from_sepa_account(account),
-                False
-            )
-        else:
+        clazz = {
+            5: HKSAL5,
+            6: HKSAL6,
+            7: HKSAL7,
+        }.get(max_hksal_version, None)
+
+        if clazz is None:
             raise ValueError('Unsupported HKSAL version {}'.format(max_hksal_version))
 
+        seg = clazz(
+            account=clazz._fields['account'].type.from_sepa_account(account),
+            all_accounts=False,
+        )
 
         with self._new_dialog() as dialog:
             response = dialog.send(seg)
         
         # find segment
-        seg = response.find_segment_first((HISAL6, HISAL7))
+        seg = response.find_segment_first((HISAL5, HISAL6, HISAL7))
         if seg:
             return seg.balance_booked.as_mt940_Balance()
 

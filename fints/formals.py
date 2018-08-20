@@ -357,6 +357,24 @@ class KTI1(DataElementGroup):
             )
         )
 
+class Account2(DataElementGroup):
+    """Kontoverbindung, version 2
+
+    Source: HBCI Homebanking-Computer-Interface, Schnittstellenspezifikation"""
+    account_number = DataElementField(type='id', _d="Konto-/Depotnummer")
+    subaccount_number = DataElementField(type='id', _d="Unterkontomerkmal")
+    country_identifier = DataElementField(type='ctr', _d="Länderkennzeichen")
+    bank_code = DataElementField(type='an', max_length=30, _d="Kreditinstitutscode")
+
+    @classmethod
+    def from_sepa_account(cls, acc):
+        return cls(
+            account_number=acc.accountnumber,
+            subaccount_number=acc.subaccount,
+            country_identifier='280',
+            bank_code=acc.blz,
+        )
+
 class Account3(DataElementGroup):
     """Kontoverbindung, version 3
 
@@ -459,6 +477,25 @@ class CreditDebit2(RepresentableEnum):
     Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Messages -- Multibankfähige Geschäftsvorfälle """
     CREDIT = 'C' #: Haben
     DEBIT = 'D' #: Soll
+
+class Balance1(DataElementGroup):
+    """Saldo, version 1
+
+    Source: HBCI Homebanking-Computer-Interface, Schnittstellenspezifikation"""
+    credit_debit = CodeField(enum=CreditDebit2, length=1, _d="Soll-Haben-Kennzeichen")
+    amount = DataElementField(type='wrt', _d="Wert")
+    currency = DataElementField(type='cur', _d="Währung")
+    date = DataElementField(type='dat', _d="Datum")
+    time = DataElementField(type='tim', required=False, _d="Uhrzeit")
+
+    def as_mt940_Balance(self):
+        from mt940.models import Balance
+        return Balance(
+            self.credit_debit.value,
+            "{:.12f}".format(self.amount).rstrip('0'),
+            self.date,
+            currency=self.currency
+        )
 
 class Balance2(DataElementGroup):
     """Saldo, version 2

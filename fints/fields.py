@@ -215,7 +215,7 @@ class DigitsField(FieldRenderFormatStringMixin, DataElementField):
             raise TypeError("Only digits allowed for value of type 'dig': {!r}".format(value))
         return _value
 
-class FloatField(FieldRenderFormatStringMixin, DataElementField):
+class FloatField(DataElementField):
     type = 'float'
     _DOC_TYPE = float
     _FORMAT_STRING = "{:.12f}"  # Warning: Python's float is not exact!
@@ -232,8 +232,10 @@ class FloatField(FieldRenderFormatStringMixin, DataElementField):
         return float(_value.replace(",", "."))
 
     def _render_value(self, value):
-        retval = super()._render_value(value)
-        return retval.replace('.', ',').rstrip('0')
+        retval = self._FORMAT_STRING.format(value)
+        retval = retval.replace('.', ',').rstrip('0')
+        self._check_value_length(retval)
+        return retval
 
 class AmountField(FixedLengthMixin, FloatField):
     type = 'wrt'
