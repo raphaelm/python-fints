@@ -24,7 +24,7 @@ from .security import (
 from .segments import HIBPA3, HIRMS2, HIUPA4
 from .segments.accounts import HISPA1, HKSPA, HKSPA1
 from .segments.auth import HKTAB, HKTAN
-from .segments.depot import HKWPD
+from .segments.depot import HKWPD5, HKWPD6
 from .segments.dialog import HISYN4, HKSYN3
 from .segments.saldo import HKSAL5, HKSAL6, HKSAL7
 from .segments.statement import HKKAZ5, HKKAZ6, HKKAZ7
@@ -60,7 +60,7 @@ class FinTS3Client:
         self.product_version = '0.2'
         self._standing_dialog = None
 
-    def _get_dialog(self, lazy_init=False):
+    def _new_dialog(self, lazy_init=False):
         raise NotImplemented()
 
     def _new_message(self, dialog: FinTSDialogOLD, segments, tan=None):
@@ -82,6 +82,18 @@ class FinTS3Client:
             raise Error("Cannot double __exit__() {}".format(self))
 
         self._standing_dialog = None
+
+    def _get_dialog(self, lazy_init=False):
+        if lazy_init and self._standing_dialog:
+            raise Error("Cannot _get_dialog(lazy_init=True) with _standing_dialog")
+
+        if self._standing_dialog:
+            return self._standing_dialog
+
+        if not lazy_init:
+            self._ensure_system_id()
+
+        return self._new_dialog(lazy_init=lazy_init)
 
     def process_institute_response(self, message):
         bpa = message.find_segment_first(HIBPA3)
@@ -126,6 +138,13 @@ class FinTS3Client:
         return [a for a in [acc.as_sepa_account() for acc in self.accounts] if a]
 
     def _fetch_with_touchdowns(self, dialog, segment_factory, *args, **kwargs):
+        """Execute a sequence of fetch commands on dialog.
+        segment_factory must be a callable with one argument touchdown. Will be None for the
+        first call and contains the institute's touchdown point on subsequent calls.
+        segment_factory must return a command segment.
+        Extra arguments will be passed to FinTSMessage.response_segments.
+        Return value is a concatenated list of the return values of FinTSMessage.response_segments().
+        """
         responses = []
         touchdown_counter = 1
         touchdown = None
@@ -150,7 +169,10 @@ class FinTS3Client:
 
         return responses
 
-    def _find_highest_command(self, parameter_segment_name, version_map):
+    def _find_highest_supported_command(self, *segment_classes):
+        """Search the BPD for the highest supported version of a segment."""
+        parameter_segment_name = "{}I{}S".format(segment_classes[0].TYPE[0], segment_classes[0].TYPE[2:])
+        version_map = dict((clazz.VERSION, clazz) for clazz in segment_classes)
         max_version = self.bpd.find_segment_highest_version(parameter_segment_name, version_map.keys())
         if not max_version:
             raise ValueError('No supported {} version found'.format(parameter_segment_name))
@@ -169,12 +191,7 @@ class FinTS3Client:
         """
 
         with self._get_dialog() as dialog:
-            hkkaz = self._find_highest_command('HIKAZS', {
-                    5: HKKAZ5,
-                    6: HKKAZ6,
-                    7: HKKAZ7,
-                }
-            )
+            hkkaz = self._find_highest_supported_command(HKKAZ5, HKKAZ6, HKKAZ7)
 
             logger.info('Start fetching from {} to {}'.format(start_date, end_date))
             responses = self._fetch_with_touchdowns(
@@ -208,12 +225,7 @@ class FinTS3Client:
         """
 
         with self._get_dialog() as dialog:
-            hksal = self._find_highest_command('HISALS', {
-                    5: HKSAL5,
-                    6: HKSAL6,
-                    7: HKSAL7,
-                }
-            )
+            hksal = self._find_highest_supported_command(HKSAL5, HKSAL6, HKSAL7)
 
             seg = hksal(
                 account=hksal._fields['account'].type.from_sepa_account(account),
@@ -233,58 +245,25 @@ class FinTS3Client:
         :return: List of Holding objects
         """
         # init dialog
-        dialog = self._get_dialog()
-        dialog.sync()
-        dialog.init()
+        with self._get_dialog() as dialog:
+            hkwpd = self._find_highest_supported_command(HKWPD5, HKWPD6)
 
-        # execute job
-        def _get_msg():
-            return self._create_get_holdings_message(dialog, account)
+            seg = hkwpd(
+                account=hkwpd._fields['account'].type.from_sepa_account(account),
+            )
 
-        with self.pin.protect():
-            logger.debug('Sending HKWPD: {}'.format(_get_msg()))
+            response = dialog.send(seg)
 
-        resp = dialog.send(_get_msg())
-        logger.debug('Got HIWPD response: {}'.format(resp))
+            for resp in response.response_segments(seg, 'HIWPD'):
+                ## FIXME BROKEN
+                mt535_lines = str.splitlines(resp)
+                # The first line contains a FinTS HIWPD header - drop it.
+                del mt535_lines[0]
+                mt535 = MT535_Miniparser()
+                return mt535.parse(mt535_lines)
 
-        # end dialog
-        dialog.end()
-
-
-        ## FIXME BROKEN
-        # find segment and split up to balance part
-        seg = resp._find_segment('HIWPD')
-        if seg:
-            mt535_lines = str.splitlines(seg)
-            # The first line contains a FinTS HIWPD header - drop it.
-            del mt535_lines[0]
-            mt535 = MT535_Miniparser()
-            return mt535.parse(mt535_lines)
-        else:
             logger.debug('No HIWPD response segment found - maybe account has no holdings?')
             return []
-
-    def _create_get_holdings_message(self, dialog: FinTSDialogOLD, account: SEPAAccount):
-        hversion = dialog.hksalversion
-
-        if hversion in (1, 2, 3, 4, 5, 6):
-            acc = ':'.join([
-                account.accountnumber, account.subaccount or '', str(280), account.blz
-            ])
-        elif hversion == 7:
-            acc = ':'.join([
-                account.iban, account.bic, account.accountnumber, account.subaccount or '', str(280), account.blz
-            ])
-        else:
-            raise ValueError('Unsupported HKSAL version {}'.format(hversion))
-
-        return self._new_message(dialog, [
-            HKWPD(
-                3,
-                hversion,
-                acc,
-            )
-        ])
 
     def _create_send_tan_message(self, dialog: FinTSDialogOLD, challenge: TANChallenge, tan):
         return self._new_message(dialog, [
@@ -510,16 +489,7 @@ class FinTS3PinTanClient(FinTS3Client):
         self.connection = FinTSHTTPSConnection(server)
         super().__init__(bank_identifier=bank_identifier, user_id=user_id, customer_id=customer_id)
 
-    def _get_dialog(self, lazy_init=False):
-        if lazy_init and self._standing_dialog:
-            raise Error("Cannot _get_dialog(lazy_init=True) with _standing_dialog")
-
-        if self._standing_dialog:
-            return self._standing_dialog
-
-        if not lazy_init:
-            self._ensure_system_id()
-
+    def _new_dialog(self, lazy_init=False):
         if not self.selected_security_function or self.selected_security_function == '999':
             enc = PinTanDummyEncryptionMechanism(1)
             auth = PinTanOneStepAuthenticationMechanism(self.pin)
