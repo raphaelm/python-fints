@@ -125,6 +125,32 @@ class FinTS3Client:
 
         return [a for a in [acc.as_sepa_account() for acc in self.accounts] if a]
 
+    def _fetch_with_touchdowns(self, dialog, segment_factory, *args, **kwargs):
+        responses = []
+        touchdown_counter = 1
+        touchdown = None
+
+        while touchdown or touchdown_counter == 1:
+            seg = segment_factory(touchdown)
+
+            rm = dialog.send(seg)
+
+            for resp in rm.response_segments(seg, *args, **kwargs):
+                responses.append(resp)
+
+            touchdown = None
+            for response in rm.responses(seg, '3040'):
+                touchdown = response.parameters[0]
+                break
+
+            if touchdown:
+                logger.info('Fetching more results ({})...'.format(touchdown_counter))
+
+            touchdown_counter += 1
+
+        return responses
+
+
     def get_statement(self, account: SEPAAccount, start_date: datetime.date, end_date: datetime.date):
         """
         Fetches the statement of a bank account in a certain timeframe.
@@ -146,36 +172,19 @@ class FinTS3Client:
                 7: HKKAZ7,
             }.get(max_hikazs.header.version)
 
-            responses = []
-            touchdown_counter = 1
-            touchdown = None
-
             logger.info('Start fetching from {} to {}'.format(start_date, end_date))
-            while touchdown or touchdown_counter == 1:
-                seg = hkkaz(
+            responses = self._fetch_with_touchdowns(
+                dialog,
+                lambda touchdown: hkkaz(
                     account=hkkaz._fields['account'].type.from_sepa_account(account),
                     all_accounts=False,
                     date_start=start_date,
                     date_end=end_date,
                     touchdown_point=touchdown,
-                )
-
-                rm = dialog.send(seg)
-
-                for resp in rm.response_segments(seg, 'HIKAZ'):
-                    responses.append(resp)
-
-                touchdown = None
-                for response in rm.responses(seg, '3040'):
-                    touchdown = response.parameters[0]
-                    break
-
-                if touchdown:
-                    logger.info('Fetching more results ({})...'.format(touchdown_counter))
-
-                touchdown_counter += 1
+                ),
+                'HIKAZ'
+            )
             logger.info('Fetching done.')
-
 
         statement = []
         for seg in responses:
