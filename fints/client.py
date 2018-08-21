@@ -150,6 +150,13 @@ class FinTS3Client:
 
         return responses
 
+    def _find_highest_command(self, parameter_segment_name, version_map):
+        max_version = self.bpd.find_segment_highest_version(parameter_segment_name, version_map.keys())
+        if not max_version:
+            raise ValueError('No supported {} version found'.format(parameter_segment_name))
+
+        return version_map.get(max_version.header.version)
+
 
     def get_statement(self, account: SEPAAccount, start_date: datetime.date, end_date: datetime.date):
         """
@@ -162,15 +169,12 @@ class FinTS3Client:
         """
 
         with self._get_dialog() as dialog:
-            max_hikazs = self.bpd.find_segment_highest_version('HIKAZS', (5, 6, 7))
-            if not max_hikazs:
-                raise ValueError('No supported HIKAZS version found')
-
-            hkkaz = {
-                5: HKKAZ5,
-                6: HKKAZ6,
-                7: HKKAZ7,
-            }.get(max_hikazs.header.version)
+            hkkaz = self._find_highest_command('HIKAZS', {
+                    5: HKKAZ5,
+                    6: HKKAZ6,
+                    7: HKKAZ7,
+                }
+            )
 
             logger.info('Start fetching from {} to {}'.format(start_date, end_date))
             responses = self._fetch_with_touchdowns(
@@ -204,15 +208,12 @@ class FinTS3Client:
         """
 
         with self._get_dialog() as dialog:
-            max_hisals = self.bpd.find_segment_highest_version('HISALS', (5, 6, 7))
-            if not max_hisals:
-                raise ValueError('No supported HISALS version found')
-
-            hksal = {
-                5: HKSAL5,
-                6: HKSAL6,
-                7: HKSAL7,
-            }.get(max_hisals.header.version)
+            hksal = self._find_highest_command('HISALS', {
+                    5: HKSAL5,
+                    6: HKSAL6,
+                    7: HKSAL7,
+                }
+            )
 
             seg = hksal(
                 account=hksal._fields['account'].type.from_sepa_account(account),
