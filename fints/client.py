@@ -58,8 +58,9 @@ class FinTS3Client:
         self.selected_security_function = None
         self.product_name = 'pyfints'
         self.product_version = '0.2'
+        self._standing_dialog = None
 
-    def _new_dialog(self, lazy_init=False):
+    def _get_dialog(self, lazy_init=False):
         raise NotImplemented()
 
     def _new_message(self, dialog: FinTSDialogOLD, segments, tan=None):
@@ -67,6 +68,20 @@ class FinTS3Client:
 
     def _ensure_system_id(self):
         raise NotImplemented()
+
+    def __enter__(self):
+        if self._standing_dialog:
+            raise Error("Cannot double __enter__() {}".format(self))
+        self._standing_dialog = self._get_dialog()
+        self._standing_dialog.__enter__()
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        if self._standing_dialog:
+            self._standing_dialog.__exit__(exc_type, exc_value, traceback)
+        else:
+            raise Error("Cannot double __exit__() {}".format(self))
+
+        self._standing_dialog = None
 
     def process_institute_response(self, message):
         bpa = message.find_segment_first(HIBPA3)
@@ -101,7 +116,7 @@ class FinTS3Client:
         :return: List of SEPAAccount objects.
         """
 
-        with self._new_dialog() as dialog:
+        with self._get_dialog() as dialog:
             response = dialog.send(HKSPA1())
             
         self.accounts = []
@@ -120,7 +135,7 @@ class FinTS3Client:
         :return: A list of mt940.models.Transaction objects
         """
 
-        with self._new_dialog() as dialog:
+        with self._get_dialog() as dialog:
             max_hikazs = self.bpd.find_segment_highest_version('HIKAZS', (5, 6, 7))
             if not max_hikazs:
                 raise ValueError('No supported HIKAZS version found')
@@ -179,7 +194,7 @@ class FinTS3Client:
         :return: A mt940.models.Balance object
         """
 
-        with self._new_dialog() as dialog:
+        with self._get_dialog() as dialog:
             max_hisals = self.bpd.find_segment_highest_version('HISALS', (5, 6, 7))
             if not max_hisals:
                 raise ValueError('No supported HISALS version found')
@@ -208,7 +223,7 @@ class FinTS3Client:
         :return: List of Holding objects
         """
         # init dialog
-        dialog = self._new_dialog()
+        dialog = self._get_dialog()
         dialog.sync()
         dialog.init()
 
@@ -356,7 +371,7 @@ class FinTS3Client:
         :param book_as_single: Kindly ask the bank to put multiple transactions as separate lines on the bank statement (defaults to ``False``)
         :return: Returns a TANChallenge object
         """
-        dialog = self._new_dialog()
+        dialog = self._get_dialog()
         dialog.sync()
         dialog.tan_mechs = [tan_method]
         dialog.init()
@@ -403,7 +418,7 @@ class FinTS3Client:
         :param book_as_single: Kindly ask the bank to put multiple transactions as separate lines on the bank statement (defaults to ``False``)
         :return: Returns a TANChallenge object
         """
-        dialog = self._new_dialog()
+        dialog = self._get_dialog()
         dialog.sync()
         dialog.tan_mechs = [tan_method]
         dialog.init()
@@ -445,7 +460,7 @@ class FinTS3Client:
 
         :return: List of TANMethod objects
         """
-        dialog = self._new_dialog()
+        dialog = self._get_dialog()
         dialog.sync()
         dialog.init()
         dialog.end()
@@ -462,7 +477,7 @@ class FinTS3Client:
 
         :return: str
         """
-        dialog = self._new_dialog()
+        dialog = self._get_dialog()
         dialog.sync()
         dialog.init()
 
@@ -485,7 +500,13 @@ class FinTS3PinTanClient(FinTS3Client):
         self.connection = FinTSHTTPSConnection(server)
         super().__init__(bank_identifier=bank_identifier, user_id=user_id, customer_id=customer_id)
 
-    def _new_dialog(self, lazy_init=False):
+    def _get_dialog(self, lazy_init=False):
+        if lazy_init and self._standing_dialog:
+            raise Error("Cannot _get_dialog(lazy_init=True) with _standing_dialog")
+
+        if self._standing_dialog:
+            return self._standing_dialog
+
         if not lazy_init:
             self._ensure_system_id()
 
@@ -514,7 +535,7 @@ class FinTS3PinTanClient(FinTS3Client):
         if self.system_id != SYSTEM_ID_UNASSIGNED:
             return
 
-        with self._new_dialog(lazy_init=True) as dialog:
+        with self._get_dialog(lazy_init=True) as dialog:
             response = dialog.init(
                 HKSYN3(SynchronisationMode.NEW_SYSTEM_ID),
             )

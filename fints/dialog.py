@@ -29,14 +29,19 @@ class FinTSDialog:
         self.need_init = True
         self.lazy_init = lazy_init
         self.dialogue_id = DIALOGUE_ID_UNASSIGNED
+        self._context_count = 0
 
     def __enter__(self):
-        if not self.lazy_init:
-            self.init()
+        if self._context_count == 0:
+            if not self.lazy_init:
+                self.init()
+        self._context_count += 1
         return self
     
     def __exit__(self, exc_type, exc_value, traceback):
-        self.end()
+        self._context_count -= 1
+        if self._context_count == 0:
+            self.end()
 
     def init(self, *extra_segments):
         if self.need_init and not self.open:
