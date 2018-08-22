@@ -1,6 +1,7 @@
 from fints.fields import CodeField, DataElementField, DataElementGroupField
 from fints.formals import (
     BankIdentifier, Language2, SynchronisationMode, SystemIDStatus,
+    TANMediaType2, TANMediaClass4, TANMedia5, TANMediaClass3, TANMedia4, TANUsageOption,
 )
 from fints.utils import fints_escape
 
@@ -134,3 +135,35 @@ class HKTAB(FinTS3SegmentOLD):
             '0', 'A'
         ]
         super().__init__(segno, data)
+
+class HKTAB4(FinTS3Segment):
+    """TAN-Generator/Liste anzeigen Bestand, version 4
+
+    Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Sicherheitsverfahren PIN/TAN"""
+
+    tan_media_type = CodeField(enum=TANMediaType2, _d="TAN-Medium-Art")
+    tan_media_class = CodeField(enum=TANMediaClass3, _d="TAN-Medium-Klasse")
+
+class HITAB4(FinTS3Segment):
+    """TAN-Generator/Liste anzeigen Bestand Rückmeldung, version 4
+
+    Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Sicherheitsverfahren PIN/TAN"""
+
+    tan_usage_option = CodeField(enum=TANUsageOption, _d="TAN_Einsatzoption")
+    tan_media_list = DataElementGroupField(type=TANMedia4, max_count=99, required=False, _d="TAN-Medium-Liste")
+
+class HKTAB5(FinTS3Segment):
+    """TAN-Generator/Liste anzeigen Bestand, version 5
+
+    Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Sicherheitsverfahren PIN/TAN"""
+
+    tan_media_type = CodeField(enum=TANMediaType2, _d="TAN-Medium-Art")
+    tan_media_class = CodeField(enum=TANMediaClass4, _d="TAN-Medium-Klasse")
+
+class HITAB5(FinTS3Segment):
+    """TAN-Generator/Liste anzeigen Bestand Rückmeldung, version 5
+
+    Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Sicherheitsverfahren PIN/TAN"""
+
+    tan_usage_option = CodeField(enum=TANUsageOption, _d="TAN_Einsatzoption")
+    tan_media_list = DataElementGroupField(type=TANMedia5, max_count=99, required=False, _d="TAN-Medium-Liste")

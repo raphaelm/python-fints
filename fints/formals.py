@@ -522,3 +522,101 @@ class Timestamp1(DataElementGroup):
     Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Messages -- Multibankfähige Geschäftsvorfälle """
     date = DataElementField(type='dat', _d="Datum")
     time = DataElementField(type='tim', required=False, _d="Uhrzeit")
+
+class TANMediaType2(RepresentableEnum):
+    """TAN-Medium-Art
+
+    Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Sicherheitsverfahren PIN/TAN"""
+
+    ALL = '0' #: Alle
+    ACTIVE = '1' #: Aktiv
+    AVAILABLE = '2' #: Verfügbar
+
+
+class TANMediaClass3(RepresentableEnum):
+    """TAN-Medium-Klasse, version 3
+
+    Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Sicherheitsverfahren PIN/TAN"""
+
+    ALL = 'A' #: Alle Medien
+    LIST = 'L' #: Liste
+    GENERATOR = 'G' #: TAN-Generator
+    MOBILE = 'M' #: Mobiltelefon mit mobileTAN
+    SECODER = 'S' #: Secoder
+
+class TANMediaClass4(RepresentableEnum):
+    """TAN-Medium-Klasse, version 4
+
+    Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Sicherheitsverfahren PIN/TAN"""
+
+    ALL = 'A' #: Alle Medien
+    LIST = 'L' #: Liste
+    GENERATOR = 'G' #: TAN-Generator
+    MOBILE = 'M' #: Mobiltelefon mit mobileTAN
+    SECODER = 'S' #: Secoder
+    BILATERAL = 'B' #: Bilateral vereinbart
+
+class TANMediumStatus(RepresentableEnum):
+    """Status
+
+    Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Sicherheitsverfahren PIN/TAN"""
+
+    ACTIVE = '1' #: Aktiv
+    AVAILABLE = '2' #: Verfügbar
+    ACTIVE_SUCCESSOR = '3' #: Aktiv Folgekarte
+    AVAILABLE_SUCCESSOR = '4' #: Verfügbar Folgekarte
+
+class TANMedia4(DataElementGroup):
+    """TAN-Medium-Liste, version 4
+
+    Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Sicherheitsverfahren PIN/TAN"""
+
+    tan_medium_class = CodeField(enum=TANMediaClass3, _d="TAN-Medium-Klasse")
+    status = CodeField(enum=TANMediumStatus, _d="Status")
+    card_number = DataElementField(type='id', required=False, _d="Kartennummer")
+    card_sequence = DataElementField(type='id', required=False, _d="Kartenfolgenummer")
+    card_type = DataElementField(type='num', required=False, _d="Kartenart")
+    account = DataElementGroupField(type=Account3, required=False, _d="Kontonummer Auftraggeber")
+    valid_from = DataElementField(type='dat', required=False, _d="Gültig ab")
+    valid_until = DataElementField(type='dat', required=False, _d="Gültig bis")
+    tan_list_number = DataElementField(type='an', max_length=20, required=False, _d="TAN-Listennummer")
+    tan_medium_name = DataElementField(type='an', max_length=32, required=False, _d="Bezeichnung des TAN-Mediums")
+    mobile_number_masked = DataElementField(type='an', max_length=35, required=False, _d="Mobiltelefonnummer, verschleiert")
+    mobile_number = DataElementField(type='an', max_length=35, required=False, _d="Mobiltelefonnummer")
+    sms_charge_account = DataElementGroupField(type=KTI1, required=False, _d="SMS-Abbuchungskonto")
+    number_free_tans = DataElementField(type='num', max_length=3, required=False, _d="Anzahl freie TANs")
+    last_use = DataElementField(type='dat', required=False, _d="Letzte Benutzung")
+    active_since = DataElementField(type='dat', required=False, _d="Freigeschaltet am")
+
+class TANMedia5(DataElementGroup):
+    """TAN-Medium-Liste, version 5
+
+    Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Sicherheitsverfahren PIN/TAN"""
+
+    tan_medium_class = CodeField(enum=TANMediaClass4, _d="TAN-Medium-Klasse")
+    status = CodeField(enum=TANMediumStatus, _d="Status")
+    security_function = DataElementField(type='num', required=False, _d="Sicherheitsfunktion, kodiert")
+    card_number = DataElementField(type='id', required=False, _d="Kartennummer")
+    card_sequence = DataElementField(type='id', required=False, _d="Kartenfolgenummer")
+    card_type = DataElementField(type='num', required=False, _d="Kartenart")
+    account = DataElementGroupField(type=Account3, required=False, _d="Kontonummer Auftraggeber")
+    valid_from = DataElementField(type='dat', required=False, _d="Gültig ab")
+    valid_until = DataElementField(type='dat', required=False, _d="Gültig bis")
+    tan_list_number = DataElementField(type='an', max_length=20, required=False, _d="TAN-Listennummer")
+    tan_medium_name = DataElementField(type='an', max_length=32, required=False, _d="Bezeichnung des TAN-Mediums")
+    mobile_number_masked = DataElementField(type='an', max_length=35, required=False, _d="Mobiltelefonnummer, verschleiert")
+    mobile_number = DataElementField(type='an', max_length=35, required=False, _d="Mobiltelefonnummer")
+    sms_charge_account = DataElementGroupField(type=KTI1, required=False, _d="SMS-Abbuchungskonto")
+    number_free_tans = DataElementField(type='num', max_length=3, required=False, _d="Anzahl freie TANs")
+    last_use = DataElementField(type='dat', required=False, _d="Letzte Benutzung")
+    active_since = DataElementField(type='dat', required=False, _d="Freigeschaltet am")
+
+class TANUsageOption(RepresentableEnum):
+    """TAN-Einsatzoption
+
+    Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Sicherheitsverfahren PIN/TAN"""
+
+    ALL_ACTIVE = '0' #: Kunde kann alle "aktiven" Medien parallel nutzen
+    EXACTLY_ONE = '1'#: Kunde kann genau ein Medium zu einer Zeit nutzen
+    MOBILE_PLUS_GENERATOR = '2' #: Kunde kann ein Mobiltelefon und einen TAN-Generator parallel nutzen
+

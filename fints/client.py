@@ -11,6 +11,7 @@ from .dialog import FinTSDialog, FinTSDialogOLD
 from .formals import (
     KTI1, Account3, BankIdentifier,
     SynchronisationMode, TwoStepParametersCommon,
+    TANMediaType2, TANMediaClass4,
 )
 from .message import FinTSMessageOLD
 from .models import (
@@ -23,7 +24,7 @@ from .security import (
 )
 from .segments import HIBPA3, HIRMS2, HIUPA4
 from .segments.accounts import HISPA1, HKSPA, HKSPA1
-from .segments.auth import HKTAB, HKTAN
+from .segments.auth import HKTAB, HKTAN, HKTAB4, HKTAB5
 from .segments.depot import HKWPD5, HKWPD6
 from .segments.dialog import HISYN4, HKSYN3
 from .segments.saldo import HKSAL5, HKSAL6, HKSAL7
@@ -175,7 +176,11 @@ class FinTS3Client:
         version_map = dict((clazz.VERSION, clazz) for clazz in segment_classes)
         max_version = self.bpd.find_segment_highest_version(parameter_segment_name, version_map.keys())
         if not max_version:
-            raise ValueError('No supported {} version found'.format(parameter_segment_name))
+            raise ValueError('No supported {} version found. I support {}, bank supports {}.'.format(
+                parameter_segment_name,
+                tuple(version_map.keys()),
+                tuple(v.header.version for v in self.bpd.find_segments(parameter_segment_name))
+            ))
 
         return version_map.get(max_version.header.version)
 
@@ -455,31 +460,23 @@ class FinTS3Client:
         dialog.end()
         return dialog.tan_mechs
 
-    def _create_get_tan_description_message(self, dialog: FinTSDialogOLD):
-        return self._new_message(dialog, [
-            HKTAB(3)
-        ])
+    def get_tan_descriptions(self, media_type = TANMediaType2.ALL, media_class = TANMediaClass4.ALL):
+        """Get information about TAN lists/generators.
 
-    def get_tan_description(self):
-        """
-        TAN method meta data, currently unparsed
+        Returns tuple of fints.formals.TANUsageOption and a list of fints.formals.TANMedia4 or fints.formals.TANMedia5 objects."""
 
-        :return: str
-        """
-        dialog = self._get_dialog()
-        dialog.sync()
-        dialog.init()
+        with self._get_dialog() as dialog:
+            hktab = self._find_highest_supported_command(HKTAB4, HKTAB5)
 
-        with self.pin.protect():
-            logger.debug('Sending HKTAB: {}'.format(self._create_get_tan_description_message(dialog)))
+            seg = hktab(
+                tan_media_type = media_type,
+                tan_media_class = str(media_class),
+            )
 
-        resp = dialog.send(self._create_get_tan_description_message(dialog))
-        logger.debug('Got HKTAB response: {}'.format(resp))
-        dialog.end()
+            response = dialog.send(seg)
 
-        seg = resp._find_segment('HITAB')
-
-        return seg[2]
+            for resp in response.response_segments(seg, 'HITAB'):
+                return resp.tan_usage_option, list(resp.tan_media_list)
 
 
 class FinTS3PinTanClient(FinTS3Client):
