@@ -4,6 +4,7 @@ import base64
 import zlib
 import json
 from decimal import Decimal
+from collections import OrderedDict
 
 from fints.segments.debit import HKDME, HKDSE
 from mt940.models import Balance
@@ -62,6 +63,7 @@ class FinTS3Client:
         self.upd = SegmentSequence()
         self.allowed_security_functions = []
         self.selected_security_function = None
+        self.selected_tan_medium = None
         self.product_name = 'pyfints'
         self.product_version = '0.2'
         self._standing_dialog = None
@@ -132,6 +134,7 @@ class FinTS3Client:
                 self.bpd_version = data['bpd_version']
 
         self.selected_security_function = data.get('selected_security_function', self.selected_security_function)
+        self.allowed_security_functions = data.get('allowed_security_functions', self.allowed_security_functions)
 
         if all(x in data for x in ('upd_bin', 'upa_bin', 'upd_version')):
             if data['upd_version'] >= self.upd_version:
@@ -147,6 +150,7 @@ class FinTS3Client:
             "bpa_bin": FinTS3Serializer().serialize_message(self.bpa) if self.bpa else None,
             "bpd_version": self.bpd_version,
             "selected_security_function": self.selected_security_function,
+            "selected_tan_medium": self.selected_tan_medium,
         }
 
         if including_private:
@@ -154,6 +158,7 @@ class FinTS3Client:
                 "upd_bin": self.upd.render_bytes(),
                 "upa_bin": FinTS3Serializer().serialize_message(self.upa) if self.upa else None,
                 "upd_version": self.upd_version,
+                "allowed_security_functions": self.allowed_security_functions,
             })
 
         return self._compress_data_v1(data)
@@ -199,7 +204,22 @@ class FinTS3Client:
                 if response.code == '3920':
                     self.allowed_security_functions = list(response.parameters)
                     if self.selected_security_function is None or not self.selected_security_function in self.allowed_security_functions:
-                        self.selected_security_function = self.allowed_security_functions[0]
+                        # Select the first available twostep security_function that we support
+                        for security_function, parameter in self.get_tan_mechanisms().items():
+                            if security_function == '999':
+                                # Skip onestep TAN
+                                continue
+                            if parameter.tan_process != '2':
+                                # Only support process variant 2 for now
+                                continue
+                            try:
+                                self.set_tan_mechanism(parameter.security_function)
+                                break
+                            except NotImplementedError:
+                                pass
+                        else:
+                            # Fall back to onestep
+                            self.set_tan_mechanism('999')
 
     def get_sepa_accounts(self):
         """
@@ -527,19 +547,33 @@ class FinTS3Client:
             )
         return model(dialog, *s[1:1 + len(model.args)])
 
-    def get_tan_methods(self):
+    def get_tan_mechanisms(self):
         """
-        Returns a list of TAN methods.
+        Get the available TAN mechanisms.
 
-        :return: List of TANMethod objects
+        :return: Dictionary of security_function: TwoStepParameters[1-5] objects.
         """
-        dialog = self._get_dialog()
-        dialog.sync()
-        dialog.init()
-        dialog.end()
-        return dialog.tan_mechs
 
-    def get_tan_descriptions(self, media_type = TANMediaType2.ALL, media_class = TANMediaClass4.ALL):
+        retval = OrderedDict()
+
+        for version in range(1, 6):
+            for seg in self.bpd.find_segments('HITANS', version):
+                for parameter in seg.parameter.twostep_parameters:
+                    if parameter.security_function in self.allowed_security_functions:
+                        retval[parameter.security_function] = parameter
+
+        return retval
+
+    def get_current_tan_mechanism(self):
+        return self.selected_security_function
+
+    def set_tan_mechanism(self, security_function):
+        self.selected_security_function = security_function
+
+    def set_tan_medium(self, tan_medium):
+        self.selected_tan_medium = tan_medium
+
+    def get_tan_media(self, media_type = TANMediaType2.ALL, media_class = TANMediaClass4.ALL):
         """Get information about TAN lists/generators.
 
         Returns tuple of fints.formals.TANUsageOption and a list of fints.formals.TANMedia4 or fints.formals.TANMedia5 objects."""
