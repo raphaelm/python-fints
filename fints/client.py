@@ -1,5 +1,8 @@
 import datetime
 import logging
+import base64
+import zlib
+import json
 from decimal import Decimal
 
 from fints.segments.debit import HKDME, HKDSE
@@ -32,13 +35,15 @@ from .segments.statement import HKKAZ5, HKKAZ6, HKKAZ7
 from .segments.transfer import HKCCM, HKCCS
 from .types import SegmentSequence
 from .utils import MT535_Miniparser, Password, mt940_to_array
+from .parser import FinTS3Serializer
 
 logger = logging.getLogger(__name__)
 
 SYSTEM_ID_UNASSIGNED = '0'
+DATA_BLOB_MAGIC = b'python-fints_DATABLOB'
 
 class FinTS3Client:
-    def __init__(self, bank_identifier, user_id, customer_id=None):
+    def __init__(self, bank_identifier, user_id, customer_id=None, set_data=None):
         self.accounts = []
         if isinstance(bank_identifier, BankIdentifier):
             self.bank_identifier = bank_identifier
@@ -60,6 +65,9 @@ class FinTS3Client:
         self.product_name = 'pyfints'
         self.product_version = '0.2'
         self._standing_dialog = None
+
+        if set_data:
+            self.set_data(set_data)
 
     def _new_dialog(self, lazy_init=False):
         raise NotImplemented()
@@ -96,6 +104,77 @@ class FinTS3Client:
 
         return self._new_dialog(lazy_init=lazy_init)
 
+    @staticmethod
+    def _compress_data_v1(data):
+        data = dict(data)
+        for k, v in data.items():
+            if k.endswith("_bin"):
+                if v:
+                    data[k] = base64.b64encode(v).decode("us-ascii")
+        serialized = json.dumps(data).encode('utf-8')
+        compressed = zlib.compress(serialized, 9)
+        return DATA_BLOB_MAGIC + b';1;' + compressed
+
+    def _set_data_v1(self, blob):
+        decompressed = zlib.decompress(blob)
+        data = json.loads(decompressed.decode('utf-8'))
+        for k, v in data.items():
+            if k.endswith("_bin"):
+                if v:
+                    data[k] = base64.b64decode(v.encode('us-ascii'))
+
+        self.system_id = data.get('system_id', self.system_id)
+
+        if all(x in data for x in ('bpd_bin', 'bpa_bin', 'bpd_version')):
+            if data['bpd_version'] >= self.bpd_version:
+                self.bpd = SegmentSequence(data['bpd_bin'])
+                self.bpa = SegmentSequence(data['bpa_bin']).segments[0]
+                self.bpd_version = data['bpd_version']
+
+        self.selected_security_function = data.get('selected_security_function', self.selected_security_function)
+
+        if all(x in data for x in ('upd_bin', 'upa_bin', 'upd_version')):
+            if data['upd_version'] >= self.upd_version:
+                self.upd = SegmentSequence(data['upd_bin'])
+                self.upa = SegmentSequence(data['upa_bin']).segments[0]
+                self.upd_version = data['upd_version']
+
+    def get_data(self, including_private=False):
+        # FIXME Test, document
+        data = {
+            "system_id": self.system_id,
+            "bpd_bin": self.bpd.render_bytes(),
+            "bpa_bin": FinTS3Serializer().serialize_message(self.bpa) if self.bpa else None,
+            "bpd_version": self.bpd_version,
+            "selected_security_function": self.selected_security_function,
+        }
+
+        if including_private:
+            data.update({
+                "upd_bin": self.upd.render_bytes(),
+                "upa_bin": FinTS3Serializer().serialize_message(self.upa) if self.upa else None,
+                "upd_version": self.upd_version,
+            })
+
+        return self._compress_data_v1(data)
+
+    def set_data(self, blob):
+        # FIXME Test, document
+        if not blob.startswith(DATA_BLOB_MAGIC):
+            raise ValueError("Incorrect data blob")
+        s = blob.split(b';', 2)
+        if len(s) != 3:
+            raise ValueError("Incorrect data blob")
+        if not s[1].isdigit():
+            raise ValueError("Incorrect data blob")
+        version = int(s[1].decode('us-ascii'), 10)
+
+        setfunc = getattr(self, "_set_data_v{}".format(version), None)
+        if not setfunc:
+            raise ValueError("Unknown data blob version")
+
+        setfunc(s[2])
+
     def process_institute_response(self, message):
         bpa = message.find_segment_first(HIBPA3)
         if bpa:
@@ -118,8 +197,8 @@ class FinTS3Client:
         for seg in message.find_segments(HIRMS2):
             for response in seg.responses:
                 if response.code == '3920':
-                    self.allowed_security_functions = response.parameters
-                    if self.selected_security_function is None:
+                    self.allowed_security_functions = list(response.parameters)
+                    if self.selected_security_function is None or not self.selected_security_function in self.allowed_security_functions:
                         self.selected_security_function = self.allowed_security_functions[0]
 
     def get_sepa_accounts(self):
@@ -481,10 +560,10 @@ class FinTS3Client:
 
 class FinTS3PinTanClient(FinTS3Client):
 
-    def __init__(self, bank_identifier, user_id, pin, server, customer_id=None):
+    def __init__(self, bank_identifier, user_id, pin, server, customer_id=None, *args, **kwargs):
         self.pin = Password(pin)
         self.connection = FinTSHTTPSConnection(server)
-        super().__init__(bank_identifier=bank_identifier, user_id=user_id, customer_id=customer_id)
+        super().__init__(bank_identifier=bank_identifier, user_id=user_id, customer_id=customer_id, *args, **kwargs)
 
     def _new_dialog(self, lazy_init=False):
         if not self.selected_security_function or self.selected_security_function == '999':

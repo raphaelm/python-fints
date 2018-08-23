@@ -313,7 +313,7 @@ class FinTS3Serializer:
     def serialize_message(self, message: SegmentSequence) -> bytes:
         "Serialize a message (as SegmentSequence, list of FinTS3Segment, or FinTS3Segment) into a byte array"
         if isinstance(message, FinTS3Segment):
-            message = [message]
+            message = SegmentSequence([message])
         if isinstance(message, (list, tuple, Iterable)):
             message = SegmentSequence(list(message))
 
