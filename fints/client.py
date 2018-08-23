@@ -1,9 +1,7 @@
 import datetime
 import logging
-import base64
-import zlib
-import json
 from decimal import Decimal
+from contextlib import contextmanager
 from collections import OrderedDict
 
 from fints.segments.debit import HKDME, HKDSE
@@ -35,7 +33,7 @@ from .segments.saldo import HKSAL5, HKSAL6, HKSAL7
 from .segments.statement import HKKAZ5, HKKAZ6, HKKAZ7
 from .segments.transfer import HKCCM, HKCCS
 from .types import SegmentSequence
-from .utils import MT535_Miniparser, Password, mt940_to_array
+from .utils import MT535_Miniparser, Password, mt940_to_array, compress_datablob, decompress_datablob
 from .parser import FinTS3Serializer
 
 logger = logging.getLogger(__name__)
@@ -106,25 +104,7 @@ class FinTS3Client:
 
         return self._new_dialog(lazy_init=lazy_init)
 
-    @staticmethod
-    def _compress_data_v1(data):
-        data = dict(data)
-        for k, v in data.items():
-            if k.endswith("_bin"):
-                if v:
-                    data[k] = base64.b64encode(v).decode("us-ascii")
-        serialized = json.dumps(data).encode('utf-8')
-        compressed = zlib.compress(serialized, 9)
-        return DATA_BLOB_MAGIC + b';1;' + compressed
-
-    def _set_data_v1(self, blob):
-        decompressed = zlib.decompress(blob)
-        data = json.loads(decompressed.decode('utf-8'))
-        for k, v in data.items():
-            if k.endswith("_bin"):
-                if v:
-                    data[k] = base64.b64decode(v.encode('us-ascii'))
-
+    def _set_data_v1(self, data):
         self.system_id = data.get('system_id', self.system_id)
 
         if all(x in data for x in ('bpd_bin', 'bpa_bin', 'bpd_version')):
@@ -161,24 +141,11 @@ class FinTS3Client:
                 "allowed_security_functions": self.allowed_security_functions,
             })
 
-        return self._compress_data_v1(data)
+        return compress_datablob(DATA_BLOB_MAGIC, 1, data)
 
     def set_data(self, blob):
         # FIXME Test, document
-        if not blob.startswith(DATA_BLOB_MAGIC):
-            raise ValueError("Incorrect data blob")
-        s = blob.split(b';', 2)
-        if len(s) != 3:
-            raise ValueError("Incorrect data blob")
-        if not s[1].isdigit():
-            raise ValueError("Incorrect data blob")
-        version = int(s[1].decode('us-ascii'), 10)
-
-        setfunc = getattr(self, "_set_data_v{}".format(version), None)
-        if not setfunc:
-            raise ValueError("Unknown data blob version")
-
-        setfunc(s[2])
+        decompress_datablob(DATA_BLOB_MAGIC, self, blob)
 
     def process_institute_response(self, message):
         bpa = message.find_segment_first(HIBPA3)
@@ -590,6 +557,57 @@ class FinTS3Client:
 
             for resp in response.response_segments(seg, 'HITAB'):
                 return resp.tan_usage_option, list(resp.tan_media_list)
+
+    def pause_dialog(self):
+        """Pause a standing dialog and return the saved dialog state.
+
+        Sometimes, for example in a web app, it's not possible to keep a context open
+        during user input. In some cases, though, it's required to send a response
+        within the same dialog that issued the original task (f.e. TAN with TANTimeDialogAssociation.NOT_ALLOWED).
+        This method freezes the current standing dialog (started with FinTS3Client.__enter__()) and
+        returns the frozen state.
+
+        Commands MUST NOT be issued in the dialog after calling this method.
+
+        MUST be used in conjunction with get_data()/set_data().
+
+        Caller SHOULD ensure that the dialog is resumed (and properly ended) within a reasonable amount of time.
+
+        :Example:
+            client = FinTS3PinTanClient(..., set_data=None)
+            with client:
+                challenge = client.start_sepa_transfer(...)
+
+                dialog_data = client.pause_dialog()
+
+                # dialog is now frozen, no new commands may be issued
+                # exiting the context does not end the dialog
+
+            client_data = client.get_data()
+
+            # Store dialog_data and client_data out-of-band somewhere
+            # ... Some time passes ...
+            # Later, possibly in a different process, restore the state
+
+            client = FinTS3PinTanClient(..., set_data=client_data)
+            with client.resume_dialog(dialog_data):
+                client.send_tan(...)
+
+                # Exiting the context here ends the dialog, unless frozen with pause_dialog() again.
+        """
+        if not self._standing_dialog:
+            raise Error("Cannot pause dialog, no standing dialog exists")
+        return self._standing_dialog.pause()
+
+    @contextmanager
+    def resume_dialog(self, dialog_data):
+        # FIXME document, test,    NOTE NO UNTRUSTED SOURCES
+        if self._standing_dialog:
+            raise Error("Cannot resume dialog, existing standing dialog")
+        self._standing_dialog = FinTSDialog.create_resume(self, dialog_data)
+        with self._standing_dialog:
+            yield self
+        self._standing_dialog = None
 
 
 class FinTS3PinTanClient(FinTS3Client):

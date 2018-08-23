@@ -1,5 +1,8 @@
 import inspect
 import re
+import base64
+import json
+import zlib
 from contextlib import contextmanager
 from datetime import datetime
 from enum import Enum
@@ -55,6 +58,45 @@ def classproperty(f):
 
 def fints_unescape(content):
     return content.replace('??', '?').replace("?'", "'").replace('?+', '+').replace('?:', ':').replace('?@', '@')
+
+
+def compress_datablob(magic: bytes, version: int, data: dict):
+    data = dict(data)
+    for k, v in data.items():
+        if k.endswith("_bin"):
+            if v:
+                data[k] = base64.b64encode(v).decode("us-ascii")
+    serialized = json.dumps(data).encode('utf-8')
+    compressed = zlib.compress(serialized, 9)
+    return b';'.join([magic, b'1', str(version).encode('us-ascii'), compressed])
+
+
+def decompress_datablob(magic: bytes, obj: object, blob: bytes):
+    if not blob.startswith(magic):
+        raise ValueError("Incorrect data blob")
+    s = blob.split(b';', 3)
+    if len(s) != 4:
+        raise ValueError("Incorrect data blob")
+    if not s[1].isdigit() or not s[2].isdigit():
+        raise ValueError("Incorrect data blob")
+    encoding_version = int(s[1].decode('us-ascii'), 10)
+    blob_version = int(s[2].decode('us-ascii'), 10)
+
+    if encoding_version != 1:
+        raise ValueError("Unsupported encoding version {}".format(encoding_version))
+
+    setfunc = getattr(obj, "_set_data_v{}".format(blob_version), None)
+    if not setfunc:
+        raise ValueError("Unknown data blob version")
+
+    decompressed = zlib.decompress(s[3])
+    data = json.loads(decompressed.decode('utf-8'))
+    for k, v in data.items():
+        if k.endswith("_bin"):
+            if v:
+                data[k] = base64.b64decode(v.encode('us-ascii'))
+
+    setfunc(data)
 
 
 class SubclassesMixin:

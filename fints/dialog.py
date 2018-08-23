@@ -1,4 +1,6 @@
 import logging
+import pickle
+import io
 
 from .formals import (
     BankIdentifier, Language2, SynchronisationMode, SystemIDStatus,
@@ -9,10 +11,12 @@ from .message import (
 from .segments.auth import HKIDN, HKIDN2, HKSYN, HKVVB, HKVVB3
 from .segments.dialog import HKEND, HKEND1
 from .segments.message import HNHBK3, HNHBS1
+from .utils import compress_datablob, decompress_datablob
 
 logger = logging.getLogger(__name__)
 
 DIALOGUE_ID_UNASSIGNED = '0'
+DATA_BLOB_MAGIC = b'python-fints_DIALOG_DATABLOB'
 
 class FinTSDialogError(Exception):
     pass
@@ -29,6 +33,7 @@ class FinTSDialog:
         self.need_init = True
         self.lazy_init = lazy_init
         self.dialogue_id = DIALOGUE_ID_UNASSIGNED
+        self.paused = False
         self._context_count = 0
 
     def __enter__(self):
@@ -40,10 +45,14 @@ class FinTSDialog:
     
     def __exit__(self, exc_type, exc_value, traceback):
         self._context_count -= 1
-        if self._context_count == 0:
-            self.end()
+        if not self.paused:
+            if self._context_count == 0:
+                self.end()
 
     def init(self, *extra_segments):
+        if self.paused:
+            raise Error("Cannot init() a paused dialog")
+
         if self.need_init and not self.open:
             segments = [
                 HKIDN2(
@@ -75,11 +84,17 @@ class FinTSDialog:
                 self.lazy_init = False
 
     def end(self):
+        if self.paused:
+            raise Error("Cannot end() on a paused dialog")
+
         if self.open:
             self.send(HKEND1(self.dialogue_id))
             self.open = False
 
     def send(self, *segments):
+        if self.paused:
+            raise Error("Cannot send() on a paused dialog")
+
         if not self.open:
             if self.lazy_init and self.need_init:
                 self.init()
@@ -120,6 +135,9 @@ class FinTSDialog:
         return response
 
     def new_customer_message(self):
+        if self.paused:
+            raise Error("Cannot call new_customer_message() on a paused dialog")
+
         message = FinTSCustomerMessage(self)
         message += HNHBK3(0, 300, self.dialogue_id, self.next_message_number[message.DIRECTION])
         
@@ -129,6 +147,9 @@ class FinTSDialog:
         return message
 
     def finish_message(self, message):
+        if self.paused:
+            raise Error("Cannot call finish_message() on a paused dialog")
+
         # Create signature(s) in reverse order: from inner to outer
         for auth_mech in reversed(self.auth_mechanisms):
             auth_mech.sign_commit(message)
@@ -139,6 +160,64 @@ class FinTSDialog:
             self.enc_mechanism.encrypt(message)
 
         message.segments[0].message_size = len(message.render_bytes())
+
+    def pause(self):
+        # FIXME Document, test
+        if self.paused:
+            raise Error("Cannot pause a paused dialog")
+
+        external_dialog = self
+        external_client = self.client
+        class SmartPickler(pickle.Pickler):
+            def persistent_id(self, obj):
+                if obj is external_dialog:
+                    return "dialog"
+                if obj is external_client:
+                    return "client"
+                return None
+
+        pickle_out = io.BytesIO()
+        SmartPickler(pickle_out, protocol=4).dump({
+            k: getattr(self, k) for k in [
+                'next_message_number',
+                'messages',
+                'auth_mechanisms',
+                'enc_mechanism',
+                'open',
+                'need_init',
+                'lazy_init',
+                'dialogue_id',
+            ]
+        })
+
+        data_pickled = pickle_out.getvalue()
+
+        self.paused = True
+
+        return compress_datablob(DATA_BLOB_MAGIC, 1, {'data_bin': data_pickled})
+
+    @classmethod
+    def create_resume(cls, client, blob):
+        retval = cls(client=client)
+        decompress_datablob(DATA_BLOB_MAGIC, retval, blob)
+        return retval
+
+    def _set_data_v1(self, data):
+        external_dialog = self
+        external_client = self.client
+        class SmartUnpickler(pickle.Unpickler):
+            def persistent_load(self, pid):
+                if pid == 'dialog':
+                    return external_dialog
+                if pid == 'client':
+                    return external_client
+                raise pickle.UnpicklingError("unsupported persistent object")
+
+        pickle_in = io.BytesIO(data['data_bin'])
+        data_unpickled = SmartUnpickler(pickle_in).load()
+
+        for k, v in data_unpickled.items():
+            setattr(self, k, v)
 
 
 class FinTSDialogOLD:
