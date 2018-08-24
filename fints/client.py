@@ -666,6 +666,16 @@ class FinTS3Client:
         # FIXME document
         self.response_callbacks.remove(cb)
 
+    def set_product(self, product_name, product_version):
+        """Set the product name and version that is transmitted as part of our identification
+        
+        According to 'FinTS Financial Transaction Services, Schnittstellenspezifikation, Formals',
+        version 3.0, section C.3.1.3, you should fill this with useful information about the
+        end-user product, *NOT* the FinTS library."""
+        
+        self.product_name = product_name
+        self.product_version = product_version
+
     def _call_callbacks(self, *cb_data):
         for cb in self.response_callbacks:
             cb(*cb_data)
