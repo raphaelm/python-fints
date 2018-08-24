@@ -680,3 +680,11 @@ class ChallengeValidUntil(DataElementGroup):
     Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Sicherheitsverfahren PIN/TAN"""
     date = DataElementField(type='dat', _d="Datum")
     time = DataElementField(type='tim', _d="Uhrzeit")
+
+class BatchTransferParameter1(DataElementGroup):
+    """Parameter SEPA-Sammelüberweisung, version 1
+
+    Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Messages -- Multibankfähige Geschäftsvorfälle """
+    max_transfer_count = DataElementField(type='num', max_length=7, _d="Maximale Anzahl CreditTransferTransactionInformation")
+    sum_amount_required = DataElementField(type='jn', _d="Summenfeld benötigt")
+    single_booking_allowed = DataElementField(type='jn', _d="Einzelbuchung erlaubt")

@@ -26,12 +26,12 @@ from .security import (
 )
 from .segments import HIBPA3, HIRMS2, HIUPA4
 from .segments.accounts import HISPA1, HKSPA, HKSPA1
-from .segments.auth import HKTAB, HKTAN, HKTAB4, HKTAB5
+from .segments.auth import HKTAB, HKTAN, HKTAB4, HKTAB5, HKTAN5
 from .segments.depot import HKWPD5, HKWPD6
 from .segments.dialog import HISYN4, HKSYN3
 from .segments.saldo import HKSAL5, HKSAL6, HKSAL7
 from .segments.statement import HKKAZ5, HKKAZ6, HKKAZ7
-from .segments.transfer import HKCCM, HKCCS
+from .segments.transfer import HKCCM1, HKCCS1
 from .types import SegmentSequence
 from .utils import MT535_Miniparser, Password, mt940_to_array, compress_datablob, decompress_datablob
 from .parser import FinTS3Serializer
@@ -236,8 +236,10 @@ class FinTS3Client:
 
         return responses
 
-    def _find_highest_supported_command(self, *segment_classes):
+    def _find_highest_supported_command(self, *segment_classes, **kwargs):
         """Search the BPD for the highest supported version of a segment."""
+        return_parameter_segment = kwargs.get("return_parameter_segment", False)
+
         parameter_segment_name = "{}I{}S".format(segment_classes[0].TYPE[0], segment_classes[0].TYPE[2:])
         version_map = dict((clazz.VERSION, clazz) for clazz in segment_classes)
         max_version = self.bpd.find_segment_highest_version(parameter_segment_name, version_map.keys())
@@ -248,7 +250,10 @@ class FinTS3Client:
                 tuple(v.header.version for v in self.bpd.find_segments(parameter_segment_name))
             ))
 
-        return version_map.get(max_version.header.version)
+        if return_parameter_segment:
+            return max_version, version_map.get(max_version.header.version)
+        else:
+            return version_map.get(max_version.header.version)
 
 
     def get_statement(self, account: SEPAAccount, start_date: datetime.date, end_date: datetime.date):
@@ -363,9 +368,9 @@ class FinTS3Client:
 
         challenge.dialog.end()
 
-    def start_simple_sepa_transfer(self, account: SEPAAccount, tan_method: TwoStepParametersCommon, iban: str, bic: str,
+    def start_simple_sepa_transfer(self, account: SEPAAccount, iban: str, bic: str,
                                    recipient_name: str, amount: Decimal, account_name: str, reason: str,
-                                   endtoend_id='NOTPROVIDED', tan_description=''):
+                                   endtoend_id='NOTPROVIDED'):
         """
         Start a simple SEPA transfer.
 
@@ -399,8 +404,8 @@ class FinTS3Client:
             "endtoend_id": endtoend_id,
         }
         sepa.add_payment(payment)
-        xml = sepa.export().decode()
-        return self.start_sepa_transfer(account, xml, tan_method, tan_description)
+        xml = sepa.export()
+        return self.start_sepa_transfer(account, xml)
 
     def _get_start_sepa_transfer_message(self, dialog, account: SEPAAccount, pain_message: str, tan_method,
                                          tan_description, multiple, control_sum, currency, book_as_single):
@@ -416,38 +421,82 @@ class FinTS3Client:
             segtan
         ])
 
-    def start_sepa_transfer(self, account: SEPAAccount, pain_message: str, tan_method, tan_description='',
-                            multiple=False, control_sum=None, currency='EUR', book_as_single=False):
+    def _get_tan_segment(self, orig_seg, tan_process):
+        tan_mechanism = self.get_tan_mechanisms()[self.get_current_tan_mechanism()]
+
+        hitans = self.bpd.find_segment_first('HITANS', tan_mechanism.VERSION)
+        hktan = {
+            5: HKTAN5,
+        }.get(tan_mechanism.VERSION)
+
+        seg = hktan(tan_process=tan_process)
+
+        if tan_process == '1':
+            seg.segment_type = orig_seg.header.type
+            account_ = getattr(orig_seg, 'account', None)
+            if isinstance(account, KTI1):
+                seg.account = account
+            raise NotImplementedError("TAN-Process 1 not implemented")
+
+        if tan_process in ('1', '3', '4') and \
+            tan_mechanism.supported_media_number > 1 and \
+            tan_mechanism.description_required == DescriptionRequired.MUST:
+                seg.tan_medium_name = self.selected_tan_medium
+
+        return seg
+
+
+    def start_sepa_transfer(self, account: SEPAAccount, pain_message: bytes, multiple=False,
+                            control_sum=None, currency='EUR', book_as_single=False,
+                            pain_descriptor='urn:iso:std:iso:20022:tech:xsd:pain.001.001.03'):
         """
         Start a custom SEPA transfer.
 
         :param account: SEPAAccount to send the transfer from.
         :param pain_message: SEPA PAIN message containing the transfer details.
-        :param tan_method: TANMethod object to use.
-        :param tan_description: TAN medium description (if required)
         :param multiple: Whether this message contains multiple transfers.
         :param control_sum: Sum of all transfers (required if there are multiple)
         :param currency: Transfer currency
         :param book_as_single: Kindly ask the bank to put multiple transactions as separate lines on the bank statement (defaults to ``False``)
         :return: Returns a TANChallenge object
         """
-        dialog = self._get_dialog()
-        dialog.sync()
-        dialog.tan_mechs = [tan_method]
-        dialog.init()
 
-        with self.pin.protect():
-            logger.debug('Sending: {}'.format(self._get_start_sepa_transfer_message(
-                dialog, account, pain_message, tan_method, tan_description, multiple, control_sum, currency,
-                book_as_single
-            )))
+        with self._get_dialog() as dialog:
+            if multiple:
+                command_class = HKCCM1
+            else:
+                command_class = HKCCS1
 
-        resp = dialog.send(self._get_start_sepa_transfer_message(
-            dialog, account, pain_message, tan_method, tan_description, multiple, control_sum, currency,
-            book_as_single
-        ))
-        logger.debug('Got response: {}'.format(resp))
-        return self._tan_requiring_response(dialog, resp)
+            hiccxs, hkccx = self._find_highest_supported_command(
+                HKCCM1 if multiple else HKCCS1,
+                return_parameter_segment=True
+            )
+
+            seg = hkccx(
+                account=hkccx._fields['account'].type.from_sepa_account(account),
+                sepa_descriptor=pain_descriptor,
+                sepa_pain_message=pain_message,
+            )
+
+            if multiple:
+                if hiccxs.parameter.sum_amount_required and not control_sum:
+                    raise ValueError("Control sum required.")
+                if book_as_single and not hiccxs.parameter.single_booking_allowed:
+                    # FIXME Only do a warning and fall-back to book_as_single=False?
+                    raise ValueError("Single booking not allowed by bank.")
+
+                if control_sum:
+                    seg.sum_amount.amount = control_sum
+                    seg.sum_amount.currency = currency
+
+                if book_as_single:
+                    seg.request_single_booking = True
+
+            tan_seg = self._get_tan_segment(seg, '4')
+            response = dialog.send(seg, tan_seg)
+
+
+        #return self._tan_requiring_response(dialog, resp)
 
     def _get_start_sepa_debit_message(self, dialog, account: SEPAAccount, pain_message: str, tan_method,
                                       tan_description, multiple, control_sum, currency, book_as_single):

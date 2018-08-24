@@ -1,4 +1,9 @@
-from . import FinTS3SegmentOLD
+from fints.fields import CodeField, DataElementField, DataElementGroupField
+from fints.formals import (
+    KTI1, Amount1, BatchTransferParameter1
+)
+
+from . import FinTS3Segment, ParameterSegment, FinTS3SegmentOLD
 from ..models import SEPAAccount
 
 
@@ -22,6 +27,30 @@ class HKCCS(FinTS3SegmentOLD):
             '@{}@{}'.format(len(pain_msg), pain_msg)
         ]
         super().__init__(segno, data)
+
+class HKCCS1(FinTS3Segment):
+    """SEPA Einzelüberweisung, version 1
+
+    Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Messages -- Multibankfähige Geschäftsvorfälle """
+    account = DataElementGroupField(type=KTI1, _d="Kontoverbindung international")
+    sepa_descriptor = DataElementField(type='an', max_length=256, _d="SEPA Descriptor")
+    sepa_pain_message = DataElementField(type='bin', _d="SEPA pain message")
+
+class HKCCM1(FinTS3Segment):
+    """SEPA-Sammelüberweisung, version 1
+
+    Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Messages -- Multibankfähige Geschäftsvorfälle """
+    account = DataElementGroupField(type=KTI1, _d="Kontoverbindung international")
+    sum_amount = DataElementGroupField(type=Amount1, _d="Summenfeld")
+    request_single_booking = DataElementField(type='jn', _d="Einzelbuchung gewünscht")
+    sepa_descriptor = DataElementField(type='an', max_length=256, _d="SEPA Descriptor")
+    sepa_pain_message = DataElementField(type='bin', _d="SEPA pain message")
+
+class HICCMS1(ParameterSegment):
+    """SEPA-Sammelüberweisung Parameter, version 1
+
+    Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Messages -- Multibankfähige Geschäftsvorfälle """
+    parameter = DataElementGroupField(type=BatchTransferParameter1, _d="Parameter SEPA-Sammelüberweisung")
 
 
 class HKCCM(FinTS3SegmentOLD):
