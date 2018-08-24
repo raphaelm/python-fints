@@ -90,9 +90,8 @@ class PinTanDummyEncryptionMechanism(EncryptionMechanism):
 
 
 class PinTanAuthenticationMechanism(AuthenticationMechanism):
-    def __init__(self, pin, tan=None):
+    def __init__(self, pin):
         self.pin=pin
-        self.tan=tan
         self.pending_signature=None
         self.security_function=None
 
@@ -138,6 +137,9 @@ class PinTanAuthenticationMechanism(AuthenticationMechanism):
 
         message += self.pending_signature
 
+    def _get_tan(self):
+        return None
+
     def sign_commit(self, message: FinTSMessage):
         if not self.pending_signature:
             raise Error("No signature is pending")
@@ -149,7 +151,7 @@ class PinTanAuthenticationMechanism(AuthenticationMechanism):
             security_reference = self.pending_signature.security_reference,
             user_defined_signature = UserDefinedSignature(
                 pin=self.pin,
-                tan=self.tan,
+                tan=self._get_tan(),
             ),
         )
 
@@ -169,3 +171,8 @@ class PinTanTwoStepAuthenticationMechanism(PinTanAuthenticationMechanism):
         super().__init__(*args, **kwargs)
         self.client = client
         self.security_function = security_function
+
+    def _get_tan(self):
+        retval = self.client._pending_tan
+        self.client._pending_tan = None
+        return retval
