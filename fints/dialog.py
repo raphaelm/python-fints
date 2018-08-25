@@ -75,6 +75,7 @@ class FinTSDialog:
             try:
                 self.open = True
                 retval = self.send(*segments)
+                self.client.process_dialog_response(retval)
                 self.need_init = False
                 return retval
             except:
@@ -88,7 +89,8 @@ class FinTSDialog:
             raise Error("Cannot end() on a paused dialog")
 
         if self.open:
-            self.send(HKEND1(self.dialogue_id))
+            response = self.send(HKEND1(self.dialogue_id))
+            self.client.process_dialog_response(response)
             self.open = False
 
     def send(self, *segments):
@@ -129,8 +131,6 @@ class FinTSDialog:
             if not seg:
                 raise ValueError('Could not find dialogue_id')
             self.dialogue_id = seg.dialogue_id
-
-        self.client.process_institute_response(response)
 
         return response
 
