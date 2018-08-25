@@ -199,7 +199,7 @@ class FinTSDialog:
     @classmethod
     def create_resume(cls, client, blob):
         retval = cls(client=client)
-        decompress_datablob(DATA_BLOB_MAGIC, retval, blob)
+        decompress_datablob(DATA_BLOB_MAGIC, blob, retval)
         return retval
 
     def _set_data_v1(self, data):

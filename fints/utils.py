@@ -71,7 +71,7 @@ def compress_datablob(magic: bytes, version: int, data: dict):
     return b';'.join([magic, b'1', str(version).encode('us-ascii'), compressed])
 
 
-def decompress_datablob(magic: bytes, obj: object, blob: bytes):
+def decompress_datablob(magic: bytes, blob: bytes, obj: object = None):
     if not blob.startswith(magic):
         raise ValueError("Incorrect data blob")
     s = blob.split(b';', 3)
@@ -85,10 +85,6 @@ def decompress_datablob(magic: bytes, obj: object, blob: bytes):
     if encoding_version != 1:
         raise ValueError("Unsupported encoding version {}".format(encoding_version))
 
-    setfunc = getattr(obj, "_set_data_v{}".format(blob_version), None)
-    if not setfunc:
-        raise ValueError("Unknown data blob version")
-
     decompressed = zlib.decompress(s[3])
     data = json.loads(decompressed.decode('utf-8'))
     for k, v in data.items():
@@ -96,7 +92,14 @@ def decompress_datablob(magic: bytes, obj: object, blob: bytes):
             if v:
                 data[k] = base64.b64decode(v.encode('us-ascii'))
 
-    setfunc(data)
+    if obj:
+        setfunc = getattr(obj, "_set_data_v{}".format(blob_version), None)
+        if not setfunc:
+            raise ValueError("Unknown data blob version")
+
+        setfunc(data)
+    else:
+        return blob_version, data
 
 
 class SubclassesMixin:
