@@ -74,8 +74,7 @@ class FinTSDialog:
 
             try:
                 self.open = True
-                retval = self.send(*segments)
-                self.client.process_dialog_response(retval)
+                retval = self.send(*segments, internal_send=True)
                 self.need_init = False
                 return retval
             except:
@@ -89,11 +88,12 @@ class FinTSDialog:
             raise Error("Cannot end() on a paused dialog")
 
         if self.open:
-            response = self.send(HKEND1(self.dialogue_id))
-            self.client.process_dialog_response(response)
+            response = self.send(HKEND1(self.dialogue_id), internal_send=True)
             self.open = False
 
-    def send(self, *segments):
+    def send(self, *segments, **kwargs):
+        internal_send = kwargs.pop('internal_send', False)
+
         if self.paused:
             raise Error("Cannot send() on a paused dialog")
 
@@ -131,6 +131,8 @@ class FinTSDialog:
             if not seg:
                 raise ValueError('Could not find dialogue_id')
             self.dialogue_id = seg.dialogue_id
+
+        self.client.process_response_message(response, internal_send=internal_send)
 
         return response
 

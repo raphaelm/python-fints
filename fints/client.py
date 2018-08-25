@@ -92,7 +92,7 @@ class FinTS3Client:
     def _process_response(self, segment, response):
         pass
 
-    def _process_response_segments(self, message: FinTSInstituteMessage, internal_send=True):
+    def process_response_message(self, message: FinTSInstituteMessage, internal_send=True):
         bpa = message.find_segment_first(HIBPA3)
         if bpa:
             self.bpa = bpa
@@ -131,14 +131,9 @@ class FinTS3Client:
 
                 self._process_response(segment, response)
 
-    def process_dialog_response(self, message: FinTSInstituteMessage):
-        self._process_response_segments(message, internal_send=True)
-
-    def _send(self, dialog, *segments):
-        "Internal send, may be overriden in subclasses"
-        response = dialog.send(*segments)
-        self._process_response_segments(response, internal_send=False)
-        return response
+    def _send_with_possible_retry(self, dialog, command_seg, resume_func):
+        response = dialog._send(command_seg)
+        return resume_func(command_seg, response)
 
     def __enter__(self):
         if self._standing_dialog:
@@ -229,7 +224,7 @@ class FinTS3Client:
         """
 
         with self._get_dialog() as dialog:
-            response = self._send(dialog, HKSPA1())
+            response = dialog.send(HKSPA1())
             
         self.accounts = []
         for seg in response.find_segments(HISPA1):
@@ -252,7 +247,7 @@ class FinTS3Client:
         while touchdown or touchdown_counter == 1:
             seg = segment_factory(touchdown)
 
-            rm = self._send(dialog, seg)
+            rm = dialog.send(seg)
 
             for resp in rm.response_segments(seg, *args, **kwargs):
                 responses.append(resp)
@@ -341,7 +336,7 @@ class FinTS3Client:
                 all_accounts=False,
             )
 
-            response = self._send(dialog, seg)
+            response = dialog.send(seg)
 
             for resp in response.response_segments(seg, 'HISAL'):
                 return resp.balance_booked.as_mt940_Balance()
@@ -361,7 +356,7 @@ class FinTS3Client:
                 account=hkwpd._fields['account'].type.from_sepa_account(account),
             )
 
-            response = self._send(dialog, seg)
+            response = dialog.send(seg)
 
             for resp in response.response_segments(seg, 'HIWPD'):
                 ## FIXME BROKEN
@@ -459,11 +454,9 @@ class FinTS3Client:
                 if book_as_single:
                     seg.request_single_booking = True
 
-            response = self._send(dialog, seg)
+            return self._send_with_possible_retry(dialog, seg, self._continue_start_sepa_transfer)
 
-            if isinstance(response, NeedRetryResponse):
-                return response
-
+    def _continue_start_sepa_transfer(self, command_seg, response):
             # FIXME Properly find return code
             return True
 
@@ -507,7 +500,7 @@ class FinTS3Client:
                 book_as_single
             )))
 
-        resp = self._send(dialog, self._get_start_sepa_debit_message(
+        resp = dialog.send(self._get_start_sepa_debit_message(
             dialog, account, pain_message, tan_method, tan_description, multiple, control_sum, currency,
             book_as_single
         ))
@@ -588,15 +581,19 @@ class FinTS3Client:
         self._standing_dialog = None
 
 class NeedTANResponse(NeedRetryResponse):
-    def __init__(self, command_seg, hitan):
+    def __init__(self, command_seg, hitan, resume_method=None):
         self.command_seg = command_seg
         self.hitan = hitan
+        if hasattr(resume_method, '__func__'):
+            self.resume_method = resume_method.__func__.__name__
+        else:
+            self.resume_method = resume_method
 
     @classmethod
     def _from_data_v1(cls, data):
         if data["version"] == 1:
             segs = SegmentSequence(data['segments_bin']).segments
-            return cls(segs[0], segs[1])
+            return cls(segs[0], segs[1], data['resume_method'])
 
         raise Exception("Wrong blob data version")
 
@@ -605,6 +602,7 @@ class NeedTANResponse(NeedRetryResponse):
             "_class_name": self.__class__.__name__,
             "version": 1,
             "segments_bin": SegmentSequence([self.command_seg, self.hitan]).render_bytes(),
+            "resume_method": self.resume_method,
         }
         return compress_datablob(DATA_BLOB_MAGIC_RETRY, 1, data)
 
@@ -722,26 +720,20 @@ class FinTS3PinTanClient(FinTS3Client):
 
         return False
 
-    def _send(self, dialog, *segments):
-        need_twostep = any(self._need_twostep_tan_for_segment(seg) for seg in segments)
-
+    def _send_with_possible_retry(self, dialog, command_seg, resume_func):
         with dialog:
-            if need_twostep:
-                assert len(segments) == 1
-                seg = segments[0]
-                tan_seg = self._get_tan_segment(seg, '4')
+            if self._need_twostep_tan_for_segment(command_seg):
+                tan_seg = self._get_tan_segment(command_seg, '4')
 
-                response = super()._send(dialog, seg, tan_seg)
+                response = dialog.send(command_seg, tan_seg)
 
                 for resp in response.responses(tan_seg):
                     if resp.code == '0030':
-                        response = NeedTANResponse(seg, response.find_segment_first('HITAN'))
-
+                        return NeedTANResponse(command_seg, response.find_segment_first('HITAN'), resume_func)
             else:
-                response = super()._send(dialog, *segments)
+                response = dialog.send(command_seg)
 
-        return response
-
+            return resume_func(command_seg, response)
 
     def send_tan(self, challenge: NeedTANResponse, tan: str):
         """
@@ -756,11 +748,10 @@ class FinTS3PinTanClient(FinTS3Client):
             tan_seg = self._get_tan_segment(challenge.command_seg, '2', challenge.hitan)
             self._pending_tan = tan
 
-            response = self._send(dialog, tan_seg)
+            response = dialog.send(tan_seg)
 
-            # FIXME Try to return a better return code
-
-        return response
+            resume_func = getattr(self, challenge.resume_method)
+            return resume_func(challenge.command_seg, response)
 
     def _process_response(self, segment, response):
         if response.code == '3920':
@@ -828,7 +819,7 @@ class FinTS3PinTanClient(FinTS3Client):
                 tan_media_class = str(media_class),
             )
 
-            response = self._send(dialog, seg)
+            response = dialog.send(seg)
 
             for resp in response.response_segments(seg, 'HITAB'):
                 return resp.tan_usage_option, list(resp.tan_media_list)
