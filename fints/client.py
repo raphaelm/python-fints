@@ -9,13 +9,13 @@ from mt940.models import Balance
 from sepaxml import SepaTransfer
 
 from .connection import FinTSHTTPSConnection
-from .dialog import FinTSDialog, FinTSDialogOLD
+from .dialog import FinTSDialog
 from .formals import (
     KTI1, Account3, BankIdentifier,
     SynchronisationMode, TwoStepParametersCommon,
     TANMediaType2, TANMediaClass4, CUSTOMER_ID_ANONYMOUS,
 )
-from .message import FinTSInstituteMessage, FinTSMessageOLD
+from .message import FinTSInstituteMessage
 from .models import (
     SEPAAccount, TANChallenge, TANChallenge3,
     TANChallenge4, TANChallenge5, TANChallenge6,
@@ -81,9 +81,6 @@ class FinTS3Client:
             self.set_data(set_data)
 
     def _new_dialog(self, lazy_init=False):
-        raise NotImplemented()
-
-    def _new_message(self, dialog: FinTSDialogOLD, segments, tan=None):
         raise NotImplemented()
 
     def _ensure_system_id(self):
@@ -352,27 +349,30 @@ class FinTS3Client:
         with self._get_dialog() as dialog:
             hkwpd = self._find_highest_supported_command(HKWPD5, HKWPD6)
 
-            seg = hkwpd(
-                account=hkwpd._fields['account'].type.from_sepa_account(account),
+            responses = self._fetch_with_touchdowns(
+                dialog,
+                lambda touchdown: hkwpd(
+                    account=hkwpd._fields['account'].type.from_sepa_account(account),
+                    touchdown_point=touchdown,
+                ),
+                'HIWPD'
             )
 
-            response = dialog.send(seg)
+        holdings = []
+        for resp in responses:
+            mt535_lines = str.splitlines(resp.holdings)
+            # The first line is empty - drop it.
+            del mt535_lines[0]
+            mt535 = MT535_Miniparser()
+            holdings.extend( mt535.parse(mt535_lines) )
 
-            for resp in response.response_segments(seg, 'HIWPD'):
-                ## FIXME BROKEN
-                mt535_lines = str.splitlines(resp)
-                # The first line contains a FinTS HIWPD header - drop it.
-                del mt535_lines[0]
-                mt535 = MT535_Miniparser()
-                return mt535.parse(mt535_lines)
-
+        if not holdings:
             logger.debug('No HIWPD response segment found - maybe account has no holdings?')
-            return []
+        return holdings
 
     def get_communication_endpoints(self):
         with self._get_dialog() as dialog:
             hkkom = self._find_highest_supported_command(HKKOM4)
-            #hkkom = HKKOM4
 
             responses = self._fetch_with_touchdowns(
                 dialog,
