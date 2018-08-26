@@ -763,3 +763,42 @@ class ScheduledCOR1BatchDebitParameter1(DataElementGroup):
     supported_sepa_formats = DataElementField(type='an', max_length=256, max_count=9, required=False, _d="Unterstützte SEPA-Datenformate")
 
 
+class SupportedSEPAPainMessages1(DataElementGroup):
+    """Unterstützte SEPA pain messages, version 1
+
+    Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Messages -- Multibankfähige Geschäftsvorfälle """
+    sepa_descriptors = DataElementField(type='an', max_length=256, max_count=99, _d="SEPA Descriptor")
+
+class QueryScheduledDebitParameter1(DataElementGroup):
+    """Parameter Bestand terminierter SEPA-Einzellastschriften, version 1
+
+    Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Messages -- Multibankfähige Geschäftsvorfälle """
+    date_range_allowed = DataElementField(type='jn', _d="Zeitraum möglich")
+
+class QueryScheduledDebitParameter2(DataElementGroup):
+    """Parameter Bestand terminierter SEPA-Einzellastschriften, version 2
+
+    Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Messages -- Multibankfähige Geschäftsvorfälle """
+    max_number_responses_allowed = DataElementField(type='jn', _d="Eingabe Anzahl Einträge erlaubt")
+    date_range_allowed = DataElementField(type='jn', _d="Zeitraum möglich")
+    supported_sepa_formats = DataElementField(type='an', max_length=256, max_count=9, required=False, _d="Unterstützte SEPA-Datenformate")
+
+class QueryScheduledBatchDebitParameter1(DataElementGroup):
+    """Parameter Bestand terminierter SEPA-Sammellastschriften, version 1
+
+    Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Messages -- Multibankfähige Geschäftsvorfälle """
+    max_number_responses_allowed = DataElementField(type='jn', _d="Eingabe Anzahl Einträge erlaubt")
+    date_range_allowed = DataElementField(type='jn', _d="Zeitraum möglich")
+
+class SEPACCode1(RepresentableEnum):
+    REVERSAL = '1' #: Reversal
+    REVOCATION = '2' #: Revocation
+    DELETE = '3' #: Delete
+
+class StatusSEPATask1(RepresentableEnum):
+    ## FIXME Enum names in english
+    PENDING = '1' #: In Terminierung
+    DECLINED = '2' #: Abgelehnt von erster Inkassostelle
+    IN_PROGRESS = '3' #: in Bearbeitung
+    PROCESSED = '4' #: Creditoren-seitig verarbeitet, Buchung veranlasst
+    REVOKED = '5' #: R-Transaktion wurde veranlasst

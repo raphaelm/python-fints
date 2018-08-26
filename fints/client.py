@@ -29,7 +29,7 @@ from .segments.accounts import HISPA1, HKSPA1
 from .segments.auth import HKTAB4, HKTAB5, HKTAN3, HKTAN5
 from .segments.depot import HKWPD5, HKWPD6
 from .segments.dialog import HISYN4, HKSYN3
-from .segments.debit import HKDSE1, HKDSE2, HKDME1, HKDME2, HKDMC1
+from .segments.debit import HKDSE1, HKDSE2, HKDME1, HKDME2, HKDMC1, HKDBS1, HKDBS2, HKDMB1
 from .segments.saldo import HKSAL5, HKSAL6, HKSAL7
 from .segments.statement import HKKAZ5, HKKAZ6, HKKAZ7
 from .segments.transfer import HKCCM1, HKCCS1
@@ -370,6 +370,28 @@ class FinTS3Client:
         if not holdings:
             logger.debug('No HIWPD response segment found - maybe account has no holdings?')
         return holdings
+
+    def get_scheduled_debits(self, account: SEPAAccount, multiple=False):
+        with self._get_dialog() as dialog:
+            if multiple:
+                command_classes = (HKDMB1, )
+                response_type = "HIDMB"
+            else:
+                command_classes = (HKDBS1, HKDBS2)
+                response_type = "HKDBS"
+
+            hkdbs = self._find_highest_supported_command(*command_classes)
+
+            responses = self._fetch_with_touchdowns(
+                dialog,
+                lambda touchdown: hkdbs(
+                    account=hkdbs._fields['account'].type.from_sepa_account(account),
+                    touchdown_point=touchdown,
+                ),
+                response_type,
+            )
+
+        return responses
 
     def get_communication_endpoints(self):
         with self._get_dialog() as dialog:
