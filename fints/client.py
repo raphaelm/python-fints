@@ -4,7 +4,6 @@ from decimal import Decimal
 from contextlib import contextmanager
 from collections import OrderedDict
 
-from fints.segments.debit import HKDME, HKDSE
 from mt940.models import Balance
 from sepaxml import SepaTransfer
 
@@ -14,6 +13,7 @@ from .formals import (
     KTI1, Account3, BankIdentifier,
     SynchronisationMode, TwoStepParametersCommon,
     TANMediaType2, TANMediaClass4, CUSTOMER_ID_ANONYMOUS,
+    DescriptionRequired,
 )
 from .message import FinTSInstituteMessage
 from .models import (
@@ -25,10 +25,11 @@ from .security import (
     PinTanTwoStepAuthenticationMechanism,
 )
 from .segments import HIBPA3, HIRMG2, HIRMS2, HIUPA4, HIPINS1, HKKOM4
-from .segments.accounts import HISPA1, HKSPA, HKSPA1
-from .segments.auth import HKTAB, HKTAN, HKTAB4, HKTAB5, HKTAN3, HKTAN5
+from .segments.accounts import HISPA1, HKSPA1
+from .segments.auth import HKTAB4, HKTAB5, HKTAN3, HKTAN5
 from .segments.depot import HKWPD5, HKWPD6
 from .segments.dialog import HISYN4, HKSYN3
+from .segments.debit import HKDSE1, HKDSE2, HKDME1, HKDME2, HKDMC1
 from .segments.saldo import HKSAL5, HKSAL6, HKSAL7
 from .segments.statement import HKKAZ5, HKKAZ6, HKKAZ7
 from .segments.transfer import HKCCM1, HKCCS1
@@ -435,7 +436,7 @@ class FinTS3Client:
         :param control_sum: Sum of all transfers (required if there are multiple)
         :param currency: Transfer currency
         :param book_as_single: Kindly ask the bank to put multiple transactions as separate lines on the bank statement (defaults to ``False``)
-        :return: Returns a TANChallenge object
+        :return: Returns a TANChallenge object  FIXME Wrong
         """
 
         with self._get_dialog() as dialog:
@@ -445,7 +446,7 @@ class FinTS3Client:
                 command_class = HKCCS1
 
             hiccxs, hkccx = self._find_highest_supported_command(
-                HKCCM1 if multiple else HKCCS1,
+                command_class,
                 return_parameter_segment=True
             )
 
@@ -456,7 +457,7 @@ class FinTS3Client:
             )
 
             if multiple:
-                if hiccxs.parameter.sum_amount_required and not control_sum:
+                if hiccxs.parameter.sum_amount_required and control_sum is None:
                     raise ValueError("Control sum required.")
                 if book_as_single and not hiccxs.parameter.single_booking_allowed:
                     # FIXME Only do a warning and fall-back to book_as_single=False?
@@ -475,22 +476,9 @@ class FinTS3Client:
             # FIXME Properly find return code
             return True
 
-    def _get_start_sepa_debit_message(self, dialog, account: SEPAAccount, pain_message: str, tan_method,
-                                      tan_description, multiple, control_sum, currency, book_as_single):
-        if multiple:
-            if not control_sum:
-                raise ValueError("Control sum required.")
-            segreq = HKDME(3, account, pain_message, control_sum, currency, book_as_single)
-        else:
-            segreq = HKDSE(3, account, pain_message)
-        segtan = HKTAN(4, '4', '', tan_description, tan_method.version)
-        return self._new_message(dialog, [
-            segreq,
-            segtan
-        ])
-
-    def start_sepa_debit(self, account: SEPAAccount, pain_message: str, tan_method, tan_description='',
-                         multiple=False, control_sum=None, currency='EUR', book_as_single=False):
+    def start_sepa_debit(self, account: SEPAAccount, pain_message: str, multiple=False, cor1=False,
+                         control_sum=None, currency='EUR', book_as_single=False,
+                         pain_descriptor='urn:iso:std:iso:20022:tech:xsd:pain.008.003.01'):
         """
         Start a custom SEPA debit.
 
@@ -502,25 +490,51 @@ class FinTS3Client:
         :param control_sum: Sum of all debits (required if there are multiple)
         :param currency: Debit currency
         :param book_as_single: Kindly ask the bank to put multiple transactions as separate lines on the bank statement (defaults to ``False``)
-        :return: Returns a TANChallenge object
+        :return: Returns a TANChallenge object  FIXME Wrong
         """
-        dialog = self._get_dialog()
-        dialog.sync()
-        dialog.tan_mechs = [tan_method]
-        dialog.init()
 
-        with self.pin.protect():
-            logger.debug('Sending: {}'.format(self._get_start_sepa_debit_message(
-                dialog, account, pain_message, tan_method, tan_description, multiple, control_sum, currency,
-                book_as_single
-            )))
+        with self._get_dialog() as dialog:
+            if multiple:
+                if cor1:
+                    command_candidates = (HKDMC1, )
+                else:
+                    command_candidates = (HKDME1, HKDME2)
+            else:
+                if cor1:
+                    raise Exception("Can't process multiple=False cor1=True")
+                else:
+                    command_candidates = (HKDSE1, HKDSE2)
 
-        resp = dialog.send(self._get_start_sepa_debit_message(
-            dialog, account, pain_message, tan_method, tan_description, multiple, control_sum, currency,
-            book_as_single
-        ))
-        logger.debug('Got response: {}'.format(resp))
-        return self._tan_requiring_response(dialog, resp)
+            hidxxs, hkdxx = self._find_highest_supported_command(
+                *command_candidates,
+                return_parameter_segment=True
+            )
+
+            seg = hkdxx(
+                account=hkdxx._fields['account'].type.from_sepa_account(account),
+                sepa_descriptor=pain_descriptor,
+                sepa_pain_message=pain_message,
+            )
+
+            if multiple:
+                if hidxxs.parameter.sum_amount_required and control_sum is None:
+                    raise ValueError("Control sum required.")
+                if book_as_single and not hidxxs.parameter.single_booking_allowed:
+                    # FIXME Only do a warning and fall-back to book_as_single=False?
+                    raise ValueError("Single booking not allowed by bank.")
+
+                if control_sum:
+                    seg.sum_amount.amount = control_sum
+                    seg.sum_amount.currency = currency
+
+                if book_as_single:
+                    seg.request_single_booking = True
+
+            return self._send_with_possible_retry(dialog, seg, self._continue_start_sepa_debit)
+
+    def _continue_start_sepa_debit(self, command_seg, response):
+            # FIXME Properly return something
+            return True
 
     def add_response_callback(self, cb):
         # FIXME document
@@ -748,6 +762,8 @@ class FinTS3PinTanClient(FinTS3Client):
                 for resp in response.responses(tan_seg):
                     if resp.code == '0030':
                         return NeedTANResponse(command_seg, response.find_segment_first('HITAN'), resume_func)
+                    if resp.code.startswith('9'):
+                        raise Exception("Error response: {!r}".format(response))
             else:
                 response = dialog.send(command_seg)
 

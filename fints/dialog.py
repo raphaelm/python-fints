@@ -8,8 +8,8 @@ from .formals import (
 from .message import (
     FinTSCustomerMessage, FinTSMessage, MessageDirection,
 )
-from .segments.auth import HKIDN, HKIDN2, HKSYN, HKVVB, HKVVB3
-from .segments.dialog import HKEND, HKEND1
+from .segments.auth import HKIDN2, HKVVB3
+from .segments.dialog import HKEND1
 from .segments.message import HNHBK3, HNHBS1
 from .utils import compress_datablob, decompress_datablob
 

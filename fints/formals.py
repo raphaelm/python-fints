@@ -704,3 +704,62 @@ class CommunicationParameter2(DataElementGroup):
     address_adjunct = DataElementField(type='an', max_length=512, required=False, _d="Kommunikationsadresszusatz")
     filter_function = DataElementField(type='an', length=3, required=False, _d="Filterfunktion")
     filter_function_version = DataElementField(type='num', max_length=3, required=False, _d="Version der Filterfunktion")
+
+class ScheduledDebitParameter1(DataElementGroup):
+    """Parameter terminierte SEPA-Einzellastschrift einreichen, version 1
+
+    Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Messages -- Multibankfähige Geschäftsvorfälle """
+    min_advance_notice_FNAL_RCUR = DataElementField(type='num', max_length=4, _d="Minimale Vorlaufzeit FNAL/RCUR")
+    max_advance_notice_FNAL_RCUR = DataElementField(type='num', max_length=4, _d="Maximale Vorlaufzeit FNAL/RCUR")
+    min_advance_notice_FRST_OOFF = DataElementField(type='num', max_length=4, _d="Minimale Vorlaufzeit FRST/OOFF")
+    max_advance_notice_FRST_OOFF = DataElementField(type='num', max_length=4, _d="Maximale Vorlaufzeit FRST/OOFF")
+
+class ScheduledDebitParameter2(DataElementGroup):
+    """Parameter terminierte SEPA-Einzellastschrift einreichen, version 2
+
+    Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Messages -- Multibankfähige Geschäftsvorfälle """
+    min_advance_notice = DataElementField(type='num', max_length=4, _d="Minimale Vorlaufzeit SEPA-Lastschrift")
+    max_advance_notice = DataElementField(type='num', max_length=4, _d="Maximale Vorlaufzeit SEPA-Lastschrift")
+    allowed_purpose_codes = DataElementField(type='an', max_length=4096, required=False, _d="Zulässige purpose codes")
+    supported_sepa_formats = DataElementField(type='an', max_length=256, max_count=9, required=False, _d="Unterstützte SEPA-Datenformate")
+
+class ScheduledBatchDebitParameter1(DataElementGroup):
+    """Parameter terminierte SEPA-Sammellastschrift einreichen, version 1
+
+    Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Messages -- Multibankfähige Geschäftsvorfälle """
+    min_advance_notice_FNAL_RCUR = DataElementField(type='num', max_length=4, _d="Minimale Vorlaufzeit FNAL/RCUR")
+    max_advance_notice_FNAL_RCUR = DataElementField(type='num', max_length=4, _d="Maximale Vorlaufzeit FNAL/RCUR")
+    min_advance_notice_FRST_OOFF = DataElementField(type='num', max_length=4, _d="Minimale Vorlaufzeit FRST/OOFF")
+    max_advance_notice_FRST_OOFF = DataElementField(type='num', max_length=4, _d="Maximale Vorlaufzeit FRST/OOFF")
+    max_debit_count = DataElementField(type='num', max_length=7, _d="Maximale Anzahl DirectDebitTransfer TransactionInformation")
+    sum_amount_required = DataElementField(type='jn', _d="Summenfeld benötigt")
+    single_booking_allowed = DataElementField(type='jn', _d="Einzelbuchung erlaubt")
+
+class ScheduledBatchDebitParameter2(DataElementGroup):
+    """Parameter terminierte SEPA-Sammellastschrift einreichen, version 2
+
+    Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Messages -- Multibankfähige Geschäftsvorfälle """
+    min_advance_notice = DataElementField(type='num', max_length=4, _d="Minimale Vorlaufzeit SEPA-Lastschrift")
+    max_advance_notice = DataElementField(type='num', max_length=4, _d="Maximale Vorlaufzeit SEPA-Lastschrift")
+    max_debit_count = DataElementField(type='num', max_length=7, _d="Maximale Anzahl DirectDebitTransfer TransactionInformation")
+    sum_amount_required = DataElementField(type='jn', _d="Summenfeld benötigt")
+    single_booking_allowed = DataElementField(type='jn', _d="Einzelbuchung erlaubt")
+    allowed_purpose_codes = DataElementField(type='an', max_length=4096, required=False, _d="Zulässige purpose codes")
+    supported_sepa_formats = DataElementField(type='an', max_length=256, max_count=9, required=False, _d="Unterstützte SEPA-Datenformate")
+
+
+class ScheduledCOR1BatchDebitParameter1(DataElementGroup):
+    """Parameter terminierte SEPA-COR1-Sammellastschrift, version 1
+
+    Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Messages -- Multibankfähige Geschäftsvorfälle """
+    max_debit_count = DataElementField(type='num', max_length=7, _d="Maximale Anzahl DirectDebitTransfer TransactionInformation")
+    sum_amount_required = DataElementField(type='jn', _d="Summenfeld benötigt")
+    single_booking_allowed = DataElementField(type='jn', _d="Einzelbuchung erlaubt")
+    min_advance_notice_FNAL_RCUR = DataElementField(type='num', max_length=4, _d="Minimale Vorlaufzeit FNAL/RCUR")
+    max_advance_notice_FNAL_RCUR = DataElementField(type='num', max_length=4, _d="Maximale Vorlaufzeit FNAL/RCUR")
+    min_advance_notice_FRST_OOFF = DataElementField(type='num', max_length=4, _d="Minimale Vorlaufzeit FRST/OOFF")
+    max_advance_notice_FRST_OOFF = DataElementField(type='num', max_length=4, _d="Maximale Vorlaufzeit FRST/OOFF")
+    allowed_purpose_codes = DataElementField(type='an', max_length=4096, required=False, _d="Zulässige purpose codes")
+    supported_sepa_formats = DataElementField(type='an', max_length=256, max_count=9, required=False, _d="Unterstützte SEPA-Datenformate")
+
+
