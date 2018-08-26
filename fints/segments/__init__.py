@@ -99,6 +99,10 @@ class HIUPD6(FinTS3Segment):
     allowed_transactions = DataElementGroupField(type=AllowedTransaction, max_count=999, required=False, _d="Erlaubte Geschäftsvorfälle")
     extension = DataElementField(type='an', max_length=2048, required=False, _d="Erweiterung, kontobezogen")
 
+class ParameterSegment_22(FinTS3Segment):
+    max_number_tasks = DataElementField(type='num', max_length=3, _d="Maximale Anzahl Aufträge")
+    min_number_signatures = DataElementField(type='num', length=1, _d="Anzahl Signaturen mindestens")
+
 class ParameterSegment(FinTS3Segment):
     max_number_tasks = DataElementField(type='num', max_length=3, _d="Maximale Anzahl Aufträge")
     min_number_signatures = DataElementField(type='num', length=1, _d="Anzahl Signaturen mindestens")
@@ -165,5 +169,5 @@ class HIKOM4(FinTS3Segment):
     communication_parameters = DataElementGroupField(type=CommunicationParameter2, min_count=1, max_count=9, _d="Kommunikationsparameter")
 
 from . import (
-    accounts, auth, debit, depot, dialog, message, saldo, statement, transfer,
+    accounts, auth, debit, depot, dialog, message, saldo, statement, transfer, journal,
 )

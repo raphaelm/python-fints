@@ -33,6 +33,7 @@ from .segments.debit import HKDSE1, HKDSE2, HKDME1, HKDME2, HKDMC1, HKDBS1, HKDB
 from .segments.saldo import HKSAL5, HKSAL6, HKSAL7
 from .segments.statement import HKKAZ5, HKKAZ6, HKKAZ7
 from .segments.transfer import HKCCM1, HKCCS1
+from .segments.journal import HKPRO3, HKPRO4
 from .types import SegmentSequence
 from .utils import MT535_Miniparser, Password, mt940_to_array, compress_datablob, decompress_datablob, SubclassesMixin
 from .parser import FinTS3Serializer
@@ -389,6 +390,20 @@ class FinTS3Client:
                     touchdown_point=touchdown,
                 ),
                 response_type,
+            )
+
+        return responses
+
+    def get_status_protocol(self):
+        with self._get_dialog() as dialog:
+            hkpro = self._find_highest_supported_command(HKPRO3, HKPRO4)
+
+            responses = self._fetch_with_touchdowns(
+                dialog,
+                lambda touchdown: hkpro(
+                    touchdown_point=touchdown,
+                ),
+                'HIPRO',
             )
 
         return responses
