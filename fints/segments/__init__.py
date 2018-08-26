@@ -11,7 +11,7 @@ from fints.formals import (
     SecurityClass, SecurityDateTime, SecurityIdentificationDetails,
     SecurityProfile, SecurityRole, SegmentHeader, SegmentSequenceField,
     SignatureAlgorithm, SupportedHBCIVersions2, SupportedLanguages2, UPDUsage,
-    UserDefinedSignature,
+    UserDefinedSignature, Language2, CommunicationParameter2,
 )
 from fints.utils import SubclassesMixin, classproperty
 
@@ -159,6 +159,23 @@ class HIBPA3(FinTS3Segment):
     max_message_length = DataElementField(type='num', max_length=4, required=False, _d="Maximale Nachrichtengröße")
     min_timeout = DataElementField(type='num', max_length=4, required=False, _d="Minimaler Timeout-Wert")
     max_timeout = DataElementField(type='num', max_length=4, required=False, _d="Maximaler Timeout-Wert")
+
+class HKKOM4(FinTS3Segment):
+    """Kommunikationszugang anfordern, version 4
+
+    Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Formals"""
+    start_bank_identifier = DataElementGroupField(type=BankIdentifier, required=False, _d="Von Kreditinstitutskennung")
+    end_bank_identifier = DataElementGroupField(type=BankIdentifier, required=False, _d="Bis Kreditinstitutskennung")
+    max_number_responses = DataElementField(type='num', max_length=4, required=False, _d="Maximale Anzahl Einträge")
+    touchdown_point = DataElementField(type='an', max_length=35, required=False, _d="Aufsetzpunkt")
+
+class HIKOM4(FinTS3Segment):
+    """Kommunikationszugang rückmelden, version 4
+
+    Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Formals"""
+    bank_identifier = DataElementGroupField(type=BankIdentifier, _d="Kreditinstitutskennung")
+    default_language = CodeField(enum=Language2, max_length=3, _d="Standardsprache")
+    communication_parameters = DataElementGroupField(type=CommunicationParameter2, min_count=1, max_count=9, _d="Kommunikationsparameter")
 
 from . import (
     accounts, auth, debit, depot, dialog, message, saldo, statement, transfer,

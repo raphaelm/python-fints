@@ -13,7 +13,7 @@ from .dialog import FinTSDialog, FinTSDialogOLD
 from .formals import (
     KTI1, Account3, BankIdentifier,
     SynchronisationMode, TwoStepParametersCommon,
-    TANMediaType2, TANMediaClass4,
+    TANMediaType2, TANMediaClass4, CUSTOMER_ID_ANONYMOUS,
 )
 from .message import FinTSInstituteMessage, FinTSMessageOLD
 from .models import (
@@ -24,7 +24,7 @@ from .security import (
     PinTanDummyEncryptionMechanism, PinTanOneStepAuthenticationMechanism,
     PinTanTwoStepAuthenticationMechanism,
 )
-from .segments import HIBPA3, HIRMG2, HIRMS2, HIUPA4, HIPINS1
+from .segments import HIBPA3, HIRMG2, HIRMS2, HIUPA4, HIPINS1, HKKOM4
 from .segments.accounts import HISPA1, HKSPA, HKSPA1
 from .segments.auth import HKTAB, HKTAN, HKTAB4, HKTAB5, HKTAN3, HKTAN5
 from .segments.depot import HKWPD5, HKWPD6
@@ -369,6 +369,21 @@ class FinTS3Client:
             logger.debug('No HIWPD response segment found - maybe account has no holdings?')
             return []
 
+    def get_communication_endpoints(self):
+        with self._get_dialog() as dialog:
+            hkkom = self._find_highest_supported_command(HKKOM4)
+            #hkkom = HKKOM4
+
+            responses = self._fetch_with_touchdowns(
+                dialog,
+                lambda touchdown: hkkom(
+                    touchdown_point=touchdown,
+                ),
+                'HIKOM'
+            )
+
+        return responses
+
     def start_simple_sepa_transfer(self, account: SEPAAccount, iban: str, bic: str,
                                    recipient_name: str, amount: Decimal, account_name: str, reason: str,
                                    endtoend_id='NOTPROVIDED'):
@@ -618,7 +633,7 @@ IMPLEMENTED_HKTAN_VERSIONS = {
 class FinTS3PinTanClient(FinTS3Client):
 
     def __init__(self, bank_identifier, user_id, pin, server, customer_id=None, *args, **kwargs):
-        self.pin = Password(pin)
+        self.pin = Password(pin) if pin is not None else pin
         self._pending_tan = None
         self.connection = FinTSHTTPSConnection(server)
         self.allowed_security_functions = []
@@ -627,25 +642,28 @@ class FinTS3PinTanClient(FinTS3Client):
         super().__init__(bank_identifier=bank_identifier, user_id=user_id, customer_id=customer_id, *args, **kwargs)
 
     def _new_dialog(self, lazy_init=False):
-        if not self.selected_security_function or self.selected_security_function == '999':
+        if self.pin is None:
+            enc = None
+            auth = []
+        elif not self.selected_security_function or self.selected_security_function == '999':
             enc = PinTanDummyEncryptionMechanism(1)
-            auth = PinTanOneStepAuthenticationMechanism(self.pin)
+            auth = [PinTanOneStepAuthenticationMechanism(self.pin)]
         else:
             enc = PinTanDummyEncryptionMechanism(2)
-            auth = PinTanTwoStepAuthenticationMechanism(
+            auth = [PinTanTwoStepAuthenticationMechanism(
                 self,
                 self.selected_security_function,
                 self.pin,
-            )
+            )]
 
         return FinTSDialog(self, 
             lazy_init=lazy_init,
             enc_mechanism=enc,
-            auth_mechanisms=[auth],
+            auth_mechanisms=auth,
         )
 
     def _ensure_system_id(self):
-        if self.system_id != SYSTEM_ID_UNASSIGNED:
+        if self.system_id != SYSTEM_ID_UNASSIGNED or self.user_id == CUSTOMER_ID_ANONYMOUS:
             return
 
         with self._get_dialog(lazy_init=True) as dialog:

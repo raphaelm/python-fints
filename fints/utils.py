@@ -284,7 +284,7 @@ class Password(str):
             cls.protected = False
 
     def __str__(self):
-        return '***' if self.protected else self.value
+        return '***' if self.protected else str(self.value)
 
     def __repr__(self):
         return self.__str__().__repr__()

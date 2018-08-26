@@ -4,6 +4,7 @@ from fints.types import *  # The order is important!
 from fints.fields import *
 from fints.utils import RepresentableEnum, ShortReprMixin
 
+CUSTOMER_ID_ANONYMOUS = '9999999999'
 
 class DataElementGroup(Container):
     pass
@@ -254,7 +255,7 @@ class TwoStepParameters5(TwoStepParametersCommon):
     max_length_input = DataElementField(type='num', max_length=2, _d="Maximale Länge des Eingabewertes im Zwei-Schritt-Verfahren")
     allowed_format = CodeField(enum=AllowedFormat, length=1, _d="Erlaubtes Format im Zwei-Schritt-Verfahren")
     text_return_value = DataElementField(type='an', max_length=30, _d="Text zur Belegung des Rückgabewertes im Zwei-Schritt-Verfahren")
-    max_length_return_value = DataElementField(type='num', max_length=3, _d="Maximale Länge des Rückgabewertes im Zwei-Schritt-Verfahren")
+    max_length_return_value = DataElementField(type='num', max_length=4, _d="Maximale Länge des Rückgabewertes im Zwei-Schritt-Verfahren")
     number_of_supported_lists = DataElementField(type='num', length=1, _d="Anzahl unterstützter aktiver TAN-Listen")
     multiple_tans_allowed = DataElementField(type='jn', _d="Mehrfach-TAN erlaubt")
     tan_time_dialog_association = CodeField(enum=TANTimeDialogAssociation, length=1, _d="TAN Zeit- und Dialogbezug")
@@ -275,7 +276,7 @@ class TwoStepParameters6(TwoStepParametersCommon):
     max_length_input = DataElementField(type='num', max_length=2, _d="Maximale Länge des Eingabewertes im Zwei-Schritt-Verfahren")
     allowed_format = CodeField(enum=AllowedFormat, length=1, _d="Erlaubtes Format im Zwei-Schritt-Verfahren")
     text_return_value = DataElementField(type='an', max_length=30, _d="Text zur Belegung des Rückgabewertes im Zwei-Schritt-Verfahren")
-    max_length_return_value = DataElementField(type='num', max_length=3, _d="Maximale Länge des Rückgabewertes im Zwei-Schritt-Verfahren")
+    max_length_return_value = DataElementField(type='num', max_length=4, _d="Maximale Länge des Rückgabewertes im Zwei-Schritt-Verfahren")
     multiple_tans_allowed = DataElementField(type='jn', _d="Mehrfach-TAN erlaubt")
     tan_time_dialog_association = CodeField(enum=TANTimeDialogAssociation, length=1, _d="TAN Zeit- und Dialogbezug")
     cancel_allowed = DataElementField(type='jn', _d="Auftragsstorno erlaubt")
@@ -688,3 +689,18 @@ class BatchTransferParameter1(DataElementGroup):
     max_transfer_count = DataElementField(type='num', max_length=7, _d="Maximale Anzahl CreditTransferTransactionInformation")
     sum_amount_required = DataElementField(type='jn', _d="Summenfeld benötigt")
     single_booking_allowed = DataElementField(type='jn', _d="Einzelbuchung erlaubt")
+
+class ServiceType2(RepresentableEnum):
+    T_ONLINE = 1 #: T-Online
+    TCP_IP = 2 #: TCP/IP (Protokollstack SLIP/PPP)
+    HTTPS = 3 #: https
+
+class CommunicationParameter2(DataElementGroup):
+    """Kommunikationsparameter, version 2
+
+    Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Formals"""
+    service_type = IntCodeField(enum=ServiceType2, max_length=2, _d="Kommunikationsdienst")
+    address = DataElementField(type='an', max_length=512, _d="Kommunikationsadresse")
+    address_adjunct = DataElementField(type='an', max_length=512, required=False, _d="Kommunikationsadresszusatz")
+    filter_function = DataElementField(type='an', length=3, required=False, _d="Filterfunktion")
+    filter_function_version = DataElementField(type='num', max_length=3, required=False, _d="Version der Filterfunktion")

@@ -3,7 +3,7 @@ import pickle
 import io
 
 from .formals import (
-    BankIdentifier, Language2, SynchronisationMode, SystemIDStatus,
+    BankIdentifier, Language2, SynchronisationMode, SystemIDStatus, CUSTOMER_ID_ANONYMOUS,
 )
 from .message import (
     FinTSCustomerMessage, FinTSMessage, FinTSMessageOLD, MessageDirection,
@@ -59,7 +59,7 @@ class FinTSDialog:
                     self.client.bank_identifier,
                     self.client.customer_id,
                     self.client.system_id,
-                    SystemIDStatus.ID_NECESSARY
+                    SystemIDStatus.ID_NECESSARY if self.client.customer_id != CUSTOMER_ID_ANONYMOUS else SystemIDStatus.ID_UNNECESSARY
                 ),
                 HKVVB3(
                     self.client.bpd_version,
@@ -110,14 +110,14 @@ class FinTSDialog:
         self.finish_message(message)
 
         assert message.segments[0].message_number == self.next_message_number[message.DIRECTION]
-        self.messages[message.segments[0].message_number] = message
+        self.messages[message.DIRECTION][message.segments[0].message_number] = message
         self.next_message_number[message.DIRECTION] += 1
 
         response = self.client.connection.send(message)
 
         ##assert response.segments[0].message_number == self.next_message_number[response.DIRECTION]
         # FIXME Better handling of HKEND in exception case
-        self.messages[response.segments[0].message_number] = message
+        self.messages[response.DIRECTION][response.segments[0].message_number] = response
         self.next_message_number[response.DIRECTION] += 1
 
         if self.enc_mechanism:
