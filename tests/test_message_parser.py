@@ -1,7 +1,6 @@
 import pytest
 from conftest import TEST_MESSAGES
 from fints.formals import SegmentSequence
-from fints.message import FinTSResponse
 from fints.parser import FinTS3Parser, FinTSParserError, FinTSParserWarning
 from fints.segments import FinTS3Segment
 

@@ -3,23 +3,8 @@ from fints.formals import (
     KTI1, Account2, Account3, Amount1, Balance1, Balance2, Timestamp1,
 )
 
-from . import FinTS3Segment, FinTS3SegmentOLD
+from . import FinTS3Segment
 
-
-class HKSAL(FinTS3SegmentOLD):
-    """
-    HKSAL (Konto Saldo anfordern)
-    Section C.2.1.2
-    """
-    type = 'HKSAL'
-
-    def __init__(self, segno, version, account):
-        self.version = version
-        data = [
-            account,
-            'N'
-        ]
-        super().__init__(segno, data)
 
 class HKSAL5(FinTS3Segment):
     """Saldenabfrage, version 5
