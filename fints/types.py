@@ -232,6 +232,8 @@ class Container(metaclass=ContainerMeta):
 
     @classmethod
     def naive_parse(cls, data):
+        if data is None:
+            raise TypeError("No data provided")
         retval = cls()
         for ((name, field), value) in zip(retval._fields.items(), data):
             setattr(retval, name, value)

@@ -293,6 +293,8 @@ class FinTS3Parser:
 
                 if data and deg:
                     deg.append(data)
+
+                if deg:
                     data = deg
 
                 segment.append(data)

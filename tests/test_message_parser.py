@@ -80,6 +80,17 @@ def test_parse_HIRMG2():
     assert seg.responses[1].code == '0100'
     assert len(seg.responses) == 2
 
+# Regression test, bug found in the wild
+def test_extra_colon():
+    message1 = rb"""HIRMG:2:2:+3060::Teilweise liegen Warnungen/Hinweise vor.'"""
+
+    m1 = FinTS3Parser().parse_message(message1)
+    seg = m1.segments[0]
+
+    assert seg.header.type == 'HIRMG'
+    assert seg.header.version == 2
+    assert seg.header.reference is None
+
 def test_invalid():
     message1 = rb"""12"""
 
