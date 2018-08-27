@@ -791,6 +791,14 @@ class QueryScheduledBatchDebitParameter1(DataElementGroup):
     max_number_responses_allowed = DataElementField(type='jn', _d="Eingabe Anzahl Einträge erlaubt")
     date_range_allowed = DataElementField(type='jn', _d="Zeitraum möglich")
 
+class QueryCreditCardStatements2(DataElementGroup):
+    """Parameter Kreditkartenumsätze anfordern, version 2
+
+    Source: reverse engineered"""
+    cutoff_days = DataElementField(type='num', max_length=4, _d="Maximale Vorhaltezeit der Umsätze")
+    max_number_responses_allowed = DataElementField(type='jn', _d="Eingabe Anzahl Einträge erlaubt")
+    date_range_allowed = DataElementField(type='jn', _d="Zeitraum möglich")
+
 class SEPACCode1(RepresentableEnum):
     REVERSAL = '1' #: Reversal
     REVOCATION = '2' #: Revocation

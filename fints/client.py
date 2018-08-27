@@ -31,7 +31,7 @@ from .segments.depot import HKWPD5, HKWPD6
 from .segments.dialog import HISYN4, HKSYN3
 from .segments.debit import HKDSE1, HKDSE2, HKDME1, HKDME2, HKDMC1, HKDBS1, HKDBS2, HKDMB1
 from .segments.saldo import HKSAL5, HKSAL6, HKSAL7
-from .segments.statement import HKKAZ5, HKKAZ6, HKKAZ7
+from .segments.statement import HKKAZ5, HKKAZ6, HKKAZ7, DKKKU2
 from .segments.transfer import HKCCM1, HKCCS1
 from .segments.journal import HKPRO3, HKPRO4
 from .types import SegmentSequence
@@ -318,6 +318,25 @@ class FinTS3Client:
         logger.debug('Statement: {}'.format(statement))
 
         return statement
+
+    def get_credit_card_statement(self, account: SEPAAccount, credit_card_number: str, start_date: datetime.date, end_date: datetime.date):
+        # FIXME Reverse engineered, probably wrong
+        with self._get_dialog() as dialog:
+            dkkku = self._find_highest_supported_command(DKKKU2)
+
+            responses = self._fetch_with_touchdowns(
+                dialog,
+                lambda touchdown: dkkku(
+                    account=dkkku._fields['account'].type.from_sepa_account(account) if account else None,
+                    credit_card_number=credit_card_number,
+                    date_start=start_date,
+                    date_end=end_date,
+                    touchdown_point=touchdown,
+                ),
+                'DIKKU'
+            )
+
+        return responses
 
     def get_balance(self, account: SEPAAccount):
         """
