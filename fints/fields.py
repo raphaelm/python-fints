@@ -184,7 +184,7 @@ class NumericField(FieldRenderFormatStringMixin, DataElementField):
     def _parse_value(self, value): 
         _value = str(value)
         if len(_value) > 1 and _value[0] == '0':
-            raise TypeError("Leading zeroes not allowed for value of type 'num': {!r}".format(value))
+            raise ValueError("Leading zeroes not allowed for value of type 'num': {!r}".format(value))
         return int(_value, 10)
 
 class ZeroPaddedNumericField(NumericField):

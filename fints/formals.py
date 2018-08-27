@@ -718,8 +718,8 @@ class ScheduledDebitParameter2(DataElementGroup):
     """Parameter terminierte SEPA-Einzellastschrift einreichen, version 2
 
     Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Messages -- Multibankfähige Geschäftsvorfälle """
-    min_advance_notice = DataElementField(type='num', max_length=4, _d="Minimale Vorlaufzeit SEPA-Lastschrift")
-    max_advance_notice = DataElementField(type='num', max_length=4, _d="Maximale Vorlaufzeit SEPA-Lastschrift")
+    min_advance_notice = DataElementField(type='an', max_length=99, _d="Minimale Vorlaufzeit SEPA-Lastschrift")
+    max_advance_notice = DataElementField(type='an', max_length=99, _d="Maximale Vorlaufzeit SEPA-Lastschrift")
     allowed_purpose_codes = DataElementField(type='an', max_length=4096, required=False, _d="Zulässige purpose codes")
     supported_sepa_formats = DataElementField(type='an', max_length=256, max_count=9, required=False, _d="Unterstützte SEPA-Datenformate")
 
@@ -739,8 +739,8 @@ class ScheduledBatchDebitParameter2(DataElementGroup):
     """Parameter terminierte SEPA-Sammellastschrift einreichen, version 2
 
     Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Messages -- Multibankfähige Geschäftsvorfälle """
-    min_advance_notice = DataElementField(type='num', max_length=4, _d="Minimale Vorlaufzeit SEPA-Lastschrift")
-    max_advance_notice = DataElementField(type='num', max_length=4, _d="Maximale Vorlaufzeit SEPA-Lastschrift")
+    min_advance_notice = DataElementField(type='an', max_length=99, _d="Minimale Vorlaufzeit SEPA-Lastschrift")
+    max_advance_notice = DataElementField(type='an', max_length=99, _d="Maximale Vorlaufzeit SEPA-Lastschrift")
     max_debit_count = DataElementField(type='num', max_length=7, _d="Maximale Anzahl DirectDebitTransfer TransactionInformation")
     sum_amount_required = DataElementField(type='jn', _d="Summenfeld benötigt")
     single_booking_allowed = DataElementField(type='jn', _d="Einzelbuchung erlaubt")
@@ -774,6 +774,7 @@ class QueryScheduledDebitParameter1(DataElementGroup):
 
     Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Messages -- Multibankfähige Geschäftsvorfälle """
     date_range_allowed = DataElementField(type='jn', _d="Zeitraum möglich")
+    max_number_responses_allowed = DataElementField(type='jn', _d="Eingabe Anzahl Einträge erlaubt")
 
 class QueryScheduledDebitParameter2(DataElementGroup):
     """Parameter Bestand terminierter SEPA-Einzellastschriften, version 2
