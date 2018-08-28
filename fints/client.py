@@ -30,7 +30,7 @@ from .segments.accounts import HISPA1, HKSPA1
 from .segments.auth import HKTAB4, HKTAB5, HKTAN3, HKTAN5
 from .segments.depot import HKWPD5, HKWPD6
 from .segments.dialog import HISYN4, HKSYN3
-from .segments.debit import HKDSE1, HKDSE2, HKDME1, HKDME2, HKDMC1, HKDBS1, HKDBS2, HKDMB1
+from .segments.debit import HKDSE1, HKDSE2, HKDME1, HKDME2, HKDSC1, HKDMC1, HKDBS1, HKDBS2, HKDMB1
 from .segments.saldo import HKSAL5, HKSAL6, HKSAL7
 from .segments.statement import HKKAZ5, HKKAZ6, HKKAZ7, DKKKU2
 from .segments.transfer import HKCCM1, HKCCS1
@@ -642,7 +642,7 @@ class FinTS3Client:
                     command_candidates = (HKDME1, HKDME2)
             else:
                 if cor1:
-                    raise Exception("Can't process multiple=False cor1=True")
+                    command_candidates = (HKDSC1, )
                 else:
                     command_candidates = (HKDSE1, HKDSE2)
 

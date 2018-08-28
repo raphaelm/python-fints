@@ -1,7 +1,7 @@
 from . import FinTS3Segment
 from ..models import SEPAAccount
 from ..fields import DataElementField, DataElementGroupField, CodeField
-from ..formals import ScheduledCOR1BatchDebitParameter1, KTI1, Amount1, ScheduledBatchDebitParameter1, ScheduledBatchDebitParameter2, ScheduledDebitParameter1, ScheduledDebitParameter2, SupportedSEPAPainMessages1, QueryScheduledDebitParameter1, QueryScheduledDebitParameter2, SEPACCode1, StatusSEPATask1, QueryScheduledBatchDebitParameter1
+from ..formals import ScheduledCOR1DebitParameter1, ScheduledCOR1BatchDebitParameter1, KTI1, Amount1, ScheduledBatchDebitParameter1, ScheduledBatchDebitParameter2, ScheduledDebitParameter1, ScheduledDebitParameter2, SupportedSEPAPainMessages1, QueryScheduledDebitParameter1, QueryScheduledDebitParameter2, SEPACCode1, StatusSEPATask1, QueryScheduledBatchDebitParameter1
 from . import ParameterSegment
 
 class BatchDebitBase(FinTS3Segment):
@@ -98,6 +98,29 @@ class HIDMES2(ParameterSegment):
 
     Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Messages -- Multibankfähige Geschäftsvorfälle """
     parameter = DataElementGroupField(type=ScheduledBatchDebitParameter2, _d="Parameter terminierte SEPA-Sammellastschrift einreichen")
+
+
+
+class HKDSC1(FinTS3Segment):
+    """Terminierte SEPA-COR1-Einzellastschrift einreichen, version 1
+
+    Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Messages -- Multibankfähige Geschäftsvorfälle """
+    account = DataElementGroupField(type=KTI1, _d="Kontoverbindung international")
+    sepa_descriptor = DataElementField(type='an', max_length=256, _d="SEPA Descriptor")
+    sepa_pain_message = DataElementField(type='bin', _d="SEPA pain message")
+
+
+class HIDSC1(DebitResponseBase):
+    """Einreichung terminierter SEPA-COR1-Einzellastschrift bestätigen, version 1
+
+    Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Messages -- Multibankfähige Geschäftsvorfälle """
+
+
+class HIDSCS1(ParameterSegment):
+    """Terminierte SEPA-COR1-Einzellastschrift Parameter, version 1
+
+    Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Messages -- Multibankfähige Geschäftsvorfälle """
+    parameter = DataElementGroupField(type=ScheduledCOR1DebitParameter1, _d="Parameter terminierte SEPA-COR1-Einzellastschrift")
 
 
 

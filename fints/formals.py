@@ -747,6 +747,16 @@ class ScheduledBatchDebitParameter2(DataElementGroup):
     allowed_purpose_codes = DataElementField(type='an', max_length=4096, required=False, _d="Zulässige purpose codes")
     supported_sepa_formats = DataElementField(type='an', max_length=256, max_count=9, required=False, _d="Unterstützte SEPA-Datenformate")
 
+class ScheduledCOR1DebitParameter1(DataElementGroup):
+    """Parameter terminierte SEPA-COR1-Einzellastschrift, version 1
+
+    Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Messages -- Multibankfähige Geschäftsvorfälle """
+    min_advance_notice_FNAL_RCUR = DataElementField(type='num', max_length=4, _d="Minimale Vorlaufzeit FNAL/RCUR")
+    max_advance_notice_FNAL_RCUR = DataElementField(type='num', max_length=4, _d="Maximale Vorlaufzeit FNAL/RCUR")
+    min_advance_notice_FRST_OOFF = DataElementField(type='num', max_length=4, _d="Minimale Vorlaufzeit FRST/OOFF")
+    max_advance_notice_FRST_OOFF = DataElementField(type='num', max_length=4, _d="Maximale Vorlaufzeit FRST/OOFF")
+    allowed_purpose_codes = DataElementField(type='an', max_length=4096, required=False, _d="Zulässige purpose codes")
+    supported_sepa_formats = DataElementField(type='an', max_length=256, max_count=9, required=False, _d="Unterstützte SEPA-Datenformate")
 
 class ScheduledCOR1BatchDebitParameter1(DataElementGroup):
     """Parameter terminierte SEPA-COR1-Sammellastschrift, version 1
