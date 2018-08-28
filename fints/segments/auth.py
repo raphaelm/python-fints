@@ -4,8 +4,6 @@ from fints.formals import (
     TANMediaType2, TANMediaClass4, TANMedia5, TANMediaClass3, TANMedia4, TANUsageOption,
     KTI1, ParameterChallengeClass, ResponseHHDUC, ChallengeValidUntil
 )
-from fints.utils import fints_escape
-
 from . import FinTS3Segment
 
 

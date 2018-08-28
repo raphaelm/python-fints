@@ -1,5 +1,3 @@
-from fints.utils import fints_escape
-
 from fints.fields import DataElementField, DataElementGroupField
 from fints.formals import (
     KTI1, Account3, Account2, QueryCreditCardStatements2

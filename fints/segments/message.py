@@ -10,8 +10,6 @@ from fints.formals import (
     SecurityDateTime, SecurityIdentificationDetails, SecurityProfile,
     SecurityRole, SignatureAlgorithm, UserDefinedSignature,
 )
-from fints.utils import fints_escape
-
 from . import FinTS3Segment
 
 
