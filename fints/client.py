@@ -1,5 +1,6 @@
 import datetime
 import logging
+from enum import Enum
 from decimal import Decimal
 from contextlib import contextmanager
 from collections import OrderedDict
@@ -43,6 +44,22 @@ logger = logging.getLogger(__name__)
 SYSTEM_ID_UNASSIGNED = '0'
 DATA_BLOB_MAGIC = b'python-fints_DATABLOB'
 DATA_BLOB_MAGIC_RETRY = b'python-fints_RETRY_DATABLOB'
+
+class FinTSOperations(Enum):
+    GET_BALANCE = ("HKSAL", )
+    GET_STATEMENT = ("HKKAZ", )
+    GET_CREDIT_CARD_STATEMENT = ("DKKKU", )
+    GET_HOLDINGS = ("HKWPD", )
+    GET_SEPA_ACCOUNTS = ("HKSPA", )
+    GET_SCHEDULED_DEBITS_SINGLE = ("HKDBS", )
+    GET_SCHEDULED_DEBITS_MULTIPLE = ("HKDMB", )
+    GET_STATUS_PROTOCOL = ("HKPRO", )
+    SEPA_TRANSFER_SINGLE = ("HKCCM", )
+    SEPA_TRANSFER_MULTIPLE = ("HKCCS", )
+    SEPA_DEBIT_SINGLE = ("HKDSE", )
+    SEPA_DEBIT_MULTIPLE = ("HKDME", )
+    SEPA_DEBIT_SINGLE_COR1 = ("HKDSC", )
+    SEPA_DEBIT_MULTIPLE_COR1 = ("HKDMC", )
 
 class NeedRetryResponse(SubclassesMixin):
     @classmethod
@@ -214,6 +231,72 @@ class FinTS3Client:
             response.text,
             " ({!r})".format(response.parameters) if response.parameters else "")
         )
+
+    def get_information(self):
+        """
+        Return information about the connected bank.
+
+        Note: Can only be filled after the first communication with the bank.
+        If in doubt, use a construction like:
+        ````
+        f = FinTS3Client(...)
+        with f:
+            info = f.get_information()
+        ````
+
+        Returns a nested dictionary:
+        ````
+        bank:
+            name: Bank Name
+            supported_operations: dict(FinTSOperations -> boolean)
+        accounts:
+            - iban: IBAN
+              account_number: Account Number
+              subaccount_number: Sub-Account Number
+              bank_identifier: fints.formals.BankIdentifier(...)
+              customer_id: Customer ID
+              type: Account type
+              currency: Currency
+              owner_name: ['Owner Name 1', 'Owner Name 2 (optional)']
+              product_name: Account product name
+              supported_operations: dict(FinTSOperations -> boolean)
+            - ...
+        ````
+        """
+        retval = {
+            'bank': {},
+            'accounts': [],
+        }
+        if self.bpa:
+            retval['bank']['name'] = self.bpa.bank_name
+        if self.bpd.segments:
+            retval['bank']['supported_operations'] = {
+                op: any(self.bpd.find_segment_first(cmd[0]+'I'+cmd[2:]+'S') for cmd in op.value)
+                for op in FinTSOperations
+            }
+        if self.upd.segments:
+            for upd in self.upd.find_segments('HIUPD'):
+                acc = {}
+                acc['iban'] = upd.iban
+                acc['account_number'] = upd.account_information.account_number
+                acc['subaccount_number'] = upd.account_information.subaccount_number
+                acc['bank_identifier'] = upd.account_information.bank_identifier
+                acc['customer_id'] = upd.customer_id
+                acc['type'] = upd.account_type
+                acc['currency'] = upd.account_currency
+                acc['owner_name'] = []
+                if upd.name_account_owner_1:
+                    acc['owner_name'].append(upd.name_account_owner_1)
+                if upd.name_account_owner_2:
+                    acc['owner_name'].append(upd.name_account_owner_2)
+                acc['product_name'] = upd.account_product_name
+                acc['supported_operations'] = {
+                    op: any(allowed_transaction.transaction in op.value for allowed_transaction in upd.allowed_transactions)
+                    for op in FinTSOperations
+                }
+                retval['accounts'].append(acc)
+        return retval
+
 
     def get_sepa_accounts(self):
         """
