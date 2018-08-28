@@ -72,7 +72,7 @@ def test_container_count_exact():
     i1.a[0] = '3'
     i1.a[1] = 4
 
-    with pytest.raises(TypeError):
+    with pytest.raises(ValueError):
         i1.a[1] = '05'
 
     assert i1.a[0] == 3
