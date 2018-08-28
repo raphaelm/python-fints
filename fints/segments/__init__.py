@@ -96,7 +96,7 @@ class HIUPD6(FinTS3Segment):
     name_account_owner_2 = DataElementField(type='an', max_length=27, required=False, _d="Name des Kontoinhabers 2")
     account_product_name = DataElementField(type='an', max_length=30, required=False, _d="Kontoproduktbezeichnung")
     account_limit = DataElementGroupField(type=AccountLimit, required=False, _d="Kontolimit")
-    allowed_transactions = DataElementGroupField(type=AllowedTransaction, max_count=999, required=False, _d="Erlaubte Geschäftsvorfälle")
+    allowed_transactions = DataElementGroupField(type=AllowedTransaction, count=999, required=False, _d="Erlaubte Geschäftsvorfälle")
     extension = DataElementField(type='an', max_length=2048, required=False, _d="Erweiterung, kontobezogen")
 
 class ParameterSegment_22(FinTS3Segment):
