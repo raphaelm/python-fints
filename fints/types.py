@@ -43,18 +43,22 @@ class ValueList:
     def __delitem__(self, i):
         self.__setitem__(i, None)
 
+    def _get_minimal_true_length(self):
+        retval = 0
+        for i, val in enumerate(self._data):
+            if isinstance(val, Container):
+                if val.is_unset():
+                    continue
+            elif val is None:
+                continue
+            retval = i+1
+        return retval
+
     def __len__(self):
         if self._parent.count is not None:
             return self._parent.count
         else:
-            retval = 0
-            for i, val in enumerate(self._data):
-                if isinstance(val, Container):
-                    if val.is_unset():
-                        continue
-                elif val is None:
-                    continue
-                retval = i+1
+            retval = self._get_minimal_true_length()
             if self._parent.min_count is not None:
                 if self._parent.min_count > retval:
                     retval = self._parent.min_count
@@ -75,7 +79,12 @@ class ValueList:
             ( (prefix + level*indent) if first_level_indent else "")
             + "[{}\n".format(first_line_suffix)
         )
-        for val in self:
+        min_true_length = self._get_minimal_true_length()
+        skipped_items = 0
+        for i, val in enumerate(self):
+            if i > min_true_length:
+                skipped_items += 1
+                continue
             if print_doc:
                 docstring = self._parent._inline_doc_comment(val)
             else:
@@ -86,6 +95,8 @@ class ValueList:
                 )
             else:
                 val.print_nested(stream=stream, level=level+2, indent=indent, prefix=prefix, trailer=",", print_doc=print_doc, first_line_suffix=docstring)
+        if skipped_items:
+            stream.write( (prefix + (level+1)*indent) + "# {} empty items skipped\n".format(skipped_items) )
         stream.write( (prefix + level*indent) + "]{}\n".format(trailer) )
 
 class SegmentSequence:
