@@ -274,6 +274,9 @@ class FinTS3Client:
                 op: any(self.bpd.find_segment_first(cmd[0]+'I'+cmd[2:]+'S') for cmd in op.value)
                 for op in FinTSOperations
             }
+            hispas = self.bpd.find_segment_first('HISPAS')
+            if hispas:
+                retval['bank']['supported_sepa_formats'] = list(hispas.parameter.supported_sepa_formats)
         if self.upd.segments:
             for upd in self.upd.find_segments('HIUPD'):
                 acc = {}

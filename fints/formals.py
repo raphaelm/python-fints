@@ -811,3 +811,12 @@ class StatusSEPATask1(RepresentableEnum):
     IN_PROGRESS = '3' #: in Bearbeitung
     PROCESSED = '4' #: Creditoren-seitig verarbeitet, Buchung veranlasst
     REVOKED = '5' #: R-Transaktion wurde veranlasst
+
+class GetSEPAAccountParameter1(DataElementGroup):
+    """Parameter SEPA-Kontoverbindung anfordern, version 1
+
+    Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Messages -- Multibankfähige Geschäftsvorfälle """
+    single_account_query_allowed = DataElementField(type='jn', _d="Einzelkontenabruf erlaubt")
+    national_account_allowed = DataElementField(type='jn', _d="Nationale Kontoverbindung erlaubt")
+    structured_purpose_allowed = DataElementField(type='jn', _d="Strukturierter Verwendungszweck erlaubt")
+    supported_sepa_formats = DataElementField(type='an', max_length=256, max_count=9, required=False, _d="Unterstützte SEPA-Datenformate")
