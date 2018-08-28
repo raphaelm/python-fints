@@ -122,6 +122,13 @@ class Response(DataElementGroup):
     text = DataElementField(type='an', max_length=80)
     parameters = DataElementField(type='an', max_length=35, max_count=10, required=False)
 
+class Amount1(DataElementGroup):
+    """Betrag
+
+    Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Messages -- Multibankfähige Geschäftsvorfälle """
+    amount = DataElementField(type='wrt', _d="Wert")
+    currency = DataElementField(type='cur', _d="Währung")
+
 class AccountInformation(DataElementGroup):
     account_number = DataElementField(type='id')
     subaccount_number = DataElementField(type='id')
@@ -129,14 +136,14 @@ class AccountInformation(DataElementGroup):
 
 class AccountLimit(DataElementGroup):
     limit_type = DataElementField(type='code', length=1)
-    limit_amount = DataElementField(type='btg', required=False)
+    limit_amount = DataElementGroupField(type=Amount1, required=False)
     limit_days = DataElementField(type='num', max_length=3, required=False)
 
 class AllowedTransaction(DataElementGroup):
     transaction = DataElementField(type='an', max_length=6)
     required_signatures = DataElementField(type='num', max_length=2)
     limit_type = DataElementField(type='code', length=1, required=False)
-    limit_amount = DataElementField(type='btg', required=False)
+    limit_amount = DataElementGroupField(type=Amount1, required=False)
     limit_days = DataElementField(type='num', max_length=3, required=False)
 
 class TANTimeDialogAssociation(RepresentableEnum):
@@ -503,13 +510,6 @@ class SynchronisationMode(RepresentableEnum):
     NEW_SYSTEM_ID = '0' #: Neue Kundensystem-ID zurückmelden
     LAST_MESSAGE = '1' #: Letzte verarbeitete Nachrichtennummer zurückmelden
     SIGNATURE_ID = '2' #: Signatur-ID zurückmelden
-
-class Amount1(DataElementGroup):
-    """Betrag
-
-    Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Messages -- Multibankfähige Geschäftsvorfälle """
-    amount = DataElementField(type='wrt', _d="Wert")
-    currency = DataElementField(type='cur', _d="Währung")
 
 class CreditDebit2(RepresentableEnum):
     """Soll-Haben-Kennzeichen, version 2
