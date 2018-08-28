@@ -524,14 +524,13 @@ class FinTS3Client:
 
         return responses
 
-    def start_simple_sepa_transfer(self, account: SEPAAccount, iban: str, bic: str,
+    def start_sepa_transfer(self, account: SEPAAccount, iban: str, bic: str,
                                    recipient_name: str, amount: Decimal, account_name: str, reason: str,
                                    endtoend_id='NOTPROVIDED'):
         """
-        Start a simple SEPA transfer.
+        Simple SEPA transfer.
 
         :param account: SEPAAccount to start the transfer from.
-        :param tan_method: TANMethod object to use.
         :param iban: Recipient's IBAN
         :param bic: Recipient's BIC
         :param recipient_name: Recipient name
@@ -539,8 +538,7 @@ class FinTS3Client:
         :param account_name: Sender account name
         :param reason: Transfer reason
         :param endtoend_id: End-to-end-Id (defaults to ``NOTPROVIDED``)
-        :param tan_description: TAN medium description (if required)
-        :return: Returns a TANChallenge object
+        :return: Returns either a NeedRetryResponse or status (True, False)
         """
         config = {
             "name": account_name,
@@ -561,13 +559,13 @@ class FinTS3Client:
         }
         sepa.add_payment(payment)
         xml = sepa.export()
-        return self.start_sepa_transfer(account, xml)
+        return self.sepa_transfer(account, xml)
 
-    def start_sepa_transfer(self, account: SEPAAccount, pain_message: bytes, multiple=False,
+    def sepa_transfer(self, account: SEPAAccount, pain_message: bytes, multiple=False,
                             control_sum=None, currency='EUR', book_as_single=False,
                             pain_descriptor='urn:iso:std:iso:20022:tech:xsd:pain.001.001.03'):
         """
-        Start a custom SEPA transfer.
+        Custom SEPA transfer.
 
         :param account: SEPAAccount to send the transfer from.
         :param pain_message: SEPA PAIN message containing the transfer details.
@@ -575,7 +573,8 @@ class FinTS3Client:
         :param control_sum: Sum of all transfers (required if there are multiple)
         :param currency: Transfer currency
         :param book_as_single: Kindly ask the bank to put multiple transactions as separate lines on the bank statement (defaults to ``False``)
-        :return: Returns a TANChallenge object  FIXME Wrong
+        :param pain_descriptor: URN of the PAIN message schema used.
+        :return: Returns either a NeedRetryResponse or status (True, False)
         """
 
         with self._get_dialog() as dialog:
@@ -609,27 +608,27 @@ class FinTS3Client:
                 if book_as_single:
                     seg.request_single_booking = True
 
-            return self._send_with_possible_retry(dialog, seg, self._continue_start_sepa_transfer)
+            return self._send_with_possible_retry(dialog, seg, self._continue_sepa_transfer)
 
-    def _continue_start_sepa_transfer(self, command_seg, response):
+    def _continue_sepa_transfer(self, command_seg, response):
             # FIXME Properly find return code
             return True
 
-    def start_sepa_debit(self, account: SEPAAccount, pain_message: str, multiple=False, cor1=False,
+    def sepa_debit(self, account: SEPAAccount, pain_message: str, multiple=False, cor1=False,
                          control_sum=None, currency='EUR', book_as_single=False,
                          pain_descriptor='urn:iso:std:iso:20022:tech:xsd:pain.008.003.01'):
         """
-        Start a custom SEPA debit.
+        Custom SEPA debit.
 
         :param account: SEPAAccount to send the debit from.
         :param pain_message: SEPA PAIN message containing the debit details.
-        :param tan_method: TANMethod object to use.
-        :param tan_description: TAN medium description (if required)
         :param multiple: Whether this message contains multiple debits.
+        :param cor1: Whether to use COR1 debit (lead time reduced to 1 day)
         :param control_sum: Sum of all debits (required if there are multiple)
         :param currency: Debit currency
         :param book_as_single: Kindly ask the bank to put multiple transactions as separate lines on the bank statement (defaults to ``False``)
-        :return: Returns a TANChallenge object  FIXME Wrong
+        :param pain_descriptor: URN of the PAIN message schema used.
+        :return: Returns either a NeedRetryResponse or status (True, False)  ## FIXME Task ID?
         """
 
         with self._get_dialog() as dialog:
@@ -669,9 +668,9 @@ class FinTS3Client:
                 if book_as_single:
                     seg.request_single_booking = True
 
-            return self._send_with_possible_retry(dialog, seg, self._continue_start_sepa_debit)
+            return self._send_with_possible_retry(dialog, seg, self._continue_sepa_debit)
 
-    def _continue_start_sepa_debit(self, command_seg, response):
+    def _continue_sepa_debit(self, command_seg, response):
             # FIXME Properly return something
             return True
 
@@ -715,7 +714,7 @@ class FinTS3Client:
         :Example:
             client = FinTS3PinTanClient(..., set_data=None)
             with client:
-                challenge = client.start_sepa_transfer(...)
+                challenge = client.sepa_transfer(...)
 
                 dialog_data = client.pause_dialog()
 
