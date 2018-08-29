@@ -38,6 +38,7 @@ from .segments.journal import HKPRO3, HKPRO4
 from .types import SegmentSequence
 from .utils import MT535_Miniparser, Password, mt940_to_array, compress_datablob, decompress_datablob, SubclassesMixin
 from .parser import FinTS3Serializer
+from .exceptions import *
 
 logger = logging.getLogger(__name__)
 
@@ -108,10 +109,10 @@ class FinTS3Client:
     def _ensure_system_id(self):
         raise NotImplemented()
 
-    def _process_response(self, segment, response):
+    def _process_response(self, dialog, segment, response):
         pass
 
-    def process_response_message(self, message: FinTSInstituteMessage, internal_send=True):
+    def process_response_message(self, dialog, message: FinTSInstituteMessage, internal_send=True):
         bpa = message.find_segment_first(HIBPA3)
         if bpa:
             self.bpa = bpa
@@ -137,7 +138,7 @@ class FinTS3Client:
 
                     self._call_callbacks(None, response)
 
-                self._process_response(None, response)
+                self._process_response(dialog, None, response)
 
         for seg in message.find_segments(HIRMS2):
             for response in seg.responses:
@@ -148,7 +149,7 @@ class FinTS3Client:
 
                     self._call_callbacks(segment, response)
 
-                self._process_response(segment, response)
+                self._process_response(dialog, segment, response)
 
     def _send_with_possible_retry(self, dialog, command_seg, resume_func):
         response = dialog._send(command_seg)
@@ -158,6 +159,7 @@ class FinTS3Client:
         if self._standing_dialog:
             raise Exception("Cannot double __enter__() {}".format(self))
         self._standing_dialog = self._get_dialog()
+        self._standing_dialog.lazy_init = True  # FIXME Inelegant
         self._standing_dialog.__enter__()
 
     def __exit__(self, exc_type, exc_value, traceback):
@@ -931,7 +933,7 @@ class FinTS3PinTanClient(FinTS3Client):
             resume_func = getattr(self, challenge.resume_method)
             return resume_func(challenge.command_seg, response)
 
-    def _process_response(self, segment, response):
+    def _process_response(self, dialog, segment, response):
         if response.code == '3920':
             self.allowed_security_functions = list(response.parameters)
             if self.selected_security_function is None or not self.selected_security_function in self.allowed_security_functions:
@@ -951,6 +953,16 @@ class FinTS3PinTanClient(FinTS3Client):
                 else:
                     # Fall back to onestep
                     self.set_tan_mechanism('999')
+
+        if (not dialog.open and response.code.startswith('9')) or response.code in ('9340', '9910', '9930', '9931', '9942'):
+            # Assume all 9xxx errors in a not-yet-open dialog refer to the PIN or authentication
+            # During a dialog also listen for the following codes which may explicitly indicate an
+            # incorrect pin: 9340, 9910, 9930, 9931, 9942
+            # Fail-safe block all further attempts with this PIN
+            if self.pin:
+                self.pin.block()
+            raise FinTSClientPINError("Error during dialog initialization, PIN wrong?")
+
 
     def get_tan_mechanisms(self):
         """

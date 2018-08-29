@@ -12,15 +12,13 @@ from .segments.auth import HKIDN2, HKVVB3
 from .segments.dialog import HKEND1
 from .segments.message import HNHBK3, HNHBS1
 from .utils import compress_datablob, decompress_datablob
+from .connection import FinTSConnectionError
+from .exceptions import *
 
 logger = logging.getLogger(__name__)
 
 DIALOGUE_ID_UNASSIGNED = '0'
 DATA_BLOB_MAGIC = b'python-fints_DIALOG_DATABLOB'
-
-class FinTSDialogError(Exception):
-    pass
-
 
 class FinTSDialog:
     def __init__(self, client=None, lazy_init=False, enc_mechanism=None, auth_mechanisms=[]):
@@ -51,7 +49,7 @@ class FinTSDialog:
 
     def init(self, *extra_segments):
         if self.paused:
-            raise Error("Cannot init() a paused dialog")
+            raise FinTSDialogStateError("Cannot init() a paused dialog")
 
         if self.need_init and not self.open:
             segments = [
@@ -77,15 +75,18 @@ class FinTSDialog:
                 retval = self.send(*segments, internal_send=True)
                 self.need_init = False
                 return retval
-            except:
+            except Exception as e:
                 self.open = False
-                raise
+                if isinstance(e, (FinTSConnectionError, FinTSClientError)):
+                    raise
+                else:
+                    raise FinTSDialogInitError("Couldn't establish dialog with bank, Authentication data wrong?") from e
             finally:
                 self.lazy_init = False
 
     def end(self):
         if self.paused:
-            raise Error("Cannot end() on a paused dialog")
+            raise FinTSDialogStateError("Cannot end() on a paused dialog")
 
         if self.open:
             response = self.send(HKEND1(self.dialogue_id), internal_send=True)
@@ -95,14 +96,14 @@ class FinTSDialog:
         internal_send = kwargs.pop('internal_send', False)
 
         if self.paused:
-            raise Error("Cannot send() on a paused dialog")
+            raise FinTSDialogStateError("Cannot send() on a paused dialog")
 
         if not self.open:
             if self.lazy_init and self.need_init:
                 self.init()
 
         if not self.open:
-            raise Exception("Cannot send on dialog that is not open")
+            raise FinTSDialogStateError("Cannot send on dialog that is not open")
 
         message = self.new_customer_message()
         for s in segments:
@@ -129,16 +130,16 @@ class FinTSDialog:
         if self.dialogue_id == DIALOGUE_ID_UNASSIGNED:
             seg = response.find_segment_first(HNHBK3)
             if not seg:
-                raise ValueError('Could not find dialogue_id')
+                raise FinTSDialogError('Could not find dialogue_id')
             self.dialogue_id = seg.dialogue_id
 
-        self.client.process_response_message(response, internal_send=internal_send)
+        self.client.process_response_message(self, response, internal_send=internal_send)
 
         return response
 
     def new_customer_message(self):
         if self.paused:
-            raise Error("Cannot call new_customer_message() on a paused dialog")
+            raise FinTSDialogStateError("Cannot call new_customer_message() on a paused dialog")
 
         message = FinTSCustomerMessage(self)
         message += HNHBK3(0, 300, self.dialogue_id, self.next_message_number[message.DIRECTION])
@@ -150,7 +151,7 @@ class FinTSDialog:
 
     def finish_message(self, message):
         if self.paused:
-            raise Error("Cannot call finish_message() on a paused dialog")
+            raise FinTSDialogStateError("Cannot call finish_message() on a paused dialog")
 
         # Create signature(s) in reverse order: from inner to outer
         for auth_mech in reversed(self.auth_mechanisms):
@@ -166,7 +167,7 @@ class FinTSDialog:
     def pause(self):
         # FIXME Document, test
         if self.paused:
-            raise Error("Cannot pause a paused dialog")
+            raise FinTSDialogStateError("Cannot pause a paused dialog")
 
         external_dialog = self
         external_client = self.client

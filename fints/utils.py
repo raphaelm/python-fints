@@ -264,6 +264,7 @@ class Password(str):
 
     def __init__(self, value):
         self.value = value
+        self.blocked = False
 
     @classmethod
     @contextmanager
@@ -274,7 +275,12 @@ class Password(str):
         finally:
             cls.protected = False
 
+    def block(self):
+        self.blocked = True
+
     def __str__(self):
+        if self.blocked and not self.protected:
+            raise Exception("Refusing to use PIN after block")
         return '***' if self.protected else str(self.value)
 
     def __repr__(self):

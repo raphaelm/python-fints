@@ -7,11 +7,9 @@ from fints.parser import FinTS3Parser
 from fints.utils import Password
 
 from .message import FinTSInstituteMessage, FinTSMessage
+from .exceptions import *
 
 logger = logging.getLogger(__name__)
-
-class FinTSConnectionError(Exception):
-    pass
 
 
 class FinTSHTTPSConnection:
