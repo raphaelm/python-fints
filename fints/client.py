@@ -48,8 +48,10 @@ DATA_BLOB_MAGIC_RETRY = b'python-fints_RETRY_DATABLOB'
 
 class FinTSOperations(Enum):
     GET_BALANCE = ("HKSAL", )
-    GET_STATEMENT = ("HKKAZ", )
-    GET_CREDIT_CARD_STATEMENT = ("DKKKU", )
+    GET_TRANSACTIONS = ("HKKAZ", )
+    GET_CREDIT_CARD_TRANSACTIONS = ("DKKKU", )
+    GET_STATEMENT = ("HKEKA", )
+    GET_STATEMENT_PDF = ("HKEKP", )
     GET_HOLDINGS = ("HKWPD", )
     GET_SEPA_ACCOUNTS = ("HKSPA", )
     GET_SCHEDULED_DEBITS_SINGLE = ("HKDBS", )
@@ -101,7 +103,7 @@ class FinTS3Client:
         self._standing_dialog = None
 
         if set_data:
-            self.set_data(set_data)
+            self.set_data(bytes(set_data))
 
     def _new_dialog(self, lazy_init=False):
         raise NotImplemented()
@@ -374,9 +376,9 @@ class FinTS3Client:
             return version_map.get(max_version.header.version)
 
 
-    def get_statement(self, account: SEPAAccount, start_date: datetime.date, end_date: datetime.date):
+    def get_transactions(self, account: SEPAAccount, start_date: datetime.date = None, end_date: datetime.date = None):
         """
-        Fetches the statement of a bank account in a certain timeframe.
+        Fetches the list of transactions of a bank account in a certain timeframe.
 
         :param account: SEPA
         :param start_date: First day to fetch
@@ -410,7 +412,7 @@ class FinTS3Client:
 
         return statement
 
-    def get_credit_card_statement(self, account: SEPAAccount, credit_card_number: str, start_date: datetime.date, end_date: datetime.date):
+    def get_credit_card_transactions(self, account: SEPAAccount, credit_card_number: str, start_date: datetime.date = None, end_date: datetime.date = None):
         # FIXME Reverse engineered, probably wrong
         with self._get_dialog() as dialog:
             dkkku = self._find_highest_supported_command(DKKKU2)
