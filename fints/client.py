@@ -1016,3 +1016,11 @@ class FinTS3PinTanClient(FinTS3Client):
             for resp in response.response_segments(seg, 'HITAB'):
                 return resp.tan_usage_option, list(resp.tan_media_list)
 
+    def get_information(self):
+        retval = super().get_information()
+        retval['auth'] = {
+            'current_tan_mechanism': self.get_current_tan_mechanism(),
+            'tan_mechanisms': self.get_tan_mechanisms(),
+        }
+        return retval
+
