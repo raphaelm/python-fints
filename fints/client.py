@@ -1,5 +1,7 @@
 import datetime
 import logging
+import re
+import bleach
 from enum import Enum
 from decimal import Decimal
 from contextlib import contextmanager
@@ -813,15 +815,18 @@ class FinTS3Client:
             yield self
         self._standing_dialog = None
 
+CHLGUC_RE = re.compile(r'(?:CHLGUC\s*(?P<UCLEN>\d{4})\s*(?P<UC>\d.*?))?CHLGTEXT\s*\d{4}(?P<TEXT>.*)$', re.I | re.S)
+
 class NeedTANResponse(NeedRetryResponse):
-    def __init__(self, command_seg, tan_request, resume_method=None, challenge_structured=False):
+    def __init__(self, command_seg, tan_request, resume_method=None, tan_request_structured=False):
         self.command_seg = command_seg
         self.tan_request = tan_request
-        self.tan_request_structured = challenge_structured
+        self.tan_request_structured = tan_request_structured
         if hasattr(resume_method, '__func__'):
             self.resume_method = resume_method.__func__.__name__
         else:
             self.resume_method = resume_method
+        self._parse_tan_challenge()
 
     def __repr__(self):
         return '<o.__class__.__name__(command_seg={o.command_seg!r}, tan_request={o.tan_request!r})>'.format(o=self)
@@ -830,7 +835,7 @@ class NeedTANResponse(NeedRetryResponse):
     def _from_data_v1(cls, data):
         if data["version"] == 1:
             segs = SegmentSequence(data['segments_bin']).segments
-            return cls(segs[0], segs[1], data['resume_method'], data['challenge_structured'])
+            return cls(segs[0], segs[1], data['resume_method'], data['tan_request_structured'])
 
         raise Exception("Wrong blob data version")
 
@@ -840,9 +845,34 @@ class NeedTANResponse(NeedRetryResponse):
             "version": 1,
             "segments_bin": SegmentSequence([self.command_seg, self.tan_request]).render_bytes(),
             "resume_method": self.resume_method,
-            "challenge_structured": self.challenge_structured,
+            "tan_request_structured": self.tan_request_structured,
         }
         return compress_datablob(DATA_BLOB_MAGIC_RETRY, 1, data)
+
+    def _parse_tan_challenge(self):
+        self.challenge_raw = self.tan_request.challenge
+        self.challenge = self.challenge_raw
+        self.challenge_html = None
+        self.challenge_hhduc = None
+
+        if hasattr(self.tan_request, 'challenge_hhduc'):
+            self.challenge_hhduc = self.tan_request.challenge_hhduc
+
+        match = CHLGUC_RE.match(self.challenge_raw)
+        if match:
+            if not self.challenge_hhduc:
+                if match.group('UCLEN'):
+                    self.challenge_hhduc = match.group('UC')[:int(match.group('UCLEN'))]
+            self.challenge = match.group('TEXT').strip()
+
+        if self.tan_request_structured:
+            self.challenge_html = bleach.clean(
+                self.challenge,
+                tags=['br', 'p', 'b', 'i', 'u', 'ul', 'ol', 'li'],
+                attributes=[],
+            )
+        else:
+            self.challenge_html = bleach.clean(self.challenge, tags=[])
 
 
 # Note: Implementing HKTAN#6 implies support for Strong Customer Authentication (SCA)
