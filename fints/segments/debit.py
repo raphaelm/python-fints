@@ -156,7 +156,7 @@ class HKDBS1(FinTS3Segment):
     touchdown_point = DataElementField(type='an', max_length=35, required=False, _d="Aufsetzpunkt")
 
 
-class HIDBS1(DebitResponseBase):
+class HIDBS1(FinTS3Segment):
     """Bestand terminierter SEPA-Einzellastschriften rückmelden, version 1
 
     Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Messages -- Multibankfähige Geschäftsvorfälle """
@@ -187,7 +187,7 @@ class HKDBS2(FinTS3Segment):
     touchdown_point = DataElementField(type='an', max_length=35, required=False, _d="Aufsetzpunkt")
 
 
-class HIDBS2(DebitResponseBase):
+class HIDBS2(FinTS3Segment):
     """Bestand terminierter SEPA-Einzellastschriften rückmelden, version 2
 
     Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Messages -- Multibankfähige Geschäftsvorfälle """
@@ -218,7 +218,7 @@ class HKDMB1(FinTS3Segment):
     touchdown_point = DataElementField(type='an', max_length=35, required=False, _d="Aufsetzpunkt")
 
 
-class HIDMB1(DebitResponseBase):
+class HIDMB1(FinTS3Segment):
     """Bestand terminierter SEPA-Sammellastschriften rückmelden, version 1
 
     Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Messages -- Multibankfähige Geschäftsvorfälle """
