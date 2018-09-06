@@ -85,6 +85,8 @@ class FlickerCode:
     def parse(self, code):
         length = LC_LENGTH_HHD14 if self.version == HHD_VERSION_14 else LC_LENGTH_HHD13
         self.lc = int(code[0:length])
+        if len(code) < length+self.lc:
+            raise ValueError("lc too large: {} + {} > {}".format(self.lc, length, len(code)))
         code = code[length:]
         code = self.startcode.parse(code)
         self.version = self.startcode.version

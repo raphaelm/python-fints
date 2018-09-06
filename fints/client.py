@@ -815,8 +815,6 @@ class FinTS3Client:
             yield self
         self._standing_dialog = None
 
-CHLGUC_RE = re.compile(r'(?:CHLGUC\s*(?P<UCLEN>\d{4})\s*(?P<UC>\d.*?))?CHLGTEXT\s*\d{4}(?P<TEXT>.*)$', re.I | re.S)
-
 class NeedTANResponse(NeedRetryResponse):
     def __init__(self, command_seg, tan_request, resume_method=None, tan_request_structured=False):
         self.command_seg = command_seg
@@ -856,14 +854,17 @@ class NeedTANResponse(NeedRetryResponse):
         self.challenge_hhduc = None
 
         if hasattr(self.tan_request, 'challenge_hhduc'):
-            self.challenge_hhduc = self.tan_request.challenge_hhduc
+            if self.tan_request.challenge_hhduc:
+                self.challenge_hhduc = self.tan_request.challenge_hhduc.decode('us-ascii')
 
-        match = CHLGUC_RE.match(self.challenge_raw)
-        if match:
-            if not self.challenge_hhduc:
-                if match.group('UCLEN'):
-                    self.challenge_hhduc = match.group('UC')[:int(match.group('UCLEN'))]
-            self.challenge = match.group('TEXT').strip()
+        if self.challenge.startswith('CHLGUC  '):
+            l = self.challenge[8:12]
+            if l.isdigit():
+                self.challenge_hhduc = self.challenge[12:(12+int(l,10))]
+                self.challenge = self.challenge[(12+int(l,10)):]
+
+        if self.challenge.startswith('CHLGTEXT'):
+            self.challenge = self.challenge[12:]
 
         if self.tan_request_structured:
             self.challenge_html = bleach.clean(
