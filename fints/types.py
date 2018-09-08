@@ -170,10 +170,9 @@ class SegmentSequence:
 
             if recurse:
                 for name, field in s._fields.items():
-                    if isinstance(field, fints.fields.SegmentSequenceField):
-                        val = getattr(s, name)
-                        if val:
-                            yield from val.find_segments(query=query, version=version, callback=callback, recurse=recurse)
+                    val = getattr(s, name)
+                    if val and hasattr(val, 'find_segments'):
+                        yield from val.find_segments(query=query, version=version, callback=callback, recurse=recurse)
 
     def find_segment_first(self, *args, **kwargs):
         """Finds the first matching segment.
