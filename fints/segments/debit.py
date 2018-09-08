@@ -1,7 +1,14 @@
-from ._base import FinTS3Segment, ParameterSegment
-from ..models import SEPAAccount
-from ..fields import DataElementField, DataElementGroupField, CodeField
-from ..formals import ScheduledCOR1DebitParameter1, ScheduledCOR1BatchDebitParameter1, KTI1, Amount1, ScheduledBatchDebitParameter1, ScheduledBatchDebitParameter2, ScheduledDebitParameter1, ScheduledDebitParameter2, SupportedSEPAPainMessages1, QueryScheduledDebitParameter1, QueryScheduledDebitParameter2, SEPACCode1, StatusSEPATask1, QueryScheduledBatchDebitParameter1
+from ..fields import CodeField, DataElementField, DataElementGroupField
+from ..formals import (
+    KTI1, Amount1, QueryScheduledBatchDebitParameter1,
+    QueryScheduledDebitParameter1, QueryScheduledDebitParameter2,
+    ScheduledBatchDebitParameter1, ScheduledBatchDebitParameter2,
+    ScheduledCOR1BatchDebitParameter1, ScheduledCOR1DebitParameter1,
+    ScheduledDebitParameter1, ScheduledDebitParameter2, SEPACCode1,
+    StatusSEPATask1, SupportedSEPAPainMessages1,
+)
+from .base import FinTS3Segment, ParameterSegment
+
 
 class BatchDebitBase(FinTS3Segment):
     account = DataElementGroupField(type=KTI1, _d="Kontoverbindung international")
@@ -233,6 +240,3 @@ class HIDMBS1(ParameterSegment):
 
     Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Messages -- Multibankfähige Geschäftsvorfälle """
     parameter = DataElementGroupField(type=QueryScheduledBatchDebitParameter1, _d="Parameter Bestand terminierter SEPA-Sammellastschriften")
-
-
-

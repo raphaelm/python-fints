@@ -1,19 +1,15 @@
+import io
 import logging
 import pickle
-import io
 
-from .formals import (
-    BankIdentifier, Language2, SynchronisationMode, SystemIDStatus, CUSTOMER_ID_ANONYMOUS,
-)
-from .message import (
-    FinTSCustomerMessage, FinTSMessage, MessageDirection,
-)
+from .connection import FinTSConnectionError
+from .exceptions import *
+from .formals import CUSTOMER_ID_ANONYMOUS, Language2, SystemIDStatus
+from .message import FinTSCustomerMessage, MessageDirection
 from .segments.auth import HKIDN2, HKVVB3
 from .segments.dialog import HKEND1
 from .segments.message import HNHBK3, HNHBS1
 from .utils import compress_datablob, decompress_datablob
-from .connection import FinTSConnectionError
-from .exceptions import *
 
 logger = logging.getLogger(__name__)
 

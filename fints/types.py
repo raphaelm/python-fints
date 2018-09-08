@@ -1,7 +1,8 @@
-from contextlib import suppress
 from collections import Iterable, OrderedDict
+from contextlib import suppress
 
 from .utils import SubclassesMixin
+
 
 class Field:
     def __init__(self, length=None, min_length=None, max_length=None, count=None, min_count=None, max_count=None, required=True, _d=None):

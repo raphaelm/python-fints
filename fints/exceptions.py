@@ -18,4 +18,3 @@ class FinTSDialogInitError(FinTSDialogError):
 
 class FinTSConnectionError(FinTSError):
     pass
-

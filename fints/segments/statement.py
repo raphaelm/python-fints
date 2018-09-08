@@ -1,10 +1,7 @@
 from fints.fields import DataElementField, DataElementGroupField
-from fints.formals import (
-    KTI1, Account3, Account2, QueryCreditCardStatements2
-)
+from fints.formals import KTI1, Account2, Account3, QueryCreditCardStatements2
 
-from ._base import FinTS3Segment, ParameterSegment
-
+from .base import FinTS3Segment, ParameterSegment
 
 
 class HKKAZ5(FinTS3Segment):

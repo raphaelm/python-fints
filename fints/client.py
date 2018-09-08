@@ -1,46 +1,45 @@
 import datetime
 import logging
-import re
-import bleach
-from enum import Enum
-from decimal import Decimal
-from contextlib import contextmanager
 from collections import OrderedDict
+from contextlib import contextmanager
+from decimal import Decimal
+from enum import Enum
 
-from mt940.models import Balance
+import bleach
 from sepaxml import SepaTransfer
 
 from .connection import FinTSHTTPSConnection
 from .dialog import FinTSDialog
+from .exceptions import *
 from .formals import (
-    KTI1, Account3, BankIdentifier,
-    SynchronisationMode, TwoStepParametersCommon,
-    TANMediaType2, TANMediaClass4, CUSTOMER_ID_ANONYMOUS,
-    DescriptionRequired,
+    CUSTOMER_ID_ANONYMOUS, KTI1, BankIdentifier, DescriptionRequired,
+    SynchronisationMode, TANMediaClass4, TANMediaType2,
 )
 from .message import FinTSInstituteMessage
-from .models import (
-    SEPAAccount, TANChallenge, TANChallenge3,
-    TANChallenge4, TANChallenge5, TANChallenge6,
-)
+from .models import SEPAAccount
+from .parser import FinTS3Serializer
 from .security import (
     PinTanDummyEncryptionMechanism, PinTanOneStepAuthenticationMechanism,
     PinTanTwoStepAuthenticationMechanism,
 )
-from .segments.bank import HIBPA3, HIUPA4, HKKOM4
 from .segments.accounts import HISPA1, HKSPA1
-from .segments.auth import HKTAB4, HKTAB5, HKTAN3, HKTAN5, HIPINS1
+from .segments.auth import HIPINS1, HKTAB4, HKTAB5, HKTAN3, HKTAN5
+from .segments.bank import HIBPA3, HIUPA4, HKKOM4
+from .segments.debit import (
+    HKDBS1, HKDBS2, HKDMB1, HKDMC1, HKDME1, HKDME2,
+    HKDSC1, HKDSE1, HKDSE2, DebitResponseBase,
+)
 from .segments.depot import HKWPD5, HKWPD6
-from .segments.dialog import HISYN4, HKSYN3, HIRMG2, HIRMS2
-from .segments.debit import HKDSE1, HKDSE2, HKDME1, HKDME2, HKDSC1, HKDMC1, HKDBS1, HKDBS2, HKDMB1, DebitResponseBase
-from .segments.saldo import HKSAL5, HKSAL6, HKSAL7
-from .segments.statement import HKKAZ5, HKKAZ6, HKKAZ7, DKKKU2
-from .segments.transfer import HKCCM1, HKCCS1
+from .segments.dialog import HIRMG2, HIRMS2, HISYN4, HKSYN3
 from .segments.journal import HKPRO3, HKPRO4
+from .segments.saldo import HKSAL5, HKSAL6, HKSAL7
+from .segments.statement import DKKKU2, HKKAZ5, HKKAZ6, HKKAZ7
+from .segments.transfer import HKCCM1, HKCCS1
 from .types import SegmentSequence
-from .utils import MT535_Miniparser, Password, mt940_to_array, compress_datablob, decompress_datablob, SubclassesMixin
-from .parser import FinTS3Serializer
-from .exceptions import *
+from .utils import (
+    MT535_Miniparser, Password, SubclassesMixin,
+    compress_datablob, decompress_datablob, mt940_to_array,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -1121,4 +1120,3 @@ class FinTS3PinTanClient(FinTS3Client):
             'tan_mechanisms': self.get_tan_mechanisms(),
         }
         return retval
-

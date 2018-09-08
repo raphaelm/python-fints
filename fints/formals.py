@@ -1,7 +1,7 @@
 import re
 
-from fints.types import *  # The order is important!
 from fints.fields import *
+from fints.types import *
 from fints.utils import RepresentableEnum, ShortReprMixin
 
 CUSTOMER_ID_ANONYMOUS = '9999999999'

@@ -1,6 +1,7 @@
-from ._base import FinTS3Segment, ParameterSegment
 from ..fields import DataElementGroupField
 from ..formals import KTZ1, Account3, GetSEPAAccountParameter1
+from .base import FinTS3Segment, ParameterSegment
+
 
 class HKSPA1(FinTS3Segment):
     """SEPA-Kontoverbindung anfordern, version 1

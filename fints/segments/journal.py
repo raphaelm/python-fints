@@ -1,9 +1,8 @@
 from fints.fields import DataElementField, DataElementGroupField
-from fints.formals import (
-    ReferenceMessage, Response
-)
+from fints.formals import ReferenceMessage, Response
 
-from ._base import FinTS3Segment, ParameterSegment, ParameterSegment_22
+from .base import FinTS3Segment, ParameterSegment, ParameterSegment_22
+
 
 class HKPRO3(FinTS3Segment):
     """Statusprotokoll anfordern, version 3

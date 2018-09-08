@@ -1,13 +1,12 @@
 import base64
-import logging
 import io
+import logging
 
 import requests
-from fints.parser import FinTS3Parser
 from fints.utils import Password
 
-from .message import FinTSInstituteMessage, FinTSMessage
 from .exceptions import *
+from .message import FinTSInstituteMessage, FinTSMessage
 
 logger = logging.getLogger(__name__)
 

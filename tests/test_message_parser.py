@@ -2,7 +2,7 @@ import pytest
 from conftest import TEST_MESSAGES
 from fints.formals import SegmentSequence
 from fints.parser import FinTS3Parser, FinTSParserError, FinTSParserWarning
-from fints.segments import FinTS3Segment
+from fints.segments.base import FinTS3Segment
 
 
 @pytest.mark.parametrize("input_name", TEST_MESSAGES.keys())
@@ -25,7 +25,7 @@ def test_parse_other(input_name):
     m.print_nested()
 
 def test_parse_counted():
-    from fints.segments import FinTS3Segment
+    from fints.segments.base import FinTS3Segment
     from fints.formals import NumericField, Container, ContainerField
 
     class ITST1(FinTS3Segment):

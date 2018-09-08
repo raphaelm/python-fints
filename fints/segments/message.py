@@ -1,5 +1,3 @@
-import time
-
 from fints.fields import (
     CodeField, DataElementField, DataElementGroupField,
     SegmentSequenceField, ZeroPaddedNumericField,
@@ -10,7 +8,8 @@ from fints.formals import (
     SecurityDateTime, SecurityIdentificationDetails, SecurityProfile,
     SecurityRole, SignatureAlgorithm, UserDefinedSignature,
 )
-from ._base import FinTS3Segment
+
+from .base import FinTS3Segment
 
 
 class HNHBK3(FinTS3Segment):

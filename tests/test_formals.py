@@ -1,6 +1,6 @@
 import pytest
 from fints.formals import (
-    AlphanumericField, Container, ContainerField, DataElementField,
+    Container, ContainerField, DataElementField,
     DataElementGroupField, DigitsField, Field, GenericGroupField,
     NumericField, SegmentHeader, SegmentSequence,
 )

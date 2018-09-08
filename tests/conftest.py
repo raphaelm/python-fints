@@ -2,7 +2,6 @@ import glob
 import os.path
 
 import fints.parser
-import pytest
 
 TEST_MESSAGES = {
     os.path.basename(f).rsplit('.')[0]: open(f, 'rb').read() for f in 

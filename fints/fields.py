@@ -2,12 +2,9 @@ import datetime
 import re
 import warnings
 
-from fints.types import (
-    Field, TypedField, SegmentSequence
-)
+from fints.types import Container, SegmentSequence, TypedField
 from fints.utils import (
-    DocTypeMixin, FieldRenderFormatStringMixin,
-    FixedLengthMixin, Password
+    DocTypeMixin, FieldRenderFormatStringMixin, FixedLengthMixin, Password,
 )
 
 
@@ -50,7 +47,7 @@ class GenericGroupField(DataElementGroupField):
 
     def _default_value(self):
         if self.type is None:
-            return fints.types.Container()
+            return Container()
         else:
             return self.type()
     

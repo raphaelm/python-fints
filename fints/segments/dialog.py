@@ -1,6 +1,6 @@
-from ._base import FinTS3Segment
 from ..fields import CodeField, DataElementField, DataElementGroupField
-from ..formals import SynchronisationMode, Response
+from ..formals import Response, SynchronisationMode
+from .base import FinTS3Segment
 
 
 class HKSYN3(FinTS3Segment):
@@ -29,4 +29,3 @@ class HIRMG2(FinTS3Segment):
 class HIRMS2(FinTS3Segment):
     "Rückmeldungen zu Segmenten"
     responses = DataElementGroupField(type=Response, min_count=1, max_count=99, _d="Rückmeldung")
-

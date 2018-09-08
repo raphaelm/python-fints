@@ -6,7 +6,12 @@ from enum import Enum
 from .formals import (
     Container, DataElementGroupField, SegmentSequence, ValueList,
 )
-from .segments._base import FinTS3Segment
+# Ensure that all segment types are loaded (otherwise the subclass find won't see them)
+from .segments import (  # noqa
+    accounts, auth, bank, base, debit, depot, dialog,
+    journal, message, saldo, statement, transfer,
+)
+from .segments.base import FinTS3Segment
 
 # 
 # FinTS 3.0 structure:

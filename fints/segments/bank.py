@@ -1,6 +1,12 @@
-from ._base import FinTS3Segment
-from fints.fields import DataElementField, CodeField, DataElementGroupField
-from fints.formals import UPDUsage, AccountInformation, AccountLimit, AllowedTransaction, BankIdentifier, Language2, CommunicationParameter2, SupportedLanguages2, SupportedHBCIVersions2
+from fints.fields import CodeField, DataElementField, DataElementGroupField
+from fints.formals import (
+    AccountInformation, AccountLimit, AllowedTransaction,
+    BankIdentifier, CommunicationParameter2, Language2,
+    SupportedHBCIVersions2, SupportedLanguages2, UPDUsage,
+)
+
+from .base import FinTS3Segment
+
 
 class HIBPA3(FinTS3Segment):
     """Bankparameter allgemein, version 3

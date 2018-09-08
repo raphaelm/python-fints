@@ -1,10 +1,7 @@
-from fints.fields import CodeField, DataElementField, DataElementGroupField
-from fints.formals import (
-    KTI1, Amount1, BatchTransferParameter1
-)
+from fints.fields import DataElementField, DataElementGroupField
+from fints.formals import KTI1, Amount1, BatchTransferParameter1
 
-from ._base import FinTS3Segment, ParameterSegment
-from ..models import SEPAAccount
+from .base import FinTS3Segment, ParameterSegment
 
 
 class HKCCS1(FinTS3Segment):
