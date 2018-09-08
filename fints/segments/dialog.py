@@ -1,6 +1,6 @@
-from . import FinTS3Segment
-from ..fields import CodeField, DataElementField
-from ..formals import SynchronisationMode
+from ._base import FinTS3Segment
+from ..fields import CodeField, DataElementField, DataElementGroupField
+from ..formals import SynchronisationMode, Response
 
 
 class HKSYN3(FinTS3Segment):
@@ -21,3 +21,12 @@ class HKEND1(FinTS3Segment):
 
     Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Formals"""
     dialogue_id = DataElementField(type='id', _d="Dialog-ID")
+
+class HIRMG2(FinTS3Segment):
+    "Rückmeldungen zur Gesamtnachricht"
+    responses = DataElementGroupField(type=Response, min_count=1, max_count=99, _d="Rückmeldung")
+
+class HIRMS2(FinTS3Segment):
+    "Rückmeldungen zu Segmenten"
+    responses = DataElementGroupField(type=Response, min_count=1, max_count=99, _d="Rückmeldung")
+

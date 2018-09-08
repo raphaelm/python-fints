@@ -10,7 +10,7 @@ from fints.formals import (
     SecurityDateTime, SecurityIdentificationDetails, SecurityProfile,
     SecurityRole, SignatureAlgorithm, UserDefinedSignature,
 )
-from . import FinTS3Segment
+from ._base import FinTS3Segment
 
 
 class HNHBK3(FinTS3Segment):

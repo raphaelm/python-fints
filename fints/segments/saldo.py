@@ -3,7 +3,7 @@ from fints.formals import (
     KTI1, Account2, Account3, Amount1, Balance1, Balance2, Timestamp1,
 )
 
-from . import FinTS3Segment
+from ._base import FinTS3Segment
 
 
 class HKSAL5(FinTS3Segment):

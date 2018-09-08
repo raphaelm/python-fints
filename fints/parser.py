@@ -6,7 +6,7 @@ from enum import Enum
 from .formals import (
     Container, DataElementGroupField, SegmentSequence, ValueList,
 )
-from .segments import FinTS3Segment
+from .segments._base import FinTS3Segment
 
 # 
 # FinTS 3.0 structure:

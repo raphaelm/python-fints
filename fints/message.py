@@ -2,7 +2,10 @@ import random
 from enum import Enum
 
 from .formals import SegmentSequence
-from .segments import HIBPA3, HIRMG2, HIRMS2, FinTS3Segment, HITANSBase
+from .segments._base import FinTS3Segment
+from .segments.auth import HITANSBase
+from .segments.bank import HIBPA3
+from .segments.dialog import HIRMG2, HIRMS2
 from .segments.message import HNHBK3, HNHBS1
 
 

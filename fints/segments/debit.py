@@ -1,8 +1,7 @@
-from . import FinTS3Segment
+from ._base import FinTS3Segment, ParameterSegment
 from ..models import SEPAAccount
 from ..fields import DataElementField, DataElementGroupField, CodeField
 from ..formals import ScheduledCOR1DebitParameter1, ScheduledCOR1BatchDebitParameter1, KTI1, Amount1, ScheduledBatchDebitParameter1, ScheduledBatchDebitParameter2, ScheduledDebitParameter1, ScheduledDebitParameter2, SupportedSEPAPainMessages1, QueryScheduledDebitParameter1, QueryScheduledDebitParameter2, SEPACCode1, StatusSEPATask1, QueryScheduledBatchDebitParameter1
-from . import ParameterSegment
 
 class BatchDebitBase(FinTS3Segment):
     account = DataElementGroupField(type=KTI1, _d="Kontoverbindung international")

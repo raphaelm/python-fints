@@ -1,7 +1,7 @@
 from fints.fields import DataElementField, DataElementGroupField
 from fints.formals import Account2, Account3
 
-from . import FinTS3Segment
+from ._base import FinTS3Segment
 
 
 class HKWPD5(FinTS3Segment):

@@ -3,7 +3,7 @@ from fints.formals import (
     KTI1, Amount1, BatchTransferParameter1
 )
 
-from . import FinTS3Segment, ParameterSegment
+from ._base import FinTS3Segment, ParameterSegment
 from ..models import SEPAAccount
 
 

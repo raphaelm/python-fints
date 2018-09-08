@@ -1,4 +1,4 @@
-from . import FinTS3Segment, ParameterSegment
+from ._base import FinTS3Segment, ParameterSegment
 from ..fields import DataElementGroupField
 from ..formals import KTZ1, Account3, GetSEPAAccountParameter1
 

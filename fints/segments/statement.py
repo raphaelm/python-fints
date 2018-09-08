@@ -3,7 +3,7 @@ from fints.formals import (
     KTI1, Account3, Account2, QueryCreditCardStatements2
 )
 
-from . import FinTS3Segment, ParameterSegment
+from ._base import FinTS3Segment, ParameterSegment
 
 
 

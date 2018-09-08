@@ -27,11 +27,11 @@ from .security import (
     PinTanDummyEncryptionMechanism, PinTanOneStepAuthenticationMechanism,
     PinTanTwoStepAuthenticationMechanism,
 )
-from .segments import HIBPA3, HIRMG2, HIRMS2, HIUPA4, HIPINS1, HKKOM4
+from .segments.bank import HIBPA3, HIUPA4, HKKOM4
 from .segments.accounts import HISPA1, HKSPA1
-from .segments.auth import HKTAB4, HKTAB5, HKTAN3, HKTAN5
+from .segments.auth import HKTAB4, HKTAB5, HKTAN3, HKTAN5, HIPINS1
 from .segments.depot import HKWPD5, HKWPD6
-from .segments.dialog import HISYN4, HKSYN3
+from .segments.dialog import HISYN4, HKSYN3, HIRMG2, HIRMS2
 from .segments.debit import HKDSE1, HKDSE2, HKDME1, HKDME2, HKDSC1, HKDMC1, HKDBS1, HKDBS2, HKDMB1, DebitResponseBase
 from .segments.saldo import HKSAL5, HKSAL6, HKSAL7
 from .segments.statement import HKKAZ5, HKKAZ6, HKKAZ7, DKKKU2

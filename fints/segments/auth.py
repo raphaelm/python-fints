@@ -2,9 +2,12 @@ from fints.fields import CodeField, DataElementField, DataElementGroupField
 from fints.formals import (
     BankIdentifier, Language2, SynchronisationMode, SystemIDStatus,
     TANMediaType2, TANMediaClass4, TANMedia5, TANMediaClass3, TANMedia4, TANUsageOption,
-    KTI1, ParameterChallengeClass, ResponseHHDUC, ChallengeValidUntil
+    KTI1, ParameterChallengeClass, ResponseHHDUC, ChallengeValidUntil,
+    ParameterTwostepTAN1, ParameterTwostepTAN2, ParameterTwostepTAN3, ParameterTwostepTAN4,
+    ParameterTwostepTAN5, ParameterTwostepTAN6, ParameterPinTan, SupportedLanguages2,
+    SupportedHBCIVersions2
 )
-from . import FinTS3Segment
+from ._base import FinTS3Segment, ParameterSegment
 
 
 class HKIDN2(FinTS3Segment):
@@ -149,3 +152,33 @@ class HITAB5(FinTS3Segment):
 
     tan_usage_option = CodeField(enum=TANUsageOption, _d="TAN_Einsatzoption")
     tan_media_list = DataElementGroupField(type=TANMedia5, max_count=99, required=False, _d="TAN-Medium-Liste")
+
+class HITANSBase(ParameterSegment):
+    pass
+
+class HITANS1(HITANSBase):
+    parameter = DataElementGroupField(type=ParameterTwostepTAN1)
+
+class HITANS2(HITANSBase):
+    parameter = DataElementGroupField(type=ParameterTwostepTAN2)
+
+class HITANS3(HITANSBase):
+    parameter = DataElementGroupField(type=ParameterTwostepTAN3)
+
+class HITANS4(HITANSBase):
+    parameter = DataElementGroupField(type=ParameterTwostepTAN4)
+
+class HITANS5(HITANSBase):
+    parameter = DataElementGroupField(type=ParameterTwostepTAN5)
+
+class HITANS6(HITANSBase):
+    parameter = DataElementGroupField(type=ParameterTwostepTAN6)
+
+class HIPINS1(ParameterSegment):
+    """PIN/TAN-spezifische Informationen, version 1
+
+    Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Sicherheitsverfahren PIN/TAN 
+    """
+    parameter = DataElementGroupField(type=ParameterPinTan, _d="Parameter PIN/TAN-spezifische Informationen") 
+
+

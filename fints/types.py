@@ -2,7 +2,6 @@ from collections import Iterable, OrderedDict
 
 import fints.fields
 
-
 class ValueList:
     def __init__(self, parent):
         self._parent = parent
