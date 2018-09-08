@@ -1,6 +1,112 @@
+from contextlib import suppress
 from collections import Iterable, OrderedDict
 
-import fints.fields
+from .utils import SubclassesMixin
+
+class Field:
+    def __init__(self, length=None, min_length=None, max_length=None, count=None, min_count=None, max_count=None, required=True, _d=None):
+        if length is not None and (min_length is not None or max_length is not None):
+            raise ValueError("May not specify both 'length' AND 'min_length'/'max_length'")
+        if count is not None and (min_count is not None or max_count is not None):
+            raise ValueError("May not specify both 'count' AND 'min_count'/'max_count'")
+
+        self.length = length
+        self.min_length = min_length
+        self.max_length = max_length
+        self.count = count
+        self.min_count = min_count
+        self.max_count = max_count
+        self.required = required
+
+        if not self.count and not self.min_count and not self.max_count:
+            self.count = 1
+
+        self.__doc__ = _d
+
+    def _default_value(self):
+        return None
+
+    def __get__(self, instance, owner):
+        if self not in instance._values:
+            self.__set__(instance, None)
+
+        return instance._values[self]
+
+    def __set__(self, instance, value):
+        if value is None:
+            if self.count == 1:
+                instance._values[self] = self._default_value()
+            else:
+                instance._values[self] = ValueList(parent=self)
+        else:
+            if self.count == 1:
+                value_ = self._parse_value(value)
+                self._check_value(value_)
+            else:
+                value_ = ValueList(parent=self)
+                for i, v in enumerate(value):
+                    value_[i] = v
+
+            instance._values[self] = value_
+
+    def __delete__(self, instance):
+        self.__set__(instance, None)
+
+    def _parse_value(self, value):
+        raise NotImplementedError('Needs to be implemented in subclass')
+
+    def _render_value(self, value):
+        raise NotImplementedError('Needs to be implemented in subclass')
+
+    def _check_value(self, value):
+        with suppress(NotImplementedError):
+            self._render_value(value)
+
+    def _check_value_length(self, value):
+        if self.max_length is not None and len(value) > self.max_length:
+            raise ValueError("Value {!r} cannot be rendered: max_length={} exceeded".format(value, self.max_length))
+
+        if self.min_length is not None and len(value) < self.min_length:
+            raise ValueError("Value {!r} cannot be rendered: min_length={} not reached".format(value, self.min_length))
+
+        if self.length is not None and len(value) != self.length:
+            raise ValueError("Value {!r} cannot be rendered: length={} not satisfied".format(value, self.length))
+
+    def render(self, value):
+        if value is None:
+            return None
+
+        return self._render_value(value)
+
+    def _inline_doc_comment(self, value):
+        if self.__doc__:
+            d = self.__doc__.splitlines()[0].strip()
+            if d:
+                return " # {}".format(d)
+        return ""
+
+class TypedField(Field, SubclassesMixin):
+    flat_length = 1
+
+    def __new__(cls, *args, **kwargs):
+        target_cls = None
+        fallback_cls = None
+        for subcls in cls._all_subclasses():
+            if getattr(subcls, 'type', '') is None:
+                fallback_cls = subcls
+            if getattr(subcls, 'type', None) == kwargs.get('type', None):
+                target_cls = subcls
+                break
+        if target_cls is None and fallback_cls is not None and issubclass(fallback_cls, cls):
+            target_cls = fallback_cls
+        retval = object.__new__(target_cls or cls)
+        return retval
+
+    def __init__(self, type=None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.type = type or getattr(self.__class__, 'type', None)
+
 
 class ValueList:
     def __init__(self, parent):
@@ -213,7 +319,7 @@ class ContainerMeta(type):
         for supercls in reversed(bases):
             if hasattr(supercls, '_fields'):
                 retval._fields.update((k,v) for (k,v) in supercls._fields.items())
-        retval._fields.update((k,v) for (k,v) in classdict.items() if isinstance(v, fints.fields.Field))
+        retval._fields.update((k,v) for (k,v) in classdict.items() if isinstance(v, Field))
         return retval
 
 class Container(metaclass=ContainerMeta):
