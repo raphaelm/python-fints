@@ -66,6 +66,19 @@ def fints_server():
             if b"'HKSPA:" in message:
                 result.append(b"HISPA::1:4+J:DE111234567800000001:GENODE00TES:00001::280:1234567890'")
 
+            hkccs = re.search(rb"'HKCCS:(\d+):1.*@\d+@(.*)/Document>'", message)
+            if hkccs:
+                segno = hkccs.group(1).decode('us-ascii')
+                pain = hkccs.group(2).decode('utf-8')
+
+                memomatch = re.search(r"<RmtInf[^>]*>\s*<Ustrd[^>]*>\s*([^<]+)\s*</Ustrd", pain)
+                recvrmatch = re.search(r"<CdtrAcct[^>]*>\s*<Id[^>]*>\s*<IBAN[^>]*>\s*([^<]+)\s*</IBAN", pain)
+                amountmatch = re.search(r"<Amt[^>]*><InstdAmt[^>]*>\s*([^<]+)\s*</InstdAmt", pain)
+
+                if memomatch and recvrmatch and amountmatch:
+                    if memomatch.group(1).endswith('1step'):
+                        result.append("HIRMS::2:{}+0010::Transfer {} to {} re {}'".format(segno, amountmatch.group(1), recvrmatch.group(1), repr(memomatch.group(1)).replace("'", "?'")).encode('iso-8859-1'))
+
             return b"".join(result)
 
 
