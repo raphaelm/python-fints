@@ -6,6 +6,7 @@ import threading
 import base64
 import uuid
 import re
+import random
 
 import fints.parser
 from fints.types import SegmentSequence
@@ -94,15 +95,24 @@ def fints_server():
                         hktan = re.search(rb"'HKTAN:(\d+):(\d+)", message)
                         if hktan:
                             ref = uuid.uuid4().hex
+
+                            if 'hhduc' in memomatch.group(1):
+                                newtan = '881'+str(random.randint(10000, 99999))
+                                tanmsg = "CHLGUC  00312908{}1012345678900523,42CHLGTEXT0034Geben Sie den Startcode als TAN an".format(newtan)
+                            else:
+                                newtan = '123456'
+                                tanmsg = "Geben Sie TAN {} an".format(newtan)
+
                             datadict.setdefault('pending', {})[ref] = {
                                 'seg': segno,
                                 'pain': pain,
                                 'memo': memomatch.group(1),
                                 'recv': recvrmatch.group(1),
                                 'amount': amountmatch.group(1),
+                                'tan': newtan,
                             }
                             result.append("HIRMS::2:{}+0030::Auftragsfreigabe erforderlich'".format(hktan.group(1).decode('us-ascii')).encode('us-ascii'))
-                            result.append("HITAN::{}:{}+2++{}+Geben Sie TAN 123456 an'".format(hktan.group(2).decode('us-ascii'), hktan.group(1).decode('us-ascii'), ref).encode('us-ascii'))
+                            result.append("HITAN::{}:{}+2++{}+{}'".format(hktan.group(2).decode('us-ascii'), hktan.group(1).decode('us-ascii'), ref, tanmsg).encode('us-ascii'))
 
             hktan = re.search(rb"'HKTAN:(\d+):(\d+)\+2\+\+\+\+([^+]+)\+", message)
             if hktan:
@@ -112,7 +122,7 @@ def fints_server():
 
                 task = datadict.setdefault('pending', {}).get(ref, None)
                 if task:
-                    if tan == '123456':
+                    if tan == task['tan']:
                         result.append("HIRMS::2:{}+0010::Transfer {} to {} re {}'".format(segno, task['amount'], task['recv'], repr(task['memo']).replace("'", "?'")).encode('iso-8859-1'))
                     else:
                         result.append("HIRMS::2:{}+9941::TAN ungültig'".format(segno).encode('iso-8859-1'))

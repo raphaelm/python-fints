@@ -133,10 +133,30 @@ def test_tan_wrong(fints_client):
             'DE111234567800000002',
             'GENODE00TES',
             'Test Receiver',
-            Decimal('2.34'),
+            Decimal('3.33'),
             'Test Sender',
             'Test transfer 2step'
         )
 
         b = fints_client.send_tan(a, '99881')
         assert b.status == ResponseStatus.ERROR
+
+def test_tan_hhduc(fints_client):
+    with fints_client:
+        accounts = fints_client.get_sepa_accounts()
+        a = fints_client.simple_sepa_transfer(
+            accounts[0],
+            'DE111234567800000002',
+            'GENODE00TES',
+            'Test Receiver',
+            Decimal('5.23'),
+            'Test Sender',
+            'Test transfer hhduc 2step'
+        )
+
+        from fints.hhd.flicker import parse
+        assert a.challenge == 'Geben Sie den Startcode als TAN an'
+        flicker = parse(a.challenge_hhduc)
+
+        b = fints_client.send_tan(a, flicker.startcode.data)
+        assert b.status == ResponseStatus.SUCCESS
