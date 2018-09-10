@@ -181,3 +181,12 @@ def test_tan_hhduc(fints_client):
 
         b = fints_client.send_tan(a, flicker.startcode.data)
         assert b.status == ResponseStatus.SUCCESS
+
+def test_get_transactions(fints_client):
+    with fints_client:
+        accounts = fints_client.get_sepa_accounts()
+
+        transactions = fints_client.get_transactions(accounts[0])
+
+        assert len(transactions) == 3
+        assert transactions[0].data['amount'].amount == Decimal('182.34')

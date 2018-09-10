@@ -79,6 +79,56 @@ def fints_server():
             if b"'HKSPA:" in message:
                 result.append(b"HISPA::1:4+J:DE111234567800000001:GENODE00TES:00001::280:1234567890'")
 
+            hkkaz = re.search(rb"'HKKAZ:(\d+):7\+[^+]+\+N(?:\+[^+]*\+[^+]*\+[^+]*\+([^+]*))?'", message)
+            if hkkaz:
+                if hkkaz.group(2):
+                    startat = int(hkkaz.group(2).decode('us-ascii'), 10)
+                else:
+                    startat = 0
+
+                transactions = [
+                    [
+                        b'-',
+                        b':20:STARTUMS',
+                        b':25:12345678/0000000001',
+                        b':28C:0',
+                        b':60F:C150101EUR1041,23',
+                        b':61:150101C182,34NMSCNONREF',
+                        b':86:051?00UEBERWEISG?10931?20Ihre Kontonummer 0000001234',
+                        b'?21/Test Ueberweisung 1?22n WS EREF: 1100011011 IBAN:',
+                        b'?23 DE1100000100000001234 BIC?24: GENODE11 ?1011010100',
+                        b'?31?32Bank',
+                        b':62F:C150101EUR1223,57',
+                        b'-',
+                    ], [
+                        b'-',
+                        b':20:STARTUMS',
+                        b':25:12345678/0000000001',
+                        b':28C:0',
+                        b':60F:C150301EUR1223,57',
+                        b':61:150301C100,03NMSCNONREF',
+                        b':86:051?00UEBERWEISG?10931?20Ihre Kontonummer 0000001234',
+                        b'?21/Test Ueberweisung 2?22n WS EREF: 1100011011 IBAN:',
+                        b'?23 DE1100000100000001234 BIC?24: GENODE11 ?1011010100',
+                        b'?31?32Bank',
+                        b':61:150301C100,00NMSCNONREF',
+                        b':86:051?00UEBERWEISG?10931?20Ihre Kontonummer 0000001234',
+                        b'?21/Test Ueberweisung 3?22n WS EREF: 1100011011 IBAN:',
+                        b'?23 DE1100000100000001234 BIC?24: GENODE11 ?1011010100',
+                        b'?31?32Bank',
+                        b':62F:C150101EUR1423,60',
+                        b'-',
+                    ]
+                ]
+
+                if startat+1 < len(transactions):
+                    result.append("HIRMS::2:{}+3040::Es liegen weitere Informationen vor: {}'".format(hkkaz.group(1).decode('us-ascii'), startat+1).encode('iso-8859-1'))
+
+                tx = b"\r\n".join([b''] + transactions[startat] + [b''])
+
+                result.append("HIKAZ::7:{}+@{}@".format(hkkaz.group(1).decode('us-ascii'), len(tx)).encode('us-ascii') + tx + b"'")
+
+
             hkccs = re.search(rb"'HKCCS:(\d+):1.*@\d+@(.*)/Document>'", message)
             if hkccs:
                 segno = hkccs.group(1).decode('us-ascii')
