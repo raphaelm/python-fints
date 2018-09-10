@@ -598,7 +598,7 @@ class FinTS3Client:
             "name": recipient_name,
             "IBAN": iban,
             "BIC": bic,
-            "amount": int(Decimal(amount) * 100),  # in cents
+            "amount": round(Decimal(amount) * 100),  # in cents
             "execution_date": datetime.date(1999, 1, 1),
             "description": reason,
             "endtoend_id": endtoend_id,
