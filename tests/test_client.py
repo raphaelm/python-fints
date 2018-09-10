@@ -1,4 +1,5 @@
 from fints.client import FinTS3PinTanClient, TransactionResponse, NeedTANResponse, ResponseStatus
+from fints.exceptions import FinTSClientPINError
 from decimal import Decimal
 import pytest
 
@@ -22,6 +23,26 @@ def test_get_information(fints_client):
         information = fints_client.get_information()
 
     assert information["bank"]["name"] == 'Test Bank'
+
+def test_pin_wrong(fints_server):
+    client = FinTS3PinTanClient(
+        '12345678',
+        'test1',
+        '99999',
+        fints_server,
+    )
+    with pytest.raises(FinTSClientPINError):
+        with client:
+            pass
+
+    assert client.pin.blocked
+
+    with pytest.raises(Exception):
+        with client:
+            pass
+
+    with pytest.raises(Exception, match="Refusing"):
+        str(client.pin)
 
 def test_resume(fints_client, fints_server):
     with fints_client:
@@ -103,3 +124,19 @@ def test_transfer_2step(fints_client):
         b = fints_client.send_tan(a, '123456')
         assert b.status == ResponseStatus.SUCCESS
         assert b.responses[0].text == "Transfer 2.34 to DE111234567800000002 re 'Test transfer 2step'"
+
+def test_tan_wrong(fints_client):
+    with fints_client:
+        accounts = fints_client.get_sepa_accounts()
+        a = fints_client.simple_sepa_transfer(
+            accounts[0],
+            'DE111234567800000002',
+            'GENODE00TES',
+            'Test Receiver',
+            Decimal('2.34'),
+            'Test Sender',
+            'Test transfer 2step'
+        )
+
+        b = fints_client.send_tan(a, '99881')
+        assert b.status == ResponseStatus.ERROR

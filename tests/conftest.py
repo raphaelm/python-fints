@@ -34,6 +34,18 @@ def fints_server():
         def make_answer(self, dialog_id, message):
             datadict = dialogs[dialog_id]
 
+            pin = None
+            tan = None
+            pinmatch = re.search(rb"HNSHA:\d+:\d+\+[^+]*\+[^+]*\+([^:+?']+)(?::([^:+?']+))?'", message)
+            if pinmatch:
+                pin = pinmatch.group(1).decode('us-ascii')
+
+                if pinmatch.group(2):
+                    tan = pinmatch.group(2).decode('us-ascii')
+
+            if pin != '1234':
+                return "HIRMG::2+9910::Pin ungültig'".encode('utf-8')
+
             result = []
 
             result.append(b"HIRMG::2+0010::Nachricht entgegengenommen'")
@@ -90,7 +102,7 @@ def fints_server():
                                 'amount': amountmatch.group(1),
                             }
                             result.append("HIRMS::2:{}+0030::Auftragsfreigabe erforderlich'".format(hktan.group(1).decode('us-ascii')).encode('us-ascii'))
-                            result.append("HITAN::{}:{}+2++{}+Geben Sie die TAN an'".format(hktan.group(2).decode('us-ascii'), hktan.group(1).decode('us-ascii'), ref).encode('us-ascii'))
+                            result.append("HITAN::{}:{}+2++{}+Geben Sie TAN 123456 an'".format(hktan.group(2).decode('us-ascii'), hktan.group(1).decode('us-ascii'), ref).encode('us-ascii'))
 
             hktan = re.search(rb"'HKTAN:(\d+):(\d+)\+2\+\+\+\+([^+]+)\+", message)
             if hktan:
@@ -100,7 +112,10 @@ def fints_server():
 
                 task = datadict.setdefault('pending', {}).get(ref, None)
                 if task:
-                    result.append("HIRMS::2:{}+0010::Transfer {} to {} re {}'".format(segno, task['amount'], task['recv'], repr(task['memo']).replace("'", "?'")).encode('iso-8859-1'))
+                    if tan == '123456':
+                        result.append("HIRMS::2:{}+0010::Transfer {} to {} re {}'".format(segno, task['amount'], task['recv'], repr(task['memo']).replace("'", "?'")).encode('iso-8859-1'))
+                    else:
+                        result.append("HIRMS::2:{}+9941::TAN ungültig'".format(segno).encode('iso-8859-1'))
 
                 datadict['pending'].pop(ref, None)
 
