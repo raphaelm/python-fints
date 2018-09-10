@@ -84,3 +84,22 @@ def test_transfer_1step_regression(fints_client):
 
         assert isinstance(a, TransactionResponse)
         assert a.responses[0].text == "Transfer 1.23 to DE111234567800000002 re 'Test transfer 1step'"
+
+def test_transfer_2step(fints_client):
+    with fints_client:
+        accounts = fints_client.get_sepa_accounts()
+        a = fints_client.simple_sepa_transfer(
+            accounts[0],
+            'DE111234567800000002',
+            'GENODE00TES',
+            'Test Receiver',
+            Decimal('2.34'),
+            'Test Sender',
+            'Test transfer 2step'
+        )
+
+        assert isinstance(a, NeedTANResponse)
+
+        b = fints_client.send_tan(a, '123456')
+        assert b.status == ResponseStatus.SUCCESS
+        assert b.responses[0].text == "Transfer 2.34 to DE111234567800000002 re 'Test transfer 2step'"

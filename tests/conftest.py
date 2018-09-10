@@ -78,6 +78,31 @@ def fints_server():
                 if memomatch and recvrmatch and amountmatch:
                     if memomatch.group(1).endswith('1step'):
                         result.append("HIRMS::2:{}+0010::Transfer {} to {} re {}'".format(segno, amountmatch.group(1), recvrmatch.group(1), repr(memomatch.group(1)).replace("'", "?'")).encode('iso-8859-1'))
+                    else:
+                        hktan = re.search(rb"'HKTAN:(\d+):(\d+)", message)
+                        if hktan:
+                            ref = uuid.uuid4().hex
+                            datadict.setdefault('pending', {})[ref] = {
+                                'seg': segno,
+                                'pain': pain,
+                                'memo': memomatch.group(1),
+                                'recv': recvrmatch.group(1),
+                                'amount': amountmatch.group(1),
+                            }
+                            result.append("HIRMS::2:{}+0030::Auftragsfreigabe erforderlich'".format(hktan.group(1).decode('us-ascii')).encode('us-ascii'))
+                            result.append("HITAN::{}:{}+2++{}+Geben Sie die TAN an'".format(hktan.group(2).decode('us-ascii'), hktan.group(1).decode('us-ascii'), ref).encode('us-ascii'))
+
+            hktan = re.search(rb"'HKTAN:(\d+):(\d+)\+2\+\+\+\+([^+]+)\+", message)
+            if hktan:
+                segno = hktan.group(1).decode('us-ascii')
+                tanver = hktan.group(2).decode('us-ascii')
+                ref = hktan.group(3).decode('us-ascii')
+
+                task = datadict.setdefault('pending', {}).get(ref, None)
+                if task:
+                    result.append("HIRMS::2:{}+0010::Transfer {} to {} re {}'".format(segno, task['amount'], task['recv'], repr(task['memo']).replace("'", "?'")).encode('iso-8859-1'))
+
+                datadict['pending'].pop(ref, None)
 
             return b"".join(result)
 
