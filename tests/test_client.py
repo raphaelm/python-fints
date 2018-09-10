@@ -1,4 +1,4 @@
-from fints.client import FinTS3PinTanClient, TransactionResponse, NeedTANResponse, ResponseStatus
+from fints.client import FinTS3PinTanClient, TransactionResponse, NeedTANResponse, ResponseStatus, NeedRetryResponse
 from fints.exceptions import FinTSClientPINError
 from decimal import Decimal
 import pytest
@@ -124,6 +124,27 @@ def test_transfer_2step(fints_client):
         b = fints_client.send_tan(a, '123456')
         assert b.status == ResponseStatus.SUCCESS
         assert b.responses[0].text == "Transfer 2.34 to DE111234567800000002 re 'Test transfer 2step'"
+
+def test_transfer_2step_continue(fints_client):
+    with fints_client:
+        accounts = fints_client.get_sepa_accounts()
+        a = fints_client.simple_sepa_transfer(
+            accounts[0],
+            'DE111234567800000002',
+            'GENODE00TES',
+            'Test Receiver',
+            Decimal('3.42'),
+            'Test Sender',
+            'Test transfer 2step'
+        )
+
+        a_data = a.get_data()
+
+        a_prime = NeedRetryResponse.from_data(a_data)
+
+        b = fints_client.send_tan(a_prime, '123456')
+        assert b.status == ResponseStatus.SUCCESS
+        assert b.responses[0].text == "Transfer 3.42 to DE111234567800000002 re 'Test transfer 2step'"
 
 def test_tan_wrong(fints_client):
     with fints_client:
