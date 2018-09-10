@@ -431,8 +431,9 @@ class FinTS3Serializer:
             level2 = []
             for deg in segment:
                 if isinstance(deg, (list, tuple)):
+                    highest_index = max(((i+1) for (i,e) in enumerate(deg) if e != b'' and e is not None), default=0)
                     level2.append(
-                        b":".join(FinTS3Serializer.escape_value(de) for de in deg)
+                        b":".join(FinTS3Serializer.escape_value(de) for de in deg[:highest_index])
                     )
                 else:
                     level2.append(FinTS3Serializer.escape_value(deg))

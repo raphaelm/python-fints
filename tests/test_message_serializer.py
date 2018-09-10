@@ -41,6 +41,26 @@ def test_implode_1():
 
     assert FinTS3Parser.explode_segments(s) == m
 
+def test_implode_shorten():
+    m = [
+        [
+            ['IIMPTST', '1', '2'],
+            [None, None],
+            [None, 'a', None],
+            [None, None, 'b'],
+            [None, 'c', None, 'd'],
+            [None, 'e', None, 'f', None],
+            [None, 'g', None, None, None],
+            [None, None, None, None],
+            [None, None, None, None],
+        ],
+    ]
+
+    s = FinTS3Serializer.implode_segments(m)
+
+    assert s == rb"""IIMPTST:1:2++:a+::b+:c::d+:e::f+:g++'"""
+
+
 def test_implode_roundtrip_simple():
     segments = FinTS3Parser.explode_segments(TEST_MESSAGES['basic_simple'])
     assert FinTS3Serializer.implode_segments(segments) == TEST_MESSAGES['basic_simple']
