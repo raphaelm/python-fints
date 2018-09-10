@@ -10,13 +10,19 @@ def fints_client(fints_server):
         fints_server
     )
 
-def test_client_get_sepa_accounts(fints_client):
+def test_get_sepa_accounts(fints_client):
     with fints_client:
         accounts = fints_client.get_sepa_accounts()
 
     assert accounts
 
-def test_client_resume(fints_client, fints_server):
+def test_get_information(fints_client):
+    with fints_client:
+        information = fints_client.get_information()
+
+    assert information["bank"]["name"] == 'Test Bank'
+
+def test_resume(fints_client, fints_server):
     with fints_client:
         system_id = fints_client.system_id
         dialog_id = fints_client._standing_dialog.dialogue_id
