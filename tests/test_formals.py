@@ -218,36 +218,6 @@ def test_container_naive_parse():
     assert i1.a == 23
     assert i1.b == '42'
 
-def test_field_flat_length():
-    class A(Container):
-        a = NumericField()
-
-    class B(Container):
-        b1 = DataElementGroupField(type=A)
-        b2 = DataElementGroupField(type=A, count=3)
-        b3 = DataElementGroupField(type=A, min_count=2)
-
-    assert A._fields['a'].flat_length == 1
-    assert B._fields['b1'].flat_length == 1
-    assert B._fields['b2'].flat_length == 1
-
-    class C(Container):
-        c1 = DataElementGroupField(type=A)
-        c2 = DataElementGroupField(type=A, count=2)
-        c3 = DataElementGroupField(type=A, count=3)
-
-    class D(Container):
-        d1 = DataElementGroupField(type=C, count=4)
-
-    class E(Container):
-        e1 = DataElementGroupField(type=D)
-        e2 = DataElementGroupField(type=B)
-
-    assert E._fields['e1'].flat_length == 4*(1+2+3)
-
-    with pytest.raises(TypeError):
-        E._fields['e2'].flat_length
-
 def test_invalid_spec():
     with pytest.raises(ValueError):
         class A(Container):

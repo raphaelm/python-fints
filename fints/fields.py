@@ -20,15 +20,6 @@ class ContainerField(TypedField):
 
     def _default_value(self):
         return self.type()
-
-    @property
-    def flat_length(self):
-        result = 0
-        for name, field in self.type._fields.items():
-            if field.count is None:
-                raise TypeError("Cannot compute flat length of field {}.{} with variable count".format(self.__class__.__name__, name))
-            result = result + field.count * field.flat_length
-        return result
     
 
 class DataElementGroupField(DocTypeMixin, ContainerField):

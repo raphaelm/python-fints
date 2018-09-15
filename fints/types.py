@@ -87,8 +87,6 @@ class Field:
         return ""
 
 class TypedField(Field, SubclassesMixin):
-    flat_length = 1
-
     def __new__(cls, *args, **kwargs):
         target_cls = None
         fallback_cls = None
