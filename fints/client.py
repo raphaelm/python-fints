@@ -114,7 +114,7 @@ class TransactionResponse:
         return "<{o.__class__.__name__}(status={o.status!r}, responses={o.responses!r}, data={o.data!r})>".format(o=self)
 
 class FinTS3Client:
-    def __init__(self, bank_identifier, user_id, customer_id=None, set_data=None):
+    def __init__(self, bank_identifier, user_id, customer_id=None, set_data:bytes=None):
         self.accounts = []
         if isinstance(bank_identifier, BankIdentifier):
             self.bank_identifier = bank_identifier
@@ -249,12 +249,12 @@ class FinTS3Client:
 
         return data
 
-    def get_data(self, including_private=False):
+    def get_data(self, including_private:bool=False) -> bytes:
         # FIXME Test, document
         data = self._get_data_v1(including_private=including_private)
         return compress_datablob(DATA_BLOB_MAGIC, 1, data)
 
-    def set_data(self, blob):
+    def set_data(self, blob: bytes):
         # FIXME Test, document
         decompress_datablob(DATA_BLOB_MAGIC, blob, self)
 
@@ -277,31 +277,30 @@ class FinTS3Client:
         Return information about the connected bank.
 
         Note: Can only be filled after the first communication with the bank.
-        If in doubt, use a construction like:
-        ````
-        f = FinTS3Client(...)
-        with f:
-            info = f.get_information()
-        ````
+        If in doubt, use a construction like::
+        
+            f = FinTS3Client(...)
+            with f:
+                info = f.get_information()
 
-        Returns a nested dictionary:
-        ````
-        bank:
-            name: Bank Name
-            supported_operations: dict(FinTSOperations -> boolean)
-        accounts:
-            - iban: IBAN
-              account_number: Account Number
-              subaccount_number: Sub-Account Number
-              bank_identifier: fints.formals.BankIdentifier(...)
-              customer_id: Customer ID
-              type: Account type
-              currency: Currency
-              owner_name: ['Owner Name 1', 'Owner Name 2 (optional)']
-              product_name: Account product name
-              supported_operations: dict(FinTSOperations -> boolean)
-            - ...
-        ````
+        Returns a nested dictionary::
+
+            bank:
+                name: Bank Name
+                supported_operations: dict(FinTSOperations -> boolean)
+            accounts:
+                - iban: IBAN
+                  account_number: Account Number
+                  subaccount_number: Sub-Account Number
+                  bank_identifier: fints.formals.BankIdentifier(...)
+                  customer_id: Customer ID
+                  type: Account type
+                  currency: Currency
+                  owner_name: ['Owner Name 1', 'Owner Name 2 (optional)']
+                  product_name: Account product name
+                  supported_operations: dict(FinTSOperations -> boolean)
+                - ...
+
         """
         retval = {
             'bank': {},
@@ -779,6 +778,9 @@ class FinTS3Client:
         Caller SHOULD ensure that the dialog is resumed (and properly ended) within a reasonable amount of time.
 
         :Example:
+        
+        ::
+
             client = FinTS3PinTanClient(..., set_data=None)
             with client:
                 challenge = client.sepa_transfer(...)

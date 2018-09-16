@@ -17,22 +17,6 @@ you want to use:
 The returned values have a subtype ``fints.models.TANMethod``, with varying parameters depending on the version
 used by the bank:
 
-.. autoclass:: fints.client.FinTS3Client
-   :noindex:
-   :members: get_tan_methods
-
-.. autoclass:: fints.models.TANMethod1
-
-.. autoclass:: fints.models.TANMethod2
-
-.. autoclass:: fints.models.TANMethod3
-
-.. autoclass:: fints.models.TANMethod4
-
-.. autoclass:: fints.models.TANMethod5
-
-.. autoclass:: fints.models.TANMethod6
-
 .. warning:: If the ``description_required`` attribute is ``2``, you will need to get the description of the TAN medium
              you want to use and pass it as ``tan_description`` to some operations. You can send a request for this
              information with the ``client.get_tan_description()`` method call. Currently, this returns an unparsed
@@ -43,14 +27,6 @@ TAN challenges
 
 You should then pass the chosen ``TANMethod`` object to your operation, e.g. ``start_simple_sepa_transfer``.
 If a TAN is required, this operation will return a ``TANChallenge``, again depending on the version used by the bank.
-
-.. autoclass:: fints.models.TANChallenge3
-
-.. autoclass:: fints.models.TANChallenge4
-
-.. autoclass:: fints.models.TANChallenge5
-
-.. autoclass:: fints.models.TANChallenge6
 
 The ``challenge`` attribute will contain human-readable instructions on how to proceed.
 

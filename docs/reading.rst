@@ -9,12 +9,23 @@ The most simple method allows you to get all bank accounts that your user has ac
 .. autoclass:: fints.client.FinTS3Client
    :noindex:
    :members: get_sepa_accounts
+   :noindex:
 
 This method will return a list of named tuples of the following type:
 
 .. autoclass:: fints.models.SEPAAccount
 
 You will need this account object for many further operations to show which account you want to operate on.
+
+Fetching bank information
+-------------------------
+
+During the first interaction with the bank some meta information about the bank and your user is transmitted
+from the bank.
+
+.. autoclass:: fints.client.FinTS3Client
+   :members: get_information
+   :noindex:
 
 
 Fetching account balances
