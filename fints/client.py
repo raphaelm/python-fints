@@ -778,7 +778,7 @@ class FinTS3Client:
         Caller SHOULD ensure that the dialog is resumed (and properly ended) within a reasonable amount of time.
 
         :Example:
-        
+
         ::
 
             client = FinTS3PinTanClient(..., set_data=None)
@@ -817,6 +817,11 @@ class FinTS3Client:
         self._standing_dialog = None
 
 class NeedTANResponse(NeedRetryResponse):
+    challenge_raw = None  #: Raw challenge as received by the bank
+    challenge = None  #: Textual challenge to be displayed to the user
+    challenge_html = None  #: HTML-safe challenge text, possibly with formatting
+    challenge_hhduc = None  #: HHD_UC challenge to be transmitted to the TAN generator
+
     def __init__(self, command_seg, tan_request, resume_method=None, tan_request_structured=False):
         self.command_seg = command_seg
         self.tan_request = tan_request
@@ -838,7 +843,11 @@ class NeedTANResponse(NeedRetryResponse):
 
         raise Exception("Wrong blob data version")
 
-    def get_data(self):
+    def get_data(self) -> bytes:
+        """Return a compressed datablob representing this object.
+        
+        To restore the object, use :func:`fints.client.NeedRetryResponse.from_data`.
+        """
         data = {
             "_class_name": self.__class__.__name__,
             "version": 1,

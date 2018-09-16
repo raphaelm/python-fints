@@ -34,22 +34,22 @@ Fetching account balances
 You can fetch the current balance of an account with the ``get_balance`` operation.
 
 .. autoclass:: fints.client.FinTS3Client
-   :noindex:
-   :members: get_balance
+  :members: get_balance
+  :noindex:
 
 This method will return a list of ``Balance`` objects from the ``mt-940`` library. You can find more information
 in `their documentation <https://mt940.readthedocs.io/en/latest/mt940.html#mt940.models.Balance>`_.
 
 
-Reading account statements
---------------------------
+Reading account transactions
+----------------------------
 
-You can fetch the banking statement of an account within a certain timeframe with the ``get_statement``
+You can fetch the banking statement of an account within a certain timeframe with the ``get_transactions``
 operation.
 
 .. autoclass:: fints.client.FinTS3Client
+   :members: get_transactions
    :noindex:
-   :members: get_statement
 
 This method will return a list of ``Transaction`` objects from the ``mt-940`` library. You can find more information
 in `their documentation <https://mt940.readthedocs.io/en/latest/mt940.html#mt940.models.Transaction>`_.
@@ -63,6 +63,7 @@ You can fetch the holdings of an account with the ``get_holdings`` method:
 .. autoclass:: fints.client.FinTS3Client
    :noindex:
    :members: get_holdings
+   :noindex:
 
 This method will return a list of ``Holding`` objects:
 

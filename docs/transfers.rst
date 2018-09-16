@@ -7,7 +7,8 @@ Simple mode
 You can create a simple SEPA transfer using this convenient client method:
 
 .. autoclass:: fints.client.FinTS3Client
-   :members: start_simple_sepa_transfer
+   :members: simple_sepa_transfer
+   :noindex:
 
 You should then enter a TAN, read our chapter :ref:`tans` to find out more.
 
@@ -17,24 +18,27 @@ Advanced mode
 If you want to use advanced methods, you can supply your own SEPA XML:
 
 .. autoclass:: fints.client.FinTS3Client
-   :members: start_sepa_transfer
+   :members: sepa_transfer
+   :noindex:
 
 Example
 -------
 
 .. code-block:: python
 
-    client = FinTS3PinTanClient(…)
+    client = FinTS3PinTanClient(...)
 
-    accounts = f.get_sepa_accounts()
+    accounts = client.get_sepa_accounts()
     account = accounts[0]
 
-    methods = f.get_tan_methods()
-    method = methods[0]
-    assert method.description_required != '2'
+    mechanisms = client.get_tan_mechanisms()
+    mechanism = mechanisms[client.get_current_tan_mechanism()]
+    if mechanism.description_required == fints.formals.DescriptionRequired.MUST:
+        usage_option, media = client.get_tan_media()
 
-    tan_desc = ''
-    res = f.start_simple_sepa_transfer(
+        client.set_tan_medium(media[0])
+
+    res = client.simple_sepa_transfer(
         account=accounts[0],
         iban='DE12345',
         bic='BIC12345',
@@ -43,15 +47,20 @@ Example
         account_name='Test',
         reason='Birthday gift',
         endtoend_id='NOTPROVIDED',
-        tan_method=method
     )
-    print(res.challenge)
 
-    if getattr(res, challenge_hhd_uc, None):
-        try:
-            terminal_flicker_unix(res.challenge_hhd_uc)
-        except KeyboardInterrupt:
-            pass
+    if isinstance(res, NeedTANResponse):
+        print(res.challenge)
 
-    tan = input('Please enter TAN:')
-    res = f.send_tan(res, tan)
+        if getattr(res, challenge_hhduc, None):
+            try:
+                terminal_flicker_unix(res.challenge_hhduc)
+            except KeyboardInterrupt:
+                pass
+
+        tan = input('Please enter TAN:')
+        res = client.send_tan(res, tan)
+
+    print(res.status)
+    print(res.responses)
+

@@ -187,6 +187,7 @@ class TaskHashAlgorithm(RepresentableEnum):
 class TwoStepParametersCommon(DataElementGroup):
     @property
     def VERSION(self):
+        "TAN mechanism version"
         return int( re.match(r'^(\D+)(\d+)$', self.__class__.__name__).group(2) )
 
     security_function = DataElementField(type='code', max_length=3, _d="Sicherheitsfunktion kodiert")
