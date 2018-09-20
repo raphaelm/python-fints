@@ -821,6 +821,7 @@ class NeedTANResponse(NeedRetryResponse):
     challenge = None  #: Textual challenge to be displayed to the user
     challenge_html = None  #: HTML-safe challenge text, possibly with formatting
     challenge_hhduc = None  #: HHD_UC challenge to be transmitted to the TAN generator
+    challenge_matrix = None #: Matrix code challenge: tuple(mime_type, data)
 
     def __init__(self, command_seg, tan_request, resume_method=None, tan_request_structured=False):
         self.command_seg = command_seg
@@ -862,10 +863,25 @@ class NeedTANResponse(NeedRetryResponse):
         self.challenge = self.challenge_raw
         self.challenge_html = None
         self.challenge_hhduc = None
+        self.challenge_matrix = None
 
         if hasattr(self.tan_request, 'challenge_hhduc'):
             if self.tan_request.challenge_hhduc:
-                self.challenge_hhduc = self.tan_request.challenge_hhduc.decode('us-ascii')
+                if len(self.tan_request.challenge_hhduc) < 256:
+                    self.challenge_hhduc = self.tan_request.challenge_hhduc.decode('us-ascii')
+                else:
+                    data = self.tan_request.challenge_hhduc
+                    type_len_field, data = data[:2], data[2:]
+                    if len(type_len_field) == 2:
+                        type_len = type_len_field[0]*256 + type_len_field[1]
+                        type_data, data = data[:type_len], data[type_len:]
+
+                        content_len_field, data = data[:2], data[2:]
+                        if len(content_len_field) == 2:
+                            content_len = content_len_field[0]*256 + content_len_field[1]
+                            content_data, data = data[:content_len], data[content_len:]
+
+                            self.challenge_matrix = (type_data.decode('us-ascii', 'replace'), content_data)
 
         if self.challenge.startswith('CHLGUC  '):
             l = self.challenge[8:12]
