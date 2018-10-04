@@ -18,6 +18,7 @@ The returned values have a subtype ``fints.models.TANMethod``, with varying para
 used by the bank:
 
 .. autoclass:: fints.client.FinTS3Client
+   :noindex:
    :members: get_tan_methods
 
 .. autoclass:: fints.models.TANMethod1
@@ -77,6 +78,7 @@ Sending the TAN
 Once obtained the TAN, you can send it with the ``send_tan`` client method:
 
 .. autoclass:: fints.client.FinTS3Client
+   :noindex:
    :members: send_tan
 
 For example:

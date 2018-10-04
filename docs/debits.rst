@@ -5,6 +5,7 @@ You can submit a SEPA debit XML file to the bank with the ``start_sepa_debit`` m
 
 .. autoclass:: fints.client.FinTS3Client
    :members: start_sepa_debit
+   :noindex:
 
 You should then enter a TAN, read our chapter :ref:`tans` to find out more.
 
