@@ -1,5 +1,6 @@
 import datetime
 import logging
+from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
 from contextlib import contextmanager
 from decimal import Decimal
@@ -48,6 +49,11 @@ DATA_BLOB_MAGIC = b'python-fints_DATABLOB'
 DATA_BLOB_MAGIC_RETRY = b'python-fints_RETRY_DATABLOB'
 
 class FinTSOperations(Enum):
+    """This enum is used as keys in the 'supported_operations' member of the get_information() response.
+
+    The enum value is a tuple of transaction types ("Geschäftsvorfälle"). The operation is supported if
+    any of the listed transaction types is present/allowed.
+    """
     GET_BALANCE = ("HKSAL", )
     GET_TRANSACTIONS = ("HKKAZ", )
     GET_CREDIT_CARD_TRANSACTIONS = ("DKKKU", )
@@ -68,9 +74,25 @@ class FinTSOperations(Enum):
     GET_SEPA_STANDING_DEBITS_SINGLE = ("HKDDB", )
     SEPA_STANDING_DEBIT_SINGLE_DELETE = ("HKDDL", )
 
-class NeedRetryResponse(SubclassesMixin):
+class NeedRetryResponse(SubclassesMixin, metaclass=ABCMeta):
+    """Base class for Responses that need the operation to be externally retried.
+
+    A concrete subclass of this class is returned, if an operation cannot be completed and needs a retry/completion.
+    Typical (and only) example: Requiring a TAN to be provided."""
+
+    @abstractmethod
+    def get_data(self) -> bytes:
+        """Return a compressed datablob representing this object.
+
+        To restore the object, use :func:`fints.client.NeedRetryResponse.from_data`.
+        """
+        raise NotImplementedError
+
     @classmethod
     def from_data(cls, blob):
+        """Restore an object instance from a compressed datablob.
+
+        Returns an instance of a concrete subclass."""
         version, data = decompress_datablob(DATA_BLOB_MAGIC_RETRY, blob)
 
         if version == 1:
@@ -81,18 +103,25 @@ class NeedRetryResponse(SubclassesMixin):
         raise Exception("Invalid data blob data or version")
 
 class ResponseStatus(Enum):
-    UNKNOWN = 0
-    SUCCESS = 1
-    WARNING = 2
-    ERROR = 3
+    "Error status of the response"
 
-RESPONSE_STATUS_MAPPING = {
+    UNKNOWN = 0
+    SUCCESS = 1 #: Response indicates Success
+    WARNING = 2 #: Response indicates a Warning
+    ERROR = 3 #: Response indicates an Error
+
+_RESPONSE_STATUS_MAPPING = {
     '0': ResponseStatus.SUCCESS,
     '3': ResponseStatus.WARNING,
     '9': ResponseStatus.ERROR,
 }
 
 class TransactionResponse:
+    """Result of a FinTS operation.
+
+    The status member indicates the highest type of errors included in this Response object.
+    The responses member lists all individual response lines/messages, there may be multiple (e.g. 'Message accepted' and 'Order executed').
+    The data member may contain further data appropriate to the operation that was executed."""
     status = ResponseStatus
     responses = list
     data = dict
@@ -104,7 +133,7 @@ class TransactionResponse:
 
         for hirms in response_message.find_segments(HIRMS2):
             for resp in hirms.responses:
-                self.set_status_if_higher(RESPONSE_STATUS_MAPPING.get(resp.code[0], ResponseStatus.UNKNOWN))
+                self.set_status_if_higher(_RESPONSE_STATUS_MAPPING.get(resp.code[0], ResponseStatus.UNKNOWN))
 
     def set_status_if_higher(self, status):
         if status.value > self.status.value:
@@ -250,12 +279,30 @@ class FinTS3Client:
         return data
 
     def get_data(self, including_private:bool=False) -> bytes:
-        # FIXME Test, document
+        """Return state of this FinTSClient instance as an opaque datablob.
+
+        Information about the connection is implicitly retrieved from the bank and
+        cached in the FinTSClient. This includes: system identifier, bank parameter
+        data, user parameter data. It's not strictly required to retain this information
+        across sessions, but beneficial. If possible, an API user SHOULD use this method
+        to serialize the client instance before destroying it, and provide the serialized
+        data next time an instance is constructed.
+
+        Parameter `including_private` should be set to True, if the storage is sufficiently
+        secure (with regards to confidentiality) to include private data, specifically,
+        account numbers and names. Most often this is the case.
+
+        Note: No connection information is stored in the datablob, neither is the PIN.
+        """
         data = self._get_data_v1(including_private=including_private)
         return compress_datablob(DATA_BLOB_MAGIC, 1, data)
 
     def set_data(self, blob: bytes):
-        # FIXME Test, document
+        """Restore a datablob created with get_data().
+
+        You should only call this method once, and only immediately after constructing
+        the object and before calling any other method or functionality (e.g. __enter__()).
+        For convenience, you can pass the `set_data` parameter to __init__()."""
         decompress_datablob(DATA_BLOB_MAGIC, blob, self)
 
     def _log_response(self, segment, response):
@@ -660,7 +707,7 @@ class FinTS3Client:
 
         for seg in response.find_segments(HIRMS2):
             for resp in seg.responses:
-                retval.set_status_if_higher(RESPONSE_STATUS_MAPPING.get(resp.code[0], ResponseStatus.UNKNOWN))
+                retval.set_status_if_higher(_RESPONSE_STATUS_MAPPING.get(resp.code[0], ResponseStatus.UNKNOWN))
                 retval.responses.append(resp)
 
         return retval
@@ -726,7 +773,7 @@ class FinTS3Client:
 
         for seg in response.find_segments(HIRMS2):
             for resp in seg.responses:
-                retval.set_status_if_higher(RESPONSE_STATUS_MAPPING.get(resp.code[0], ResponseStatus.UNKNOWN))
+                retval.set_status_if_higher(_RESPONSE_STATUS_MAPPING.get(resp.code[0], ResponseStatus.UNKNOWN))
                 retval.responses.append(resp)
 
         for seg in response.find_segments(DebitResponseBase):
