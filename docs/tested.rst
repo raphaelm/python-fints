@@ -12,7 +12,7 @@ comdirect                                              Yes
 GLS Bank eG                              Yes                    Yes      Yes
 DKB                                      Yes
 ING DiBa                                 Yes
-netbank                                  Xes
+netbank                                  Yes
 NIBC Direct                              Yes
 Postbank                                 Yes
 Sparkasse                                Yes
