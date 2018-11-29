@@ -52,7 +52,7 @@ Example
     if isinstance(res, NeedTANResponse):
         print(res.challenge)
 
-        if getattr(res, challenge_hhduc, None):
+        if getattr(res, 'challenge_hhduc', None):
             try:
                 terminal_flicker_unix(res.challenge_hhduc)
             except KeyboardInterrupt:
