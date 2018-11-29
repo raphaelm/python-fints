@@ -40,6 +40,7 @@ class HNVSK3(FinTS3Segment):
     compression_function = CodeField(CompressionFunction, max_length=3, _d="Komprimierungsfunktion")
     certificate = DataElementGroupField(type=Certificate, required=False, _d="Zertifikat")
 
+
 class HNVSD1(FinTS3Segment):
     """Verschlüsselte Daten, version 1
 

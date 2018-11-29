@@ -86,7 +86,7 @@ def test_escape():
 
 def test_serialize_2():
     from fints.formals import SegmentSequence
-    import fints.formals, fints.segments
+    import fints.segments
     s = SegmentSequence([fints.segments.message.HNHBK3(header=fints.formals.SegmentHeader('HNHBK', 1, 3), message_size='000000000428', hbci_version=300,
                                                        dialogue_id='430711670077=043999659571CN9D=', message_number=2,
                                                        reference_message=fints.formals.ReferenceMessage(dialogue_id='430711670077=043999659571CN9D=',

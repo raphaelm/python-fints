@@ -36,7 +36,7 @@ class FinTS3Segment(Container, SubclassesMixin, metaclass=FinTS3SegmentMeta):
     def VERSION(cls):
         match = TYPE_VERSION_RE.match(cls.__name__)
         if match:
-            return int( match.group(2) )
+            return int(match.group(2))
 
     def __init__(self, *args, **kwargs):
         if 'header' not in kwargs:
@@ -44,7 +44,7 @@ class FinTS3Segment(Container, SubclassesMixin, metaclass=FinTS3SegmentMeta):
 
         args = (kwargs.pop('header'), ) + args
 
-        return super().__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     @classmethod
     def find_subclass(cls, segment):

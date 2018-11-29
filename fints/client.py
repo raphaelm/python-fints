@@ -107,12 +107,12 @@ class NeedRetryResponse(SubclassesMixin, metaclass=ABCMeta):
 
 
 class ResponseStatus(Enum):
-    "Error status of the response"
+    """Error status of the response"""
 
     UNKNOWN = 0
-    SUCCESS = 1 #: Response indicates Success
-    WARNING = 2 #: Response indicates a Warning
-    ERROR = 3 #: Response indicates an Error
+    SUCCESS = 1  #: Response indicates Success
+    WARNING = 2  #: Response indicates a Warning
+    ERROR = 3  #: Response indicates an Error
 
 
 _RESPONSE_STATUS_MAPPING = {
@@ -191,7 +191,7 @@ class FinTS3Client:
             self.bpd_version = bpa.bpd_version
             self.bpd = SegmentSequence(
                 message.find_segments(
-                    callback = lambda m: len(m.header.type) == 6 and m.header.type[1] == 'I' and m.header.type[5] == 'S'
+                    callback=lambda m: len(m.header.type) == 6 and m.header.type[1] == 'I' and m.header.type[5] == 'S'
                 )
             )
 
@@ -214,7 +214,7 @@ class FinTS3Client:
 
         for seg in message.find_segments(HIRMS2):
             for response in seg.responses:
-                segment = None # FIXME: Provide segment
+                segment = None  # FIXME: Provide segment
 
                 if not internal_send:
                     self._log_response(segment, response)
@@ -285,7 +285,7 @@ class FinTS3Client:
 
         return data
 
-    def get_data(self, including_private:bool=False) -> bytes:
+    def get_data(self, including_private: bool=False) -> bytes:
         """Return state of this FinTSClient instance as an opaque datablob.
 
         Information about the connection is implicitly retrieved from the bank and
@@ -492,7 +492,7 @@ class FinTS3Client:
 
         statement = []
         for seg in responses:
-            ## FIXME What is the encoding of MT940 messages?
+            # FIXME What is the encoding of MT940 messages?
             statement += mt940_to_array(seg.statement_booked.decode('iso-8859-1'))
 
         logger.debug('Statement: {}'.format(statement))
@@ -565,7 +565,7 @@ class FinTS3Client:
             # The first line is empty - drop it.
             del mt535_lines[0]
             mt535 = MT535_Miniparser()
-            holdings.extend( mt535.parse(mt535_lines) )
+            holdings.extend(mt535.parse(mt535_lines))
 
         if not holdings:
             logger.debug('No HIWPD response segment found - maybe account has no holdings?')

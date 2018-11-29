@@ -113,7 +113,7 @@ class FinTSDialog:
 
         response = self.client.connection.send(message)
 
-        ##assert response.segments[0].message_number == self.next_message_number[response.DIRECTION]
+        # assert response.segments[0].message_number == self.next_message_number[response.DIRECTION]
         # FIXME Better handling of HKEND in exception case
         self.messages[response.DIRECTION][response.segments[0].message_number] = response
         self.next_message_number[response.DIRECTION] += 1
@@ -168,6 +168,7 @@ class FinTSDialog:
 
         external_dialog = self
         external_client = self.client
+
         class SmartPickler(pickle.Pickler):
             def persistent_id(self, obj):
                 if obj is external_dialog:
@@ -205,6 +206,7 @@ class FinTSDialog:
     def _set_data_v1(self, data):
         external_dialog = self
         external_client = self.client
+
         class SmartUnpickler(pickle.Unpickler):
             def persistent_load(self, pid):
                 if pid == 'dialog':

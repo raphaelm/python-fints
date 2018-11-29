@@ -44,7 +44,6 @@ class HIDSES1(ParameterSegment):
     parameter = DataElementGroupField(type=ScheduledDebitParameter1, _d="Parameter terminierte SEPA-Sammellastschrift einreichen")
 
 
-
 class HKDSE2(FinTS3Segment):
     """Terminierte SEPA-Einzellastschrift einreichen, version 2
 
@@ -168,6 +167,7 @@ class HIDBS1(FinTS3Segment):
     task_id = DataElementField(type='an', max_length=99, required=False, _d="Auftragsidentifikation")
     task_cancelable = DataElementField(type='jn', required=False, _d="Auftrag löschbar")
     task_changeable = DataElementField(type='jn', required=False, _d="Auftrag änderbar")
+
 
 class HIDBSS1(ParameterSegment):
     """Bestand terminierter SEPA-Einzellastschriften Parameter, version 1

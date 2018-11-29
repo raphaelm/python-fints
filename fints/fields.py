@@ -54,7 +54,7 @@ class GenericGroupField(DataElementGroupField):
 class TextField(FieldRenderFormatStringMixin, DataElementField):
     type = 'txt'
     _DOC_TYPE = str
-    _FORMAT_STRING = "{}"  ## FIXME Restrict CRLF
+    _FORMAT_STRING = "{}"  # FIXME Restrict CRLF
 
     def _parse_value(self, value): return str(value)
 
@@ -113,7 +113,7 @@ class FloatField(DataElementField):
     type = 'float'
     _DOC_TYPE = float
     _FORMAT_STRING = "{:.12f}"  # Warning: Python's float is not exact!
-    ## FIXME: Needs test
+    # FIXME: Needs test
 
     def _parse_value(self, value):
         if isinstance(value, float):
@@ -203,7 +203,7 @@ class CodeFieldMixin:
         retval = super()._inline_doc_comment(value)
         if self._enum:
             addendum = value.__doc__
-            if addendum and not addendum is value.__class__.__doc__:
+            if addendum and addendum is not value.__class__.__doc__:
                 if not retval:
                     retval = " # "
                 else:
@@ -234,7 +234,7 @@ class CurrencyField(FixedLengthMixin, AlphanumericField):
 
 
 class DateField(FixedLengthMixin, NumericField):
-    type = 'dat' # FIXME Need test
+    type = 'dat'  # FIXME Need test
     _DOC_TYPE = datetime.date
     _FIXED_LENGTH = [8]
 
@@ -252,7 +252,7 @@ class DateField(FixedLengthMixin, NumericField):
 
 
 class TimeField(FixedLengthMixin, DigitsField):
-    type = 'tim' # FIXME Need test
+    type = 'tim'  # FIXME Need test
     _DOC_TYPE = datetime.time
     _FIXED_LENGTH = [6]
 

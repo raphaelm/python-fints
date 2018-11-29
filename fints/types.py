@@ -156,7 +156,7 @@ class ValueList:
                     continue
             elif val is None:
                 continue
-            retval = i+1
+            retval = i + 1
         return retval
 
     def __len__(self):
@@ -181,7 +181,7 @@ class ValueList:
         stream = stream or sys.stdout
 
         stream.write(
-            ( (prefix + level*indent) if first_level_indent else "")
+            ((prefix + level * indent) if first_level_indent else "")
             + "[{}\n".format(first_line_suffix)
         )
         min_true_length = self._get_minimal_true_length()
@@ -194,21 +194,21 @@ class ValueList:
                 docstring = self._parent._inline_doc_comment(val)
             else:
                 docstring = ""
-            if not hasattr( getattr(val, 'print_nested', None), '__call__'):
+            if not hasattr(getattr(val, 'print_nested', None), '__call__'):
                 stream.write(
-                    (prefix + (level+1)*indent) + "{!r},{}\n".format(val, docstring)
+                    (prefix + (level + 1) * indent) + "{!r},{}\n".format(val, docstring)
                 )
             else:
-                val.print_nested(stream=stream, level=level+2, indent=indent, prefix=prefix, trailer=",", print_doc=print_doc, first_line_suffix=docstring)
+                val.print_nested(stream=stream, level=level + 2, indent=indent, prefix=prefix, trailer=",", print_doc=print_doc, first_line_suffix=docstring)
         if skipped_items:
-            stream.write( (prefix + (level+1)*indent) + "# {} empty items skipped\n".format(skipped_items) )
-        stream.write( (prefix + level*indent) + "]{}\n".format(trailer) )
+            stream.write((prefix + (level + 1) * indent) + "# {} empty items skipped\n".format(skipped_items))
+        stream.write((prefix + level * indent) + "]{}\n".format(trailer))
 
 
 class SegmentSequence:
     """A sequence of FinTS3Segment objects"""
 
-    def __init__(self, segments = None):
+    def __init__(self, segments=None):
         if isinstance(segments, bytes):
             from .parser import FinTS3Parser
             parser = FinTS3Parser()
@@ -227,7 +227,7 @@ class SegmentSequence:
         import sys
         stream = stream or sys.stdout
         stream.write(
-            ( (prefix + level*indent) if first_level_indent else "")
+            ((prefix + level * indent) if first_level_indent else "")
             + "{}.{}([".format(self.__class__.__module__, self.__class__.__name__)
             + first_line_suffix
             + "\n"
@@ -240,8 +240,9 @@ class SegmentSequence:
                 docstring = " # {}".format(docstring)
             else:
                 docstring = ""
-            segment.print_nested(stream=stream, level=level+1, indent=indent, prefix=prefix, first_level_indent=True, trailer=",", print_doc=print_doc, first_line_suffix=docstring)
-        stream.write( (prefix + level*indent) + "]){}\n".format(trailer) )
+            segment.print_nested(stream=stream, level=level + 1, indent=indent, prefix=prefix, first_level_indent=True, trailer=",", print_doc=print_doc,
+                                 first_line_suffix=docstring)
+        stream.write((prefix + level * indent) + "]){}\n".format(trailer))
 
     def find_segments(self, query=None, version=None, callback=None, recurse=True):
         """Yields an iterable of all matching segments.
@@ -270,9 +271,9 @@ class SegmentSequence:
             callback = lambda s: True
 
         for s in self.segments:
-            if ((not query) or any( (isinstance(s, t) if isinstance(t, type) else s.header.type == t) for t in query)) and \
-                ((not version) or any(s.header.version == v for v in version)) and \
-                callback(s):
+            if ((not query) or any((isinstance(s, t) if isinstance(t, type) else s.header.type == t) for t in query)) and \
+                    ((not version) or any(s.header.version == v for v in version)) and \
+                    callback(s):
                 yield s
 
             if recurse:
@@ -319,9 +320,10 @@ class ContainerMeta(type):
         retval._fields = OrderedDict()
         for supercls in reversed(bases):
             if hasattr(supercls, '_fields'):
-                retval._fields.update((k,v) for (k,v) in supercls._fields.items())
-        retval._fields.update((k,v) for (k,v) in classdict.items() if isinstance(v, Field))
+                retval._fields.update((k, v) for (k, v) in supercls._fields.items())
+        retval._fields.update((k, v) for (k, v) in classdict.items() if isinstance(v, Field))
         return retval
+
 
 class Container(metaclass=ContainerMeta):
     def __init__(self, *args, **kwargs):
@@ -332,18 +334,18 @@ class Container(metaclass=ContainerMeta):
         for init_value, field_name in zip(args, self._fields):
             init_values[field_name] = init_value
         args = ()
-        
+
         for field_name in self._fields:
             if field_name in kwargs:
                 if field_name in init_values:
                     raise TypeError("__init__() got multiple values for argument {}".format(field_name))
                 init_values[field_name] = kwargs.pop(field_name)
-        
+
         super().__init__(*args, **kwargs)
         self._values = {}
         self._additional_data = additional_data
 
-        for k,v in init_values.items():
+        for k, v in init_values.items():
             setattr(self, k, v)
 
     @classmethod
@@ -400,7 +402,7 @@ class Container(metaclass=ContainerMeta):
         stream = stream or sys.stdout
 
         stream.write(
-            ( (prefix + level*indent) if first_level_indent else "")
+            ((prefix + level * indent) if first_level_indent else "")
             + "{}.{}(".format(self.__class__.__module__, self.__class__.__name__)
             + first_line_suffix
             + "\n"
@@ -411,13 +413,14 @@ class Container(metaclass=ContainerMeta):
                 docstring = self._fields[name]._inline_doc_comment(val)
             else:
                 docstring = ""
-            if not hasattr( getattr(val, 'print_nested', None), '__call__'):
+            if not hasattr(getattr(val, 'print_nested', None), '__call__'):
                 stream.write(
-                    (prefix + (level+1)*indent) + "{} = {!r},{}\n".format(name, val, docstring)
+                    (prefix + (level + 1) * indent) + "{} = {!r},{}\n".format(name, val, docstring)
                 )
             else:
                 stream.write(
-                    (prefix + (level+1)*indent) + "{} = ".format(name)
+                    (prefix + (level + 1) * indent) + "{} = ".format(name)
                 )
-                val.print_nested(stream=stream, level=level+2, indent=indent, prefix=prefix, first_level_indent=False, trailer=",", print_doc=print_doc, first_line_suffix=docstring)
-        stream.write( (prefix + level*indent) + "){}\n".format(trailer) )
+                val.print_nested(stream=stream, level=level + 2, indent=indent, prefix=prefix, first_level_indent=False, trailer=",", print_doc=print_doc,
+                                 first_line_suffix=docstring)
+        stream.write((prefix + level * indent) + "){}\n".format(trailer))

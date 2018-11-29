@@ -96,47 +96,47 @@ class PinTanDummyEncryptionMechanism(EncryptionMechanism):
 
 class PinTanAuthenticationMechanism(AuthenticationMechanism):
     def __init__(self, pin):
-        self.pin=pin
-        self.pending_signature=None
-        self.security_function=None
+        self.pin = pin
+        self.pending_signature = None
+        self.security_function = None
 
     def sign_prepare(self, message: FinTSMessage):
         _now = datetime.datetime.now()
         rand = random.SystemRandom()
 
         self.pending_signature = HNSHK4(
-            security_profile = SecurityProfile(SecurityMethod.PIN, 1),
-            security_function = self.security_function,
-            security_reference = rand.randint(1000000, 9999999),
-            security_application_area = SecurityApplicationArea.SHM,
-            security_role = SecurityRole.ISS,
-            security_identification_details = SecurityIdentificationDetails(
-                    IdentifiedRole.MS,
-                    identifier=message.dialog.client.system_id,
-                ),
-            security_reference_number = 1,  ## FIXME
-            security_datetime = SecurityDateTime(
-                    DateTimeType.STS,
-                    _now.date(),
-                    _now.time(),
-                ),
-            hash_algorithm = HashAlgorithm(
-                    usage_hash = '1',
-                    hash_algorithm = '999',
-                    algorithm_parameter_name = '1',
-                ),
-            signature_algorithm = SignatureAlgorithm(
-                    usage_signature = '6',
-                    signature_algorithm = '10',
-                    operation_mode = '16',
-                ),
-            key_name = KeyName(
-                    message.dialog.client.bank_identifier,
-                    message.dialog.client.user_id,
-                    KeyType.S,
-                    0,
-                    0,
-                ),
+            security_profile=SecurityProfile(SecurityMethod.PIN, 1),
+            security_function=self.security_function,
+            security_reference=rand.randint(1000000, 9999999),
+            security_application_area=SecurityApplicationArea.SHM,
+            security_role=SecurityRole.ISS,
+            security_identification_details=SecurityIdentificationDetails(
+                IdentifiedRole.MS,
+                identifier=message.dialog.client.system_id,
+            ),
+            security_reference_number=1,  # FIXME
+            security_datetime=SecurityDateTime(
+                DateTimeType.STS,
+                _now.date(),
+                _now.time(),
+            ),
+            hash_algorithm=HashAlgorithm(
+                usage_hash='1',
+                hash_algorithm='999',
+                algorithm_parameter_name='1',
+            ),
+            signature_algorithm=SignatureAlgorithm(
+                usage_signature='6',
+                signature_algorithm='10',
+                operation_mode='16',
+            ),
+            key_name=KeyName(
+                message.dialog.client.bank_identifier,
+                message.dialog.client.user_id,
+                KeyType.S,
+                0,
+                0,
+            ),
 
         )
 
@@ -151,10 +151,10 @@ class PinTanAuthenticationMechanism(AuthenticationMechanism):
 
         if self.pending_signature not in message.segments:
             raise FinTSError("Cannot sign a message that was not prepared")
-    
+
         signature = HNSHA2(
-            security_reference = self.pending_signature.security_reference,
-            user_defined_signature = UserDefinedSignature(
+            security_reference=self.pending_signature.security_reference,
+            user_defined_signature=UserDefinedSignature(
                 pin=self.pin,
                 tan=self._get_tan(),
             ),

@@ -143,7 +143,7 @@ class FinTS3Parser:
     """
 
     def parse_message(self, data: bytes) -> SegmentSequence:
-        "Takes a FinTS 3.0 message as byte array, and returns a parsed segment sequence"
+        """Takes a FinTS 3.0 message as byte array, and returns a parsed segment sequence"""
         if isinstance(data, bytes):
             data = self.explode_segments(data)
 
@@ -323,7 +323,7 @@ class FinTS3Serializer:
     """
 
     def serialize_message(self, message: SegmentSequence) -> bytes:
-        "Serialize a message (as SegmentSequence, list of FinTS3Segment, or FinTS3Segment) into a byte array"
+        """Serialize a message (as SegmentSequence, list of FinTS3Segment, or FinTS3Segment) into a byte array"""
         if isinstance(message, FinTS3Segment):
             message = SegmentSequence([message])
         if isinstance(message, (list, tuple, Iterable)):
@@ -332,7 +332,7 @@ class FinTS3Serializer:
         result = []
 
         for segment in message.segments:
-            result.append( self.serialize_segment(segment) )
+            result.append(self.serialize_segment(segment))
 
         return self.implode_segments(result)
 
@@ -341,7 +341,7 @@ class FinTS3Serializer:
         seg = []
         filler = []
 
-        for name,field in segment._fields.items():
+        for name, field in segment._fields.items():
             repeat = field.count != 1
             constructed = isinstance(field, DataElementGroupField)
 
@@ -367,15 +367,15 @@ class FinTS3Serializer:
 
             if not constructed:
                 if repeat:
-                    seg.extend( field.render(val) for val in getattr(segment, name) )
+                    seg.extend(field.render(val) for val in getattr(segment, name))
                 else:
-                    seg.append( field.render(getattr(segment, name)) )
+                    seg.append(field.render(getattr(segment, name)))
             else:
                 if repeat:
                     for val in getattr(segment, name):
-                        seg.append( self.serialize_deg(val) )
+                        seg.append(self.serialize_deg(val))
                 else:
-                    seg.append( self.serialize_deg(getattr(segment, name), allow_skip=True) )
+                    seg.append(self.serialize_deg(getattr(segment, name), allow_skip=True))
 
         if segment._additional_data:
             seg.extend(segment._additional_data)
@@ -415,15 +415,15 @@ class FinTS3Serializer:
 
             if not constructed:
                 if repeat:
-                    result.extend( field.render(val) for val in getattr(deg, name) )
+                    result.extend(field.render(val) for val in getattr(deg, name))
                 else:
-                    result.append( field.render(getattr(deg, name)) )
+                    result.append(field.render(getattr(deg, name)))
             else:
                 if repeat:
                     for val in getattr(deg, name):
-                        result.extend( self.serialize_deg(val) )
+                        result.extend(self.serialize_deg(val))
                 else:
-                    result.extend( self.serialize_deg(getattr(deg, name)) )
+                    result.extend(self.serialize_deg(getattr(deg, name)))
 
         return result
 
@@ -435,7 +435,7 @@ class FinTS3Serializer:
             level2 = []
             for deg in segment:
                 if isinstance(deg, (list, tuple)):
-                    highest_index = max(((i+1) for (i,e) in enumerate(deg) if e != b'' and e is not None), default=0)
+                    highest_index = max(((i+1) for (i, e) in enumerate(deg) if e != b'' and e is not None), default=0)
                     level2.append(
                         b":".join(FinTS3Serializer.escape_value(de) for de in deg[:highest_index])
                     )

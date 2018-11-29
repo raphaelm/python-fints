@@ -224,7 +224,7 @@ class TwoStepParametersCommon(DataElementGroup):
     @property
     def VERSION(self):
         """TAN mechanism version"""
-        return int( re.match(r'^(\D+)(\d+)$', self.__class__.__name__).group(2) )
+        return int(re.match(r'^(\D+)(\d+)$', self.__class__.__name__).group(2))
 
     security_function = DataElementField(type='code', max_length=3, _d="Sicherheitsfunktion kodiert")
     tan_process = DataElementField(type='code', length=1, _d="TAN-Prozess")
@@ -654,6 +654,7 @@ class TANMediaClass3(RepresentableEnum):
     MOBILE = 'M'  #: Mobiltelefon mit mobileTAN
     SECODER = 'S'  #: Secoder
 
+
 class TANMediaClass4(RepresentableEnum):
     """TAN-Medium-Klasse, version 4
 
@@ -908,7 +909,7 @@ class SEPACCode1(RepresentableEnum):
 
 
 class StatusSEPATask1(RepresentableEnum):
-    ## FIXME Enum names in english
+    # FIXME Enum names in english
     PENDING = '1'  #: In Terminierung
     DECLINED = '2'  #: Abgelehnt von erster Inkassostelle
     IN_PROGRESS = '3'  #: in Bearbeitung

@@ -21,10 +21,11 @@ TEST_MESSAGES = {
 # We will turn off robust mode generally for tests
 fints.parser.robust_mode = False
 
+
 @pytest.fixture(scope="session")
 def fints_server():
-    dialog_prefix = base64.b64encode( uuid.uuid4().bytes, altchars=b'_/' ).decode('us-ascii')
-    system_prefix = base64.b64encode( uuid.uuid4().bytes, altchars=b'_/' ).decode('us-ascii')
+    dialog_prefix = base64.b64encode(uuid.uuid4().bytes, altchars=b'_/').decode('us-ascii')
+    system_prefix = base64.b64encode(uuid.uuid4().bytes, altchars=b'_/').decode('us-ascii')
     dialogs = {}
     systems = {}
 
@@ -128,7 +129,6 @@ def fints_server():
 
                 result.append("HIKAZ::7:{}+@{}@".format(hkkaz.group(1).decode('us-ascii'), len(tx)).encode('us-ascii') + tx + b"'")
 
-
             hkccs = re.search(rb"'HKCCS:(\d+):1.*@\d+@(.*)/Document>'", message)
             if hkccs:
                 segno = hkccs.group(1).decode('us-ascii')
@@ -180,7 +180,6 @@ def fints_server():
                 datadict['pending'].pop(ref, None)
 
             return b"".join(result)
-
 
         def process_message(self, message):
             incoming_dialog_id = re.match(rb'HNHBK:1:3\+\d+\+300\+([^+]+)', message)
@@ -234,7 +233,6 @@ def fints_server():
             self.send_header('Content-Length', len(content_data))
             self.end_headers()
             self.wfile.write(content_data)
-
 
     server = http.server.HTTPServer(('127.0.0.1', 0), FinTSHandler)
     thread = threading.Thread(target=server.serve_forever, name="fints_server", daemon=True)
