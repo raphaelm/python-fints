@@ -446,7 +446,7 @@ class FinTS3Client:
         version_map = dict((clazz.VERSION, clazz) for clazz in segment_classes)
         max_version = self.bpd.find_segment_highest_version(parameter_segment_name, version_map.keys())
         if not max_version:
-            raise ValueError('No supported {} version found. I support {}, bank supports {}.'.format(
+            raise FinTSUnsupportedOperation('No supported {} version found. I support {}, bank supports {}.'.format(
                 parameter_segment_name,
                 tuple(version_map.keys()),
                 tuple(v.header.version for v in self.bpd.find_segments(parameter_segment_name))
