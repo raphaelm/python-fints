@@ -9,6 +9,7 @@ from enum import Enum
 import bleach
 from sepaxml import SepaTransfer
 
+from . import version
 from .connection import FinTSHTTPSConnection
 from .dialog import FinTSDialog
 from .exceptions import *
@@ -166,8 +167,8 @@ class FinTS3Client:
         self.upd_version = 0
         self.upa = None
         self.upd = SegmentSequence()
-        self.product_name = 'pyfints'
-        self.product_version = '0.2'
+        self.product_name = 'python-fints'
+        self.product_version = version
         self.response_callbacks = []
         self._standing_dialog = None
 
