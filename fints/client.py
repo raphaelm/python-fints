@@ -315,7 +315,7 @@ class FinTS3Client:
     def _log_response(self, segment, response):
         if response.code[0] in ('0', '1'):
             log_target = logger.info
-        elif response.code[0] in ('3'):
+        elif response.code[0] in ('3',):
             log_target = logger.warning
         else:
             log_target = logger.error
@@ -947,7 +947,7 @@ class NeedTANResponse(NeedRetryResponse):
             self.challenge_html = bleach.clean(
                 self.challenge,
                 tags=['br', 'p', 'b', 'i', 'u', 'ul', 'ol', 'li'],
-                attributes=[],
+                attributes={},
             )
         else:
             self.challenge_html = bleach.clean(self.challenge, tags=[])
@@ -1040,8 +1040,8 @@ class FinTS3PinTanClient(FinTS3Client):
         if tan_process == '1':
             seg.segment_type = orig_seg.header.type
             account_ = getattr(orig_seg, 'account', None)
-            if isinstance(account, KTI1):
-                seg.account = account
+            if isinstance(account_, KTI1):
+                seg.account = account_
             raise NotImplementedError("TAN-Process 1 not implemented")
 
         if tan_process in ('1', '3', '4') and \
