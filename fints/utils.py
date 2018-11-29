@@ -25,7 +25,6 @@ def print_segments(message):
         print(u"{}: {}".format(idx, seg.encode('utf-8')))
 
 
-
 def fints_unescape(content):
     return content.replace('??', '?').replace("?'", "'").replace('?+', '+').replace('?:', ':').replace('?@', '@')
 
@@ -291,6 +290,7 @@ class Password(str):
 
     def replace(self, *args, **kwargs):
         return self.__str__().replace(*args, **kwargs)
+
 
 class RepresentableEnum(Enum):
     def __init__(self, *args, **kwargs):

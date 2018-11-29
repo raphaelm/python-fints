@@ -7,6 +7,7 @@ from fints.utils import SubclassesMixin, classproperty
 
 TYPE_VERSION_RE = re.compile(r'^([A-Z]+)(\d+)$')
 
+
 class FinTS3SegmentMeta(ContainerMeta):
     @staticmethod
     def _check_fields_recursive(instance):
@@ -20,6 +21,7 @@ class FinTS3SegmentMeta(ContainerMeta):
         retval = super().__new__(cls, name, bases, classdict)
         FinTS3SegmentMeta._check_fields_recursive(retval)
         return retval
+
 
 class FinTS3Segment(Container, SubclassesMixin, metaclass=FinTS3SegmentMeta):
     header = DataElementGroupField(type=SegmentHeader, _d="Segmentkopf")
@@ -62,6 +64,7 @@ class FinTS3Segment(Container, SubclassesMixin, metaclass=FinTS3SegmentMeta):
 class ParameterSegment_22(FinTS3Segment):
     max_number_tasks = DataElementField(type='num', max_length=3, _d="Maximale Anzahl Aufträge")
     min_number_signatures = DataElementField(type='num', length=1, _d="Anzahl Signaturen mindestens")
+
 
 class ParameterSegment(FinTS3Segment):
     max_number_tasks = DataElementField(type='num', max_length=3, _d="Maximale Anzahl Aufträge")

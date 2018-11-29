@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 DIALOGUE_ID_UNASSIGNED = '0'
 DATA_BLOB_MAGIC = b'python-fints_DIALOG_DATABLOB'
 
+
 class FinTSDialog:
     def __init__(self, client=None, lazy_init=False, enc_mechanism=None, auth_mechanisms=[]):
         self.client = client

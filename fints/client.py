@@ -48,6 +48,7 @@ SYSTEM_ID_UNASSIGNED = '0'
 DATA_BLOB_MAGIC = b'python-fints_DATABLOB'
 DATA_BLOB_MAGIC_RETRY = b'python-fints_RETRY_DATABLOB'
 
+
 class FinTSOperations(Enum):
     """This enum is used as keys in the 'supported_operations' member of the get_information() response.
 
@@ -73,6 +74,7 @@ class FinTSOperations(Enum):
     SEPA_STANDING_DEBIT_SINGLE_CREATE = ("HKDDE", )
     GET_SEPA_STANDING_DEBITS_SINGLE = ("HKDDB", )
     SEPA_STANDING_DEBIT_SINGLE_DELETE = ("HKDDL", )
+
 
 class NeedRetryResponse(SubclassesMixin, metaclass=ABCMeta):
     """Base class for Responses that need the operation to be externally retried.
@@ -102,6 +104,7 @@ class NeedRetryResponse(SubclassesMixin, metaclass=ABCMeta):
 
         raise Exception("Invalid data blob data or version")
 
+
 class ResponseStatus(Enum):
     "Error status of the response"
 
@@ -110,11 +113,13 @@ class ResponseStatus(Enum):
     WARNING = 2 #: Response indicates a Warning
     ERROR = 3 #: Response indicates an Error
 
+
 _RESPONSE_STATUS_MAPPING = {
     '0': ResponseStatus.SUCCESS,
     '3': ResponseStatus.WARNING,
     '9': ResponseStatus.ERROR,
 }
+
 
 class TransactionResponse:
     """Result of a FinTS operation.
@@ -142,8 +147,9 @@ class TransactionResponse:
     def __repr__(self):
         return "<{o.__class__.__name__}(status={o.status!r}, responses={o.responses!r}, data={o.data!r})>".format(o=self)
 
+
 class FinTS3Client:
-    def __init__(self, bank_identifier, user_id, customer_id=None, set_data:bytes=None):
+    def __init__(self, bank_identifier, user_id, customer_id=None, set_data: bytes=None):
         self.accounts = []
         if isinstance(bank_identifier, BankIdentifier):
             self.bank_identifier = bank_identifier
@@ -389,7 +395,6 @@ class FinTS3Client:
                 retval['accounts'].append(acc)
         return retval
 
-
     def get_sepa_accounts(self):
         """
         Returns a list of SEPA accounts
@@ -456,7 +461,6 @@ class FinTS3Client:
             return max_version, version_map.get(max_version.header.version)
         else:
             return version_map.get(max_version.header.version)
-
 
     def get_transactions(self, account: SEPAAccount, start_date: datetime.date = None, end_date: datetime.date = None):
         """
@@ -617,8 +621,8 @@ class FinTS3Client:
         return responses
 
     def simple_sepa_transfer(self, account: SEPAAccount, iban: str, bic: str,
-                                   recipient_name: str, amount: Decimal, account_name: str, reason: str,
-                                   endtoend_id='NOTPROVIDED'):
+                             recipient_name: str, amount: Decimal, account_name: str, reason: str,
+                             endtoend_id='NOTPROVIDED'):
         """
         Simple SEPA transfer.
 
@@ -654,8 +658,8 @@ class FinTS3Client:
         return self.sepa_transfer(account, xml)
 
     def sepa_transfer(self, account: SEPAAccount, pain_message: bytes, multiple=False,
-                            control_sum=None, currency='EUR', book_as_single=False,
-                            pain_descriptor='urn:iso:std:iso:20022:tech:xsd:pain.001.001.03'):
+                      control_sum=None, currency='EUR', book_as_single=False,
+                      pain_descriptor='urn:iso:std:iso:20022:tech:xsd:pain.001.001.03'):
         """
         Custom SEPA transfer.
 
@@ -712,8 +716,8 @@ class FinTS3Client:
         return retval
 
     def sepa_debit(self, account: SEPAAccount, pain_message: str, multiple=False, cor1=False,
-                         control_sum=None, currency='EUR', book_as_single=False,
-                         pain_descriptor='urn:iso:std:iso:20022:tech:xsd:pain.008.003.01'):
+                   control_sum=None, currency='EUR', book_as_single=False,
+                   pain_descriptor='urn:iso:std:iso:20022:tech:xsd:pain.008.003.01'):
         """
         Custom SEPA debit.
 
@@ -861,12 +865,13 @@ class FinTS3Client:
             yield self
         self._standing_dialog = None
 
+
 class NeedTANResponse(NeedRetryResponse):
     challenge_raw = None  #: Raw challenge as received by the bank
     challenge = None  #: Textual challenge to be displayed to the user
     challenge_html = None  #: HTML-safe challenge text, possibly with formatting
     challenge_hhduc = None  #: HHD_UC challenge to be transmitted to the TAN generator
-    challenge_matrix = None #: Matrix code challenge: tuple(mime_type, data)
+    challenge_matrix = None  #: Matrix code challenge: tuple(mime_type, data)
 
     def __init__(self, command_seg, tan_request, resume_method=None, tan_request_structured=False):
         self.command_seg = command_seg
@@ -955,6 +960,7 @@ IMPLEMENTED_HKTAN_VERSIONS = {
     5: HKTAN5,
 }
 
+
 class FinTS3PinTanClient(FinTS3Client):
 
     def __init__(self, bank_identifier, user_id, pin, server, customer_id=None, *args, **kwargs):
@@ -981,7 +987,8 @@ class FinTS3PinTanClient(FinTS3Client):
                 self.pin,
             )]
 
-        return FinTSDialog(self, 
+        return FinTSDialog(
+            self,
             lazy_init=lazy_init,
             enc_mechanism=enc,
             auth_mechanisms=auth,
@@ -1133,7 +1140,6 @@ class FinTS3PinTanClient(FinTS3Client):
             if self.pin:
                 self.pin.block()
             raise FinTSClientPINError("Error during dialog initialization, PIN wrong?")
-
 
     def get_tan_mechanisms(self):
         """

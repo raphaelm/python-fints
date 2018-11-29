@@ -23,6 +23,7 @@ class HIKAZ5(FinTS3Segment):
     statement_booked = DataElementField(type='bin', _d="Gebuchte Umsätze")
     statement_pending = DataElementField(type='bin', required=False, _d="Nicht gebuchte Umsätze")
 
+
 class HKKAZ6(FinTS3Segment):
     """Kontoumsätze anfordern/Zeitraum, version 6
 
@@ -41,6 +42,7 @@ class HIKAZ6(FinTS3Segment):
     Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Messages -- Multibankfähige Geschäftsvorfälle """
     statement_booked = DataElementField(type='bin', _d="Gebuchte Umsätze")
     statement_pending = DataElementField(type='bin', required=False, _d="Nicht gebuchte Umsätze")
+
 
 class HKKAZ7(FinTS3Segment):
     """Kontoumsätze anfordern/Zeitraum, version 7

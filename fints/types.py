@@ -86,6 +86,7 @@ class Field:
                 return " # {}".format(d)
         return ""
 
+
 class TypedField(Field, SubclassesMixin):
     def __new__(cls, *args, **kwargs):
         target_cls = None
@@ -202,6 +203,7 @@ class ValueList:
         if skipped_items:
             stream.write( (prefix + (level+1)*indent) + "# {} empty items skipped\n".format(skipped_items) )
         stream.write( (prefix + level*indent) + "]{}\n".format(trailer) )
+
 
 class SegmentSequence:
     """A sequence of FinTS3Segment objects"""

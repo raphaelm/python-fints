@@ -17,6 +17,7 @@ class BatchDebitBase(FinTS3Segment):
     sepa_descriptor = DataElementField(type='an', max_length=256, _d="SEPA Descriptor")
     sepa_pain_message = DataElementField(type='bin', _d="SEPA pain message")
 
+
 class DebitResponseBase(FinTS3Segment):
     task_id = DataElementField(type='an', max_length=99, required=False, _d="Auftragsidentifikation")
 
@@ -52,6 +53,7 @@ class HKDSE2(FinTS3Segment):
     sepa_descriptor = DataElementField(type='an', max_length=256, _d="SEPA Descriptor")
     sepa_pain_message = DataElementField(type='bin', _d="SEPA pain message")
 
+
 class HIDSE2(DebitResponseBase):
     """Einreichung terminierter SEPA-Einzellastschrift bestätigen, version 2
 
@@ -63,7 +65,6 @@ class HIDSES2(ParameterSegment):
 
     Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Messages -- Multibankfähige Geschäftsvorfälle """
     parameter = DataElementGroupField(type=ScheduledDebitParameter2, _d="Parameter terminierte SEPA-Sammellastschrift einreichen")
-
 
 
 class HKDME1(BatchDebitBase):
@@ -85,8 +86,6 @@ class HIDMES1(ParameterSegment):
     parameter = DataElementGroupField(type=ScheduledBatchDebitParameter1, _d="Parameter terminierte SEPA-Sammellastschrift einreichen")
 
 
-
-
 class HKDME2(BatchDebitBase):
     """Einreichung terminierter SEPA-Sammellastschrift, version 2
 
@@ -104,7 +103,6 @@ class HIDMES2(ParameterSegment):
 
     Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Messages -- Multibankfähige Geschäftsvorfälle """
     parameter = DataElementGroupField(type=ScheduledBatchDebitParameter2, _d="Parameter terminierte SEPA-Sammellastschrift einreichen")
-
 
 
 class HKDSC1(FinTS3Segment):
@@ -129,7 +127,6 @@ class HIDSCS1(ParameterSegment):
     parameter = DataElementGroupField(type=ScheduledCOR1DebitParameter1, _d="Parameter terminierte SEPA-COR1-Einzellastschrift")
 
 
-
 class HKDMC1(BatchDebitBase):
     """Terminierte SEPA-COR1-Sammellastschrift einreichen, version 1
 
@@ -147,7 +144,6 @@ class HIDMCS1(ParameterSegment):
 
     Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Messages -- Multibankfähige Geschäftsvorfälle """
     parameter = DataElementGroupField(type=ScheduledCOR1BatchDebitParameter1, _d="Parameter terminierte SEPA-COR1-Sammellastschrift")
-
 
 
 class HKDBS1(FinTS3Segment):
@@ -180,7 +176,6 @@ class HIDBSS1(ParameterSegment):
     parameter = DataElementGroupField(type=QueryScheduledDebitParameter1, _d="Parameter Bestand terminierter SEPA-Einzellastschriften")
 
 
-
 class HKDBS2(FinTS3Segment):
     """Bestand terminierter SEPA-Einzellastschriften anfordern, version 2
 
@@ -205,12 +200,12 @@ class HIDBS2(FinTS3Segment):
     task_changeable = DataElementField(type='jn', required=False, _d="Auftrag änderbar")
     status_sepa_task = CodeField(enum=StatusSEPATask1, _d="Status SEPA-Auftrag")
 
+
 class HIDBSS2(ParameterSegment):
     """Bestand terminierter SEPA-Einzellastschriften Parameter, version 2
 
     Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Messages -- Multibankfähige Geschäftsvorfälle """
     parameter = DataElementGroupField(type=QueryScheduledDebitParameter2, _d="Parameter Bestand terminierter SEPA-Einzellastschriften")
-
 
 
 class HKDMB1(FinTS3Segment):
@@ -234,6 +229,7 @@ class HIDMB1(FinTS3Segment):
     date_booked = DataElementField(type='dat', required=False, _d="Ausführungsdatum")
     debit_count = DataElementField(type='num', max_length=6, _d="Anzahl der Aufträge")
     sum_amount = DataElementGroupField(type=Amount1, _d="Summe der Beträge")
+
 
 class HIDMBS1(ParameterSegment):
     """Bestand terminierter SEPA-Sammellastschriften Parameter, version 1

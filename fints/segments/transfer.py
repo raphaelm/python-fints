@@ -12,6 +12,7 @@ class HKCCS1(FinTS3Segment):
     sepa_descriptor = DataElementField(type='an', max_length=256, _d="SEPA Descriptor")
     sepa_pain_message = DataElementField(type='bin', _d="SEPA pain message")
 
+
 class HKCCM1(FinTS3Segment):
     """SEPA-Sammelüberweisung, version 1
 
@@ -21,6 +22,7 @@ class HKCCM1(FinTS3Segment):
     request_single_booking = DataElementField(type='jn', _d="Einzelbuchung gewünscht")
     sepa_descriptor = DataElementField(type='an', max_length=256, _d="SEPA Descriptor")
     sepa_pain_message = DataElementField(type='bin', _d="SEPA pain message")
+
 
 class HICCMS1(ParameterSegment):
     """SEPA-Sammelüberweisung Parameter, version 1

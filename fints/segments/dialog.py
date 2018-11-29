@@ -9,12 +9,14 @@ class HKSYN3(FinTS3Segment):
     Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Formals"""
     synchronisation_mode = CodeField(enum=SynchronisationMode, length=1)    
 
+
 class HISYN4(FinTS3Segment):
-    "Synchronisierungsantwort"
+    """Synchronisierungsantwort"""
     system_id = DataElementField(type='id', _d="Kundensystem-ID")
     message_number = DataElementField(type='num', max_length=4, required=False, _d="Nachrichtennummer")
     security_reference_signature_key = DataElementField(type='num', max_length=16, required=False, _d="Sicherheitsreferenznummer für Signierschlüssel")
     security_reference_digital_signature = DataElementField(type='num', max_length=16, required=False, _d="Sicherheitsreferenznummer für Digitale Signatur")
+
 
 class HKEND1(FinTS3Segment):
     """Dialogende, version 1
@@ -22,10 +24,12 @@ class HKEND1(FinTS3Segment):
     Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Formals"""
     dialogue_id = DataElementField(type='id', _d="Dialog-ID")
 
+
 class HIRMG2(FinTS3Segment):
-    "Rückmeldungen zur Gesamtnachricht"
+    """Rückmeldungen zur Gesamtnachricht"""
     responses = DataElementGroupField(type=Response, min_count=1, max_count=99, _d="Rückmeldung")
 
+
 class HIRMS2(FinTS3Segment):
-    "Rückmeldungen zu Segmenten"
+    """Rückmeldungen zu Segmenten"""
     responses = DataElementGroupField(type=Response, min_count=1, max_count=99, _d="Rückmeldung")

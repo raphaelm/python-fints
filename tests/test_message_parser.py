@@ -11,6 +11,7 @@ def test_explode(input_name):
     if input_name.startswith('basic_'):
         assert len(segments) == 4
 
+
 @pytest.mark.parametrize("input_name", [k for k in TEST_MESSAGES.keys() if k.startswith('basic_')])
 def test_parse_basic(input_name):
     m = FinTS3Parser().parse_message(TEST_MESSAGES[input_name])
@@ -18,11 +19,13 @@ def test_parse_basic(input_name):
     assert m.segments[3].__class__.__name__ == "HNHBS1"
     m.print_nested()
 
+
 @pytest.mark.parametrize("input_name", [k for k in TEST_MESSAGES.keys() if not k.startswith('basic_')])
 def test_parse_other(input_name):
     m = FinTS3Parser().parse_message(TEST_MESSAGES[input_name])
     assert isinstance(m, SegmentSequence)
     m.print_nested()
+
 
 def test_parse_counted():
     from fints.segments.base import FinTS3Segment
@@ -57,7 +60,6 @@ def test_parse_counted():
     class ITST3(FinTS3Segment):
         b = ContainerField(type=InnerTest, max_count=99)
 
-
     m5 = FinTS3Parser().parse_message(b"ITST:1:3+12:42+345+61:62:63'")
     m5.print_nested()
     assert m5.segments[0].b[0].a[0] == 12
@@ -72,12 +74,13 @@ def test_parse_counted():
 def test_parse_HIRMG2():
     d = b"HIRMG:3:2+0010::Nachricht entgegengenommen.+0100::Dialog beendet.'"
     m = FinTS3Parser().parse_message(d)
-    
+
     seg = m.segments[0]
     assert seg.header.type == 'HIRMG'
     assert seg.responses[0].code == '0010'
     assert seg.responses[1].code == '0100'
     assert len(seg.responses) == 2
+
 
 # Regression test, bug found in the wild
 def test_extra_colon():
@@ -89,6 +92,7 @@ def test_extra_colon():
     assert seg.header.type == 'HIRMG'
     assert seg.header.version == 2
     assert seg.header.reference is None
+
 
 def test_invalid():
     message1 = rb"""12"""
@@ -119,6 +123,7 @@ def test_invalid():
     message6 = rb"""HNHBS:5:1'"""
     with pytest.raises(FinTSParserError, match='^Required field'):
         m = FinTS3Parser().parse_message(message6)
+
 
 def test_robust_mode(mock):
     mock.patch('fints.parser.robust_mode', True)

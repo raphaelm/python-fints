@@ -13,16 +13,18 @@ from .base import FinTS3Segment
 
 
 class HNHBK3(FinTS3Segment):
-    "Nachrichtenkopf"
+    """Nachrichtenkopf"""
     message_size = ZeroPaddedNumericField(length=12, _d="Größe der Nachricht (nach Verschlüsselung und Komprimierung)")
     hbci_version = DataElementField(type='num', max_length=3, _d="HBCI-Version")
     dialogue_id = DataElementField(type='id', _d="Dialog-ID")
     message_number = DataElementField(type='num', max_length=4, _d="Nachrichtennummer")
     reference_message = DataElementGroupField(type=ReferenceMessage, required=False, _d="Bezugsnachricht")
 
+
 class HNHBS1(FinTS3Segment):
-    "Nachrichtenabschluss"
+    """Nachrichtenabschluss"""
     message_number = DataElementField(type='num', max_length=4, _d="Nachrichtennummer")
+
 
 class HNVSK3(FinTS3Segment):
     """Verschlüsselungskopf, version 3
@@ -44,6 +46,7 @@ class HNVSD1(FinTS3Segment):
     Source: FinTS Financial Transaction Services, Sicherheitsverfahren HBCI"""
     data = SegmentSequenceField(_d="Daten, verschlüsselt")
 
+
 class HNSHK4(FinTS3Segment):
     """Signaturkopf, version 4
 
@@ -60,6 +63,7 @@ class HNSHK4(FinTS3Segment):
     signature_algorithm = DataElementGroupField(type=SignatureAlgorithm, _d="Signaturalgorithmus")
     key_name = DataElementGroupField(type=KeyName, _d="Schlüsselname")
     certificate = DataElementGroupField(type=Certificate, required=False, _d="Zertifikat")
+
 
 class HNSHA2(FinTS3Segment):
     """Signaturabschluss, version 2

@@ -1,6 +1,7 @@
 import datetime
 import random
 
+from fints.exceptions import FinTSError
 from .formals import (
     AlgorithmParameterIVName, AlgorithmParameterName, CompressionFunction,
     DateTimeType, EncryptionAlgorithm, EncryptionAlgorithmCoded,
@@ -21,6 +22,7 @@ class EncryptionMechanism:
     def decrypt(self, message: FinTSMessage):
         raise NotImplemented()
 
+
 class AuthenticationMechanism:
     def sign_prepare(self, message: FinTSMessage):
         raise NotImplemented()
@@ -30,6 +32,7 @@ class AuthenticationMechanism:
     
     def verify(self, message: FinTSMessage):
         raise NotImplemented()
+
 
 class PinTanDummyEncryptionMechanism(EncryptionMechanism):
     def __init__(self, security_method_version=1):
@@ -45,7 +48,8 @@ class PinTanDummyEncryptionMechanism(EncryptionMechanism):
 
         _now = datetime.datetime.now()
 
-        message.segments.insert(1,
+        message.segments.insert(
+            1,
             HNVSK3(
                 security_profile=SecurityProfile(SecurityMethod.PIN, self.security_method_version),
                 security_function='998',
@@ -78,7 +82,8 @@ class PinTanDummyEncryptionMechanism(EncryptionMechanism):
             )
         )
         message.segments[1].header.number = 998
-        message.segments.insert(2,
+        message.segments.insert(
+            2,
             HNVSD1(
                 data=SegmentSequence(segments=plain_segments)
             )
@@ -142,10 +147,10 @@ class PinTanAuthenticationMechanism(AuthenticationMechanism):
 
     def sign_commit(self, message: FinTSMessage):
         if not self.pending_signature:
-            raise Error("No signature is pending")
+            raise FinTSError("No signature is pending")
 
         if self.pending_signature not in message.segments:
-            raise Error("Cannot sign a message that was not prepared")
+            raise FinTSError("Cannot sign a message that was not prepared")
     
         signature = HNSHA2(
             security_reference = self.pending_signature.security_reference,
@@ -161,10 +166,12 @@ class PinTanAuthenticationMechanism(AuthenticationMechanism):
     def verify(self, message: FinTSMessage):
         pass
 
+
 class PinTanOneStepAuthenticationMechanism(PinTanAuthenticationMechanism):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.security_function = '999'
+
 
 class PinTanTwoStepAuthenticationMechanism(PinTanAuthenticationMechanism):
     def __init__(self, client, security_function, *args, **kwargs):

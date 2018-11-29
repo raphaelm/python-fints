@@ -11,6 +11,7 @@ from fints.utils import (
 class DataElementField(DocTypeMixin, TypedField):
     pass
 
+
 class ContainerField(TypedField):
     def _check_value(self, value):
         if self.type:
@@ -25,6 +26,7 @@ class ContainerField(TypedField):
 class DataElementGroupField(DocTypeMixin, ContainerField):
     pass
 
+
 class GenericField(FieldRenderFormatStringMixin, DataElementField):
     type = None
     _FORMAT_STRING = "{}"
@@ -32,6 +34,7 @@ class GenericField(FieldRenderFormatStringMixin, DataElementField):
     def _parse_value(self, value):
         warnings.warn("Generic field used for type {!r} value {!r}".format(self.type, value))
         return value
+
 
 class GenericGroupField(DataElementGroupField):
     type = None
@@ -47,6 +50,7 @@ class GenericGroupField(DataElementGroupField):
             warnings.warn("Generic field used for type {!r} value {!r}".format(self.type, value))
         return value
 
+
 class TextField(FieldRenderFormatStringMixin, DataElementField):
     type = 'txt'
     _DOC_TYPE = str
@@ -54,11 +58,14 @@ class TextField(FieldRenderFormatStringMixin, DataElementField):
 
     def _parse_value(self, value): return str(value)
 
+
 class AlphanumericField(TextField):
     type = 'an'
-    
+
+
 class DTAUSField(DataElementField):
     type = 'dta'
+
 
 class NumericField(FieldRenderFormatStringMixin, DataElementField):
     type = 'num'
@@ -70,6 +77,7 @@ class NumericField(FieldRenderFormatStringMixin, DataElementField):
         if len(_value) > 1 and _value[0] == '0':
             raise ValueError("Leading zeroes not allowed for value of type 'num': {!r}".format(value))
         return int(_value, 10)
+
 
 class ZeroPaddedNumericField(NumericField):
     type = ''
@@ -88,6 +96,7 @@ class ZeroPaddedNumericField(NumericField):
         _value = str(value)
         return int(_value, 10)
 
+
 class DigitsField(FieldRenderFormatStringMixin, DataElementField):
     type = 'dig'
     _DOC_TYPE = str
@@ -98,6 +107,7 @@ class DigitsField(FieldRenderFormatStringMixin, DataElementField):
         if not re.match(r'^\d*$', _value):
             raise TypeError("Only digits allowed for value of type 'dig': {!r}".format(value))
         return _value
+
 
 class FloatField(DataElementField):
     type = 'float'
@@ -121,10 +131,12 @@ class FloatField(DataElementField):
         self._check_value_length(retval)
         return retval
 
+
 class AmountField(FixedLengthMixin, FloatField):
     type = 'wrt'
     _FIXED_LENGTH = [None, None, 15]
     # FIXME Needs test
+
 
 class BinaryField(DataElementField):
     type = 'bin'
@@ -138,10 +150,12 @@ class BinaryField(DataElementField):
 
     def _parse_value(self, value): return bytes(value)
 
+
 class IDField(FixedLengthMixin, AlphanumericField):
     type = 'id'
     _DOC_TYPE = str
     _FIXED_LENGTH = [None, None, 30]
+
 
 class BooleanField(FixedLengthMixin, AlphanumericField):
     type = 'jn'
@@ -160,6 +174,7 @@ class BooleanField(FixedLengthMixin, AlphanumericField):
             return False
         else:
             raise ValueError("Invalid value {!r} for BooleanField".format(value))
+
 
 class CodeFieldMixin:
     # FIXME Need tests
@@ -196,22 +211,27 @@ class CodeFieldMixin:
                 retval = retval + addendum
         return retval
 
+
 class CodeField(CodeFieldMixin, AlphanumericField):
     type = 'code'
     _DOC_TYPE = str
+
 
 class IntCodeField(CodeFieldMixin, NumericField):
     type = ''
     _DOC_TYPE = int
     _FORMAT_STRING = "{}"
 
+
 class CountryField(FixedLengthMixin, DigitsField):
     type = 'ctr'
     _FIXED_LENGTH = [3]
 
+
 class CurrencyField(FixedLengthMixin, AlphanumericField):
     type = 'cur'
     _FIXED_LENGTH = [3]
+
 
 class DateField(FixedLengthMixin, NumericField):
     type = 'dat' # FIXME Need test
@@ -230,6 +250,7 @@ class DateField(FixedLengthMixin, NumericField):
         val = int(val)
         return super()._render_value(val)
 
+
 class TimeField(FixedLengthMixin, DigitsField):
     type = 'tim' # FIXME Need test
     _DOC_TYPE = datetime.time
@@ -245,6 +266,7 @@ class TimeField(FixedLengthMixin, DigitsField):
         val = "{:02d}{:02d}{:02d}".format(value.hour, value.minute, value.second)
         return super()._render_value(val)
 
+
 class PasswordField(AlphanumericField):
     type = ''
     _DOC_TYPE = Password
@@ -254,6 +276,7 @@ class PasswordField(AlphanumericField):
 
     def _render_value(self, value):
         return str(value)
+
 
 class SegmentSequenceField(DataElementField):
     type = 'sf'

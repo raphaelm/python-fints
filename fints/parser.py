@@ -44,11 +44,14 @@ from .segments.base import FinTS3Segment
 #: consumed, even in the presence of errors in this library.
 robust_mode = True
 
+
 class FinTSParserWarning(UserWarning):
     pass
 
+
 class FinTSParserError(ValueError):
     pass
+
 
 TOKEN_RE = re.compile(rb"""
                         ^(?:  (?: \? (?P<ECHAR>.) )
@@ -57,6 +60,7 @@ TOKEN_RE = re.compile(rb"""
                             | (?: @ (?P<BINLEN>[0-9]+) @ )
                          )""", re.X | re.S)
 
+
 class Token(Enum):
     EOF = 'eof'
     CHAR = 'char'
@@ -64,6 +68,7 @@ class Token(Enum):
     PLUS = '+'
     COLON = ':'
     APOSTROPHE = "'"
+
 
 class ParserState:
     def __init__(self, data: bytes, start=0, end=None, encoding='iso-8859-1'):
@@ -131,6 +136,7 @@ class ParserState:
             last_was = Token.CHAR
 
         yield Token.EOF, b''
+
 
 class FinTS3Parser:
     """Parser for FinTS/HBCI 3.0 messages
@@ -225,7 +231,6 @@ class FinTS3Parser:
 
         return retval
 
-
     def parse_deg(self, clazz, data_i, required=True):
         retval = clazz()
 
@@ -275,7 +280,6 @@ class FinTS3Parser:
 
         return retval
 
-
     @staticmethod
     def explode_segments(data: bytes, start=0, end=None):
         segments = []
@@ -312,6 +316,7 @@ class FinTS3Parser:
         parser.consume(Token.EOF)
 
         return segments
+
 
 class FinTS3Serializer:
     """Serializer for FinTS/HBCI 3.0 messages
@@ -421,7 +426,6 @@ class FinTS3Serializer:
                     result.extend( self.serialize_deg(getattr(deg, name)) )
 
         return result
-
 
     @staticmethod
     def implode_segments(message: list):

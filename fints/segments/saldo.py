@@ -15,6 +15,7 @@ class HKSAL5(FinTS3Segment):
     max_number_responses = DataElementField(type='num', max_length=4, required=False, _d="Maximale Anzahl Einträge")
     touchdown_point = DataElementField(type='an', max_length=35, required=False, _d="Aufsetzpunkt")
 
+
 class HISAL5(FinTS3Segment):
     """Saldenrückmeldung, version 5
 
@@ -31,6 +32,7 @@ class HISAL5(FinTS3Segment):
     booking_time = DataElementField(type='tim', required=False, _d="Buchungsuhrzeit des Saldos")
     date_due = DataElementField(type='dat', required=False, _d="Fälligkeit")
 
+
 class HKSAL6(FinTS3Segment):
     """Saldenabfrage, version 6
 
@@ -39,6 +41,7 @@ class HKSAL6(FinTS3Segment):
     all_accounts = DataElementField(type='jn', _d="Alle Konten")
     max_number_responses = DataElementField(type='num', max_length=4, required=False, _d="Maximale Anzahl Einträge")
     touchdown_point = DataElementField(type='an', max_length=35, required=False, _d="Aufsetzpunkt")
+
 
 class HISAL6(FinTS3Segment):
     """Saldenrückmeldung, version 6
@@ -55,6 +58,7 @@ class HISAL6(FinTS3Segment):
     overdraft = DataElementGroupField(type=Amount1, required=False, _d="Überziehung")
     booking_timestamp = DataElementGroupField(type=Timestamp1, required=False, _d="Buchungszeitpunkt")
     date_due = DataElementField(type='dat', required=False, _d="Fälligkeit")
+
 
 class HKSAL7(FinTS3Segment):
     """Saldenabfrage, version 7

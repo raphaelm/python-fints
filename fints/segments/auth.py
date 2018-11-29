@@ -96,6 +96,7 @@ class HITAN3(FinTS3Segment):
     ben = DataElementField(type='an', max_length=99, required=False, _d="BEN")
     tan_medium_name = DataElementField(type='an', max_length=32, required=False, _d="Bezeichnung des TAN-Mediums")
 
+
 class HITAN5(FinTS3Segment):
     """Zwei-Schritt-TAN-Einreichung Rückmeldung, version 5
 
@@ -110,6 +111,7 @@ class HITAN5(FinTS3Segment):
     ben = DataElementField(type='an', max_length=99, required=False, _d="BEN")
     tan_medium_name = DataElementField(type='an', max_length=32, required=False, _d="Bezeichnung des TAN-Mediums")
 
+
 class HITAN6(FinTS3Segment):
     """Zwei-Schritt-TAN-Einreichung Rückmeldung, version 6
 
@@ -122,6 +124,7 @@ class HITAN6(FinTS3Segment):
     challenge_valid_until = DataElementGroupField(type=ChallengeValidUntil, required=False, _d="Gültigkeitsdatum und -uhrzeit für Challenge")
     tan_medium_name = DataElementField(type='an', max_length=32, required=False, _d="Bezeichnung des TAN-Mediums")
 
+
 class HKTAB4(FinTS3Segment):
     """TAN-Generator/Liste anzeigen Bestand, version 4
 
@@ -129,6 +132,7 @@ class HKTAB4(FinTS3Segment):
 
     tan_media_type = CodeField(enum=TANMediaType2, _d="TAN-Medium-Art")
     tan_media_class = CodeField(enum=TANMediaClass3, _d="TAN-Medium-Klasse")
+
 
 class HITAB4(FinTS3Segment):
     """TAN-Generator/Liste anzeigen Bestand Rückmeldung, version 4
@@ -138,6 +142,7 @@ class HITAB4(FinTS3Segment):
     tan_usage_option = CodeField(enum=TANUsageOption, _d="TAN_Einsatzoption")
     tan_media_list = DataElementGroupField(type=TANMedia4, max_count=99, required=False, _d="TAN-Medium-Liste")
 
+
 class HKTAB5(FinTS3Segment):
     """TAN-Generator/Liste anzeigen Bestand, version 5
 
@@ -145,6 +150,7 @@ class HKTAB5(FinTS3Segment):
 
     tan_media_type = CodeField(enum=TANMediaType2, _d="TAN-Medium-Art")
     tan_media_class = CodeField(enum=TANMediaClass4, _d="TAN-Medium-Klasse")
+
 
 class HITAB5(FinTS3Segment):
     """TAN-Generator/Liste anzeigen Bestand Rückmeldung, version 5
@@ -154,26 +160,34 @@ class HITAB5(FinTS3Segment):
     tan_usage_option = CodeField(enum=TANUsageOption, _d="TAN_Einsatzoption")
     tan_media_list = DataElementGroupField(type=TANMedia5, max_count=99, required=False, _d="TAN-Medium-Liste")
 
+
 class HITANSBase(ParameterSegment):
     pass
+
 
 class HITANS1(HITANSBase):
     parameter = DataElementGroupField(type=ParameterTwostepTAN1)
 
+
 class HITANS2(HITANSBase):
     parameter = DataElementGroupField(type=ParameterTwostepTAN2)
+
 
 class HITANS3(HITANSBase):
     parameter = DataElementGroupField(type=ParameterTwostepTAN3)
 
+
 class HITANS4(HITANSBase):
     parameter = DataElementGroupField(type=ParameterTwostepTAN4)
+
 
 class HITANS5(HITANSBase):
     parameter = DataElementGroupField(type=ParameterTwostepTAN5)
 
+
 class HITANS6(HITANSBase):
     parameter = DataElementGroupField(type=ParameterTwostepTAN6)
+
 
 class HIPINS1(ParameterSegment):
     """PIN/TAN-spezifische Informationen, version 1

@@ -9,6 +9,7 @@ class MessageDirection(Enum):
     FROM_CUSTOMER = 1
     FROM_INSTITUTE = 2
 
+
 class FinTSMessage(SegmentSequence):
     DIRECTION = None
     # Auto-Numbering, dialog relation, security base
@@ -37,9 +38,11 @@ class FinTSMessage(SegmentSequence):
                 if code is None or response.code == code:
                     yield response
 
+
 class FinTSCustomerMessage(FinTSMessage):
     DIRECTION = MessageDirection.FROM_CUSTOMER
     # Identification, authentication
+
 
 class FinTSInstituteMessage(FinTSMessage):
     DIRECTION = MessageDirection.FROM_INSTITUTE
