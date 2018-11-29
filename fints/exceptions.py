@@ -18,3 +18,7 @@ class FinTSDialogInitError(FinTSDialogError):
 
 class FinTSConnectionError(FinTSError):
     pass
+
+
+class FinTSUnsupportedOperation(FinTSError):
+    pass

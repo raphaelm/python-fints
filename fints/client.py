@@ -690,8 +690,7 @@ class FinTS3Client:
                 if hiccxs.parameter.sum_amount_required and control_sum is None:
                     raise ValueError("Control sum required.")
                 if book_as_single and not hiccxs.parameter.single_booking_allowed:
-                    # FIXME Only do a warning and fall-back to book_as_single=False?
-                    raise ValueError("Single booking not allowed by bank.")
+                    raise FinTSUnsupportedOperation("Single booking not allowed by bank.")
 
                 if control_sum:
                     seg.sum_amount.amount = control_sum
@@ -756,8 +755,7 @@ class FinTS3Client:
                 if hidxxs.parameter.sum_amount_required and control_sum is None:
                     raise ValueError("Control sum required.")
                 if book_as_single and not hidxxs.parameter.single_booking_allowed:
-                    # FIXME Only do a warning and fall-back to book_as_single=False?
-                    raise ValueError("Single booking not allowed by bank.")
+                    raise FinTSUnsupportedOperation("Single booking not allowed by bank.")
 
                 if control_sum:
                     seg.sum_amount.amount = control_sum
