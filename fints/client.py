@@ -492,7 +492,9 @@ class FinTS3Client:
 
         statement = []
         for seg in responses:
-            # FIXME What is the encoding of MT940 messages?
+            # Note: MT940 messages are encoded in the S.W.I.F.T character set,
+            # which is a subset of ISO 8859. There are no character in it that
+            # differ between ISO 8859 variants, so we'll arbitrarily chose 8859-1.
             statement += mt940_to_array(seg.statement_booked.decode('iso-8859-1'))
 
         logger.debug('Statement: {}'.format(statement))
