@@ -20,7 +20,7 @@ class SegmentHeader(ShortReprMixin, DataElementGroup):
 
 
 class ReferenceMessage(DataElementGroup):
-    dialogue_id = DataElementField(type='id')
+    dialog_id = DataElementField(type='id')
     message_number = NumericField(max_length=4)
 
 
@@ -191,7 +191,7 @@ class TANListNumberRequired(RepresentableEnum):
     YES = '2'  #: Ja
 
 
-class InitialisationMode(RepresentableEnum):
+class InitializationMode(RepresentableEnum):
     CLEARTEXT_PIN_NO_TAN = '00'  #: Initialisierungsverfahren mit Klartext-PIN und ohne TAN
     ENCRYPTED_PIN_NO_TAN = '01'  #: Schablone 01: Verschlüsselte PIN und ohne TAN
     MASK_02 = '02'  #: Schablone 02: Reserviert, bei FinTS zur Zeit nicht verwendet
@@ -270,7 +270,7 @@ class TwoStepParameters3(TwoStepParametersCommon):
     cancel_allowed = DataElementField(type='jn', _d="Auftragsstorno erlaubt")
     challenge_class_required = DataElementField(type='jn', _d="Challenge-Klasse erforderlich")
     challenge_value_required = DataElementField(type='jn', _d="Challenge-Betrag erforderlich")
-    initialisation_mode = CodeField(enum=InitialisationMode, _d="Initialisierungsmodus")
+    initialization_mode = CodeField(enum=InitializationMode, _d="Initialisierungsmodus")
     description_required = CodeField(enum=DescriptionRequired, length=1, _d="Bezeichnung des TAN-Medium erforderlich")
     supported_media_number = DataElementField(type='num', length=1, required=False, _d="Anzahl unterstützter aktiver TAN-Medien")
 
@@ -292,7 +292,7 @@ class TwoStepParameters4(TwoStepParametersCommon):
     challenge_class_required = DataElementField(type='jn', _d="Challenge-Klasse erforderlich")
     challenge_value_required = DataElementField(type='jn', _d="Challenge-Betrag erforderlich")
     challenge_structured = DataElementField(type='jn', _d="Challenge strukturiert")
-    initialisation_mode = CodeField(enum=InitialisationMode, _d="Initialisierungsmodus")
+    initialization_mode = CodeField(enum=InitializationMode, _d="Initialisierungsmodus")
     description_required = CodeField(enum=DescriptionRequired, length=1, _d="Bezeichnung des TAN-Medium erforderlich")
     supported_media_number = DataElementField(type='num', length=1, required=False, _d="Anzahl unterstützter aktiver TAN-Medien")
 
@@ -314,7 +314,7 @@ class TwoStepParameters5(TwoStepParametersCommon):
     principal_account_required = CodeField(enum=PrincipalAccountRequired, length=1, _d="Auftraggeberkonto erforderlich")
     challenge_class_required = DataElementField(type='jn', _d="Challenge-Klasse erforderlich")
     challenge_structured = DataElementField(type='jn', _d="Challenge strukturiert")
-    initialisation_mode = CodeField(enum=InitialisationMode, _d="Initialisierungsmodus")
+    initialization_mode = CodeField(enum=InitializationMode, _d="Initialisierungsmodus")
     description_required = CodeField(enum=DescriptionRequired, length=1, _d="Bezeichnung des TAN-Medium erforderlich")
     supported_media_number = DataElementField(type='num', length=1, required=False, _d="Anzahl unterstützter aktiver TAN-Medien")
 
@@ -334,7 +334,7 @@ class TwoStepParameters6(TwoStepParametersCommon):
     principal_account_required = CodeField(enum=PrincipalAccountRequired, length=1, _d="Auftraggeberkonto erforderlich")
     challenge_class_required = DataElementField(type='jn', _d="Challenge-Klasse erforderlich")
     challenge_structured = DataElementField(type='jn', _d="Challenge strukturiert")
-    initialisation_mode = CodeField(enum=InitialisationMode, _d="Initialisierungsmodus")
+    initialization_mode = CodeField(enum=InitializationMode, _d="Initialisierungsmodus")
     description_required = CodeField(enum=DescriptionRequired, length=1, _d="Bezeichnung des TAN-Medium erforderlich")
     response_hhd_uc_required = DataElementField(type='jn', _d="Antwort HHD_UC erforderlich")
     supported_media_number = DataElementField(type='num', length=1, required=False, _d="Anzahl unterstützter aktiver TAN-Medien")
@@ -563,7 +563,7 @@ class SystemIDStatus(RepresentableEnum):
     ID_NECESSARY = '1'  #: Kundensystem-ID wird benötigt
 
 
-class SynchronisationMode(RepresentableEnum):
+class SynchronizationMode(RepresentableEnum):
     """Synchronisierungsmodus, version 2
 
     Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Formals"""

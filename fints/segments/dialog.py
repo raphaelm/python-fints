@@ -1,5 +1,5 @@
 from ..fields import CodeField, DataElementField, DataElementGroupField
-from ..formals import Response, SynchronisationMode
+from ..formals import Response, SynchronizationMode
 from .base import FinTS3Segment
 
 
@@ -7,7 +7,7 @@ class HKSYN3(FinTS3Segment):
     """Synchronisierung, version 3
 
     Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Formals"""
-    synchronisation_mode = CodeField(enum=SynchronisationMode, length=1)    
+    synchronization_mode = CodeField(enum=SynchronizationMode, length=1)
 
 
 class HISYN4(FinTS3Segment):
@@ -22,7 +22,7 @@ class HKEND1(FinTS3Segment):
     """Dialogende, version 1
 
     Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Formals"""
-    dialogue_id = DataElementField(type='id', _d="Dialog-ID")
+    dialog_id = DataElementField(type='id', _d="Dialog-ID")
 
 
 class HIRMG2(FinTS3Segment):

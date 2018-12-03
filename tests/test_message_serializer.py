@@ -88,8 +88,8 @@ def test_serialize_2():
     from fints.formals import SegmentSequence
     import fints.segments
     s = SegmentSequence([fints.segments.message.HNHBK3(header=fints.formals.SegmentHeader('HNHBK', 1, 3), message_size='000000000428', hbci_version=300,
-                                                       dialogue_id='430711670077=043999659571CN9D=', message_number=2,
-                                                       reference_message=fints.formals.ReferenceMessage(dialogue_id='430711670077=043999659571CN9D=',
+                                                       dialog_id='430711670077=043999659571CN9D=', message_number=2,
+                                                       reference_message=fints.formals.ReferenceMessage(dialog_id='430711670077=043999659571CN9D=',
                                                                                                         message_number=2)),
                          fints.segments.message.HNVSK3(header=fints.formals.SegmentHeader('HNVSK', 998, 3),
                                                        security_profile=fints.formals.SecurityProfile(security_method='PIN', security_method_version=1),

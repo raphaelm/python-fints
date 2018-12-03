@@ -15,7 +15,7 @@ from .dialog import FinTSDialog
 from .exceptions import *
 from .formals import (
     CUSTOMER_ID_ANONYMOUS, KTI1, BankIdentifier, DescriptionRequired,
-    SynchronisationMode, TANMediaClass4, TANMediaType2,
+    SynchronizationMode, TANMediaClass4, TANMediaType2,
 )
 from .message import FinTSInstituteMessage
 from .models import SEPAAccount
@@ -1003,7 +1003,7 @@ class FinTS3PinTanClient(FinTS3Client):
 
         with self._get_dialog(lazy_init=True) as dialog:
             response = dialog.init(
-                HKSYN3(SynchronisationMode.NEW_SYSTEM_ID),
+                HKSYN3(SynchronizationMode.NEW_SYSTEM_ID),
             )
             
         seg = response.find_segment_first(HISYN4)

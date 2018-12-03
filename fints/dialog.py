@@ -13,7 +13,7 @@ from .utils import compress_datablob, decompress_datablob
 
 logger = logging.getLogger(__name__)
 
-DIALOGUE_ID_UNASSIGNED = '0'
+DIALOG_ID_UNASSIGNED = '0'
 DATA_BLOB_MAGIC = b'python-fints_DIALOG_DATABLOB'
 
 
@@ -27,7 +27,7 @@ class FinTSDialog:
         self.open = False
         self.need_init = True
         self.lazy_init = lazy_init
-        self.dialogue_id = DIALOGUE_ID_UNASSIGNED
+        self.dialog_id = DIALOG_ID_UNASSIGNED
         self.paused = False
         self._context_count = 0
 
@@ -86,7 +86,7 @@ class FinTSDialog:
             raise FinTSDialogStateError("Cannot end() on a paused dialog")
 
         if self.open:
-            response = self.send(HKEND1(self.dialogue_id), internal_send=True)
+            response = self.send(HKEND1(self.dialog_id), internal_send=True)
             self.open = False
 
     def send(self, *segments, **kwargs):
@@ -124,11 +124,11 @@ class FinTSDialog:
         for auth_mech in self.auth_mechanisms:
             auth_mech.verify(message)
 
-        if self.dialogue_id == DIALOGUE_ID_UNASSIGNED:
+        if self.dialog_id == DIALOG_ID_UNASSIGNED:
             seg = response.find_segment_first(HNHBK3)
             if not seg:
-                raise FinTSDialogError('Could not find dialogue_id')
-            self.dialogue_id = seg.dialogue_id
+                raise FinTSDialogError('Could not find dialog_id')
+            self.dialog_id = seg.dialog_id
 
         self.client.process_response_message(self, response, internal_send=internal_send)
 
@@ -139,7 +139,7 @@ class FinTSDialog:
             raise FinTSDialogStateError("Cannot call new_customer_message() on a paused dialog")
 
         message = FinTSCustomerMessage(self)
-        message += HNHBK3(0, 300, self.dialogue_id, self.next_message_number[message.DIRECTION])
+        message += HNHBK3(0, 300, self.dialog_id, self.next_message_number[message.DIRECTION])
         
         for auth_mech in self.auth_mechanisms:
             auth_mech.sign_prepare(message)
@@ -187,7 +187,7 @@ class FinTSDialog:
                 'open',
                 'need_init',
                 'lazy_init',
-                'dialogue_id',
+                'dialog_id',
             ]
         })
 

@@ -196,7 +196,7 @@ def fints_server():
                 answer = self.make_answer(dialog_id, message)
 
                 retval = SegmentSequence([
-                    HNHBK3(hbci_version=300, dialogue_id=dialog_id, message_number=len(datadict['in_messages'])),
+                    HNHBK3(hbci_version=300, dialog_id=dialog_id, message_number=len(datadict['in_messages'])),
                     HNVSK3(
                         SecurityProfile('PIN', '1'),
                         '998',

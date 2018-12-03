@@ -52,7 +52,7 @@ def test_pin_wrong(fints_server):
 def test_resume(fints_client, fints_server):
     with fints_client:
         system_id = fints_client.system_id
-        dialog_id = fints_client._standing_dialog.dialogue_id
+        dialog_id = fints_client._standing_dialog.dialog_id
         assert fints_client.bpd_version == 78
 
         d_data = fints_client.pause_dialog()
@@ -69,7 +69,7 @@ def test_resume(fints_client, fints_server):
     assert system_id == fints_client.system_id
 
     with fints_client.resume_dialog(d_data):
-        assert dialog_id == fints_client._standing_dialog.dialogue_id
+        assert dialog_id == fints_client._standing_dialog.dialog_id
         assert fints_client.bpd_version == 78
 
 

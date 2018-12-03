@@ -12,7 +12,7 @@ from fints.segments.message import HNHBK3, HNHBS1
 def test_metaclass_foo():
     a = HNHBK3()
 
-    assert list(a._fields) == ['header', 'message_size', 'hbci_version', 'dialogue_id', 'message_number', 'reference_message']
+    assert list(a._fields) == ['header', 'message_size', 'hbci_version', 'dialog_id', 'message_number', 'reference_message']
     assert a._fields['header']
 
 
@@ -134,8 +134,8 @@ def test_nested_output_evalable():
     import fints.segments, fints.formals
 
     a = SegmentSequence([fints.segments.message.HNHBK3(header=fints.formals.SegmentHeader('HNHBK', 1, 3, None), message_size='000000000428', hbci_version=300,
-                                                       dialogue_id='430711670077=043999659571CN9D=', message_number=2,
-                                                       reference_message=fints.formals.ReferenceMessage(dialogue_id='430711670077=043999659571CN9D=',
+                                                       dialog_id='430711670077=043999659571CN9D=', message_number=2,
+                                                       reference_message=fints.formals.ReferenceMessage(dialog_id='430711670077=043999659571CN9D=',
                                                                                                         message_number=2)),
                          fints.segments.message.HNVSK3(header=fints.formals.SegmentHeader('HNVSK', 998, 3, None),
                                                        security_profile=fints.formals.SecurityProfile(security_method='PIN', security_method_version=1),
