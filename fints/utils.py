@@ -19,24 +19,6 @@ def mt940_to_array(data):
     return transactions.parse(data)
 
 
-def print_segments(message):
-    segments = str(message).split("'")
-    for idx, seg in enumerate(segments):
-        print(u"{}: {}".format(idx, seg.encode('utf-8')))
-
-
-def fints_unescape(content):
-    return content.replace('??', '?').replace("?'", "'").replace('?+', '+').replace('?:', ':').replace('?@', '@')
-
-
-def split_for_data_groups(seg):
-    return re.split('\+(?<!\?\+)', seg)
-
-
-def split_for_data_elements(deg):
-    return re.split(':(?<!\?:)', deg)
-
-
 def classproperty(f):
     class fx:
         def __init__(self, getter):
@@ -44,10 +26,6 @@ def classproperty(f):
         def __get__(self, obj, type=None):
             return self.getter(type)
     return fx(f)
-
-
-def fints_unescape(content):
-    return content.replace('??', '?').replace("?'", "'").replace('?+', '+').replace('?:', ':').replace('?@', '@')
 
 
 def compress_datablob(magic: bytes, version: int, data: dict):
