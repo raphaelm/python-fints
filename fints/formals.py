@@ -453,12 +453,6 @@ class KTI1(DataElementGroup):
         return cls(
             iban=acc.iban,
             bic=acc.bic,
-            account_number=acc.accountnumber,
-            subaccount_number=acc.subaccount,
-            bank_identifier=BankIdentifier(
-                country_identifier='280',
-                bank_code=acc.blz
-            )
         )
 
 
