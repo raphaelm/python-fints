@@ -57,14 +57,14 @@ def test_resume(fints_client, fints_server):
 
         d_data = fints_client.pause_dialog()
 
-    c_data = fints_client.get_data(including_private=True)
+    c_data = fints_client.deconstruct(including_private=True)
 
     FinTS3PinTanClient(
         '12345678',
         'test1',
         '1234',
         fints_server,
-        set_data=c_data
+        from_data=c_data
     )
     assert system_id == fints_client.system_id
 

@@ -135,7 +135,7 @@ You SHOULD use this facility together with the client and dialog state restorati
         response = client.sepa_transfer(...)
     
         dialog_data = client.pause_dialog()
-    client_data = client.get_data()
+    client_data = client.deconstruct()
     tan_data = response.get_data()
 
 .. code-block:: python
@@ -149,7 +149,7 @@ You SHOULD use this facility together with the client and dialog state restorati
    :caption: Third step
 
     tan_request = NeedRetryResponse.from_data(tan_data)
-    client = FinTS3PinTanClient(..., set_data=client_data)
+    client = FinTS3PinTanClient(..., from_data=client_data)
     with client.resume_dialog(dialog_data):
         response = client.send_tan(tan_request, tan)
 

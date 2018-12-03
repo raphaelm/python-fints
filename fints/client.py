@@ -150,7 +150,7 @@ class TransactionResponse:
 
 
 class FinTS3Client:
-    def __init__(self, bank_identifier, user_id, customer_id=None, set_data: bytes=None):
+    def __init__(self, bank_identifier, user_id, customer_id=None, from_data: bytes=None):
         self.accounts = []
         if isinstance(bank_identifier, BankIdentifier):
             self.bank_identifier = bank_identifier
@@ -172,8 +172,8 @@ class FinTS3Client:
         self.response_callbacks = []
         self._standing_dialog = None
 
-        if set_data:
-            self.set_data(bytes(set_data))
+        if from_data:
+            self.set_data(bytes(from_data))
 
     def _new_dialog(self, lazy_init=False):
         raise NotImplemented()
@@ -268,7 +268,7 @@ class FinTS3Client:
                 self.upa = SegmentSequence(data['upa_bin']).segments[0]
                 self.upd_version = data['upd_version']
 
-    def _get_data_v1(self, including_private=False):
+    def _deconstruct_v1(self, including_private=False):
         data = {
             "system_id": self.system_id,
             "bpd_bin": self.bpd.render_bytes(),
@@ -285,8 +285,9 @@ class FinTS3Client:
 
         return data
 
-    def get_data(self, including_private: bool=False) -> bytes:
-        """Return state of this FinTSClient instance as an opaque datablob.
+    def deconstruct(self, including_private: bool=False) -> bytes:
+        """Return state of this FinTSClient instance as an opaque datablob. You should not
+        use this object after calling this method.
 
         Information about the connection is implicitly retrieved from the bank and
         cached in the FinTSClient. This includes: system identifier, bank parameter
@@ -301,11 +302,11 @@ class FinTS3Client:
 
         Note: No connection information is stored in the datablob, neither is the PIN.
         """
-        data = self._get_data_v1(including_private=including_private)
+        data = self._deconstruct_v1(including_private=including_private)
         return compress_datablob(DATA_BLOB_MAGIC, 1, data)
 
     def set_data(self, blob: bytes):
-        """Restore a datablob created with get_data().
+        """Restore a datablob created with deconstruct().
 
         You should only call this method once, and only immediately after constructing
         the object and before calling any other method or functionality (e.g. __enter__()).
@@ -825,7 +826,7 @@ class FinTS3Client:
 
         Commands MUST NOT be issued in the dialog after calling this method.
 
-        MUST be used in conjunction with get_data()/set_data().
+        MUST be used in conjunction with deconstruct()/set_data().
 
         Caller SHOULD ensure that the dialog is resumed (and properly ended) within a reasonable amount of time.
 
@@ -833,7 +834,7 @@ class FinTS3Client:
 
         ::
 
-            client = FinTS3PinTanClient(..., set_data=None)
+            client = FinTS3PinTanClient(..., from_data=None)
             with client:
                 challenge = client.sepa_transfer(...)
 
@@ -842,13 +843,13 @@ class FinTS3Client:
                 # dialog is now frozen, no new commands may be issued
                 # exiting the context does not end the dialog
 
-            client_data = client.get_data()
+            client_data = client.deconstruct()
 
             # Store dialog_data and client_data out-of-band somewhere
             # ... Some time passes ...
             # Later, possibly in a different process, restore the state
 
-            client = FinTS3PinTanClient(..., set_data=client_data)
+            client = FinTS3PinTanClient(..., from_data=client_data)
             with client.resume_dialog(dialog_data):
                 client.send_tan(...)
 
@@ -1017,8 +1018,8 @@ class FinTS3PinTanClient(FinTS3Client):
         self.selected_security_function = data.get('selected_security_function', self.selected_security_function)
         self.allowed_security_functions = data.get('allowed_security_functions', self.allowed_security_functions)
 
-    def _get_data_v1(self, including_private=False):
-        data = super()._get_data_v1(including_private=including_private)
+    def _deconstruct_v1(self, including_private=False):
+        data = super()._deconstruct_v1(including_private=including_private)
         data.update({
             "selected_security_function": self.selected_security_function,
             "selected_tan_medium": self.selected_tan_medium,
