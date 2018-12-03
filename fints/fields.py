@@ -1,4 +1,5 @@
 import datetime
+import decimal
 import re
 import warnings
 
@@ -118,6 +119,9 @@ class FloatField(DataElementField):
     def _parse_value(self, value):
         if isinstance(value, float):
             return value
+        
+        if isinstance(value, decimal.Decimal):
+            value = str(value.normalize()).replace(".", ",")
 
         _value = str(value)
         if not re.match(r'^(?:0|[1-9]\d*),(?:\d*[1-9]|)$', _value):
