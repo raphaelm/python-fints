@@ -657,7 +657,7 @@ class FinTS3Client:
             "endtoend_id": endtoend_id,
         }
         sepa.add_payment(payment)
-        xml = sepa.export()
+        xml = sepa.export().decode()
         return self.sepa_transfer(account, xml)
 
     def sepa_transfer(self, account: SEPAAccount, pain_message: bytes, multiple=False,
