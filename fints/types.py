@@ -292,7 +292,7 @@ class SegmentSequence:
 
         return None
 
-    def find_segment_highest_version(self, query=None, version=None, callback=None, recurse=True, default=None, *args, **kwargs):
+    def find_segment_highest_version(self, query=None, version=None, callback=None, recurse=True, default=None):
         """Finds the highest matching segment.
 
         Same parameters as find_segments(), but returns the match with the highest version, or default if no match is found."""
@@ -300,7 +300,7 @@ class SegmentSequence:
 
         retval = None
 
-        for s in self.find_segments(query=query, version=version, callback=callback, recurse=recurse, *args, **kwargs):
+        for s in self.find_segments(query=query, version=version, callback=callback, recurse=recurse):
             if not retval or s.header.version > retval.header.version:
                 retval = s
 
