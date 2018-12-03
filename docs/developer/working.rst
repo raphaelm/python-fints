@@ -32,8 +32,6 @@ The only exception is: Every field can be set to ``None`` in order to clear the 
 
 When calling the constructor with non-keyword arguments, fields are assigned in order, with the exception of ``header`` in :class:`~fints.segments.base.FinTS3Segment` subclasses, which can only be given as a keyword argument. When no ``header`` argument is present, a :class:`~fints.formals.SegmentHeader` is automatically constructed with default values (and no ``number``). It's generally not required to construct the ``header`` parameter manually.
 
-**FIXME** The ``number`` should in the future be generated automatically within in sequence (at least before serializing).
-
 .. code-block:: python
 
     >>> HNHBS1(42)
