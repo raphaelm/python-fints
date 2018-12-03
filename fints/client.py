@@ -690,7 +690,7 @@ class FinTS3Client:
             seg = hkccx(
                 account=hkccx._fields['account'].type.from_sepa_account(account),
                 sepa_descriptor=pain_descriptor,
-                sepa_pain_message=pain_message,
+                sepa_pain_message=pain_message.encode(),
             )
 
             if multiple:
@@ -755,7 +755,7 @@ class FinTS3Client:
             seg = hkdxx(
                 account=hkdxx._fields['account'].type.from_sepa_account(account),
                 sepa_descriptor=pain_descriptor,
-                sepa_pain_message=pain_message,
+                sepa_pain_message=pain_message.encode(),
             )
 
             if multiple:
