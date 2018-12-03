@@ -389,7 +389,7 @@ class Language2(RepresentableEnum):
     """Dialogsprache
 
     Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Formals"""
-    STANDARD = '0'  #: Standard
+    DEFAULT = '0'  #: Standard
     DE = '1'  #: Deutsch, 'de', Subset Deutsch, Codeset 1 (Latin 1)
     EN = '2'  #: Englisch, 'en', Subset Englisch, Codeset 1 (Latin 1)
     FR = '3'  #: Französisch, 'fr', Subset Französisch, Codeset 1 (Latin 1)
@@ -727,7 +727,7 @@ class TANUsageOption(RepresentableEnum):
 
     ALL_ACTIVE = '0'  #: Kunde kann alle "aktiven" Medien parallel nutzen
     EXACTLY_ONE = '1'  #: Kunde kann genau ein Medium zu einer Zeit nutzen
-    MOBILE_PLUS_GENERATOR = '2'  #: Kunde kann ein Mobiltelefon und einen TAN-Generator parallel nutzen
+    MOBILE_AND_GENERATOR = '2'  #: Kunde kann ein Mobiltelefon und einen TAN-Generator parallel nutzen
 
 
 class ParameterChallengeClass(DataElementGroup):
@@ -899,11 +899,10 @@ class QueryCreditCardStatements2(DataElementGroup):
 class SEPACCode1(RepresentableEnum):
     REVERSAL = '1'  #: Reversal
     REVOCATION = '2'  #: Revocation
-    DELETE = '3'  #: Delete
+    DELETION = '3'  #: Delete
 
 
 class StatusSEPATask1(RepresentableEnum):
-    # FIXME Enum names in english
     PENDING = '1'  #: In Terminierung
     DECLINED = '2'  #: Abgelehnt von erster Inkassostelle
     IN_PROGRESS = '3'  #: in Bearbeitung
