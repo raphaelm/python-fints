@@ -21,8 +21,8 @@ If you want to use advanced methods, you can supply your own SEPA XML:
    :members: sepa_transfer
    :noindex:
 
-Example
--------
+Full example
+------------
 
 .. code-block:: python
 

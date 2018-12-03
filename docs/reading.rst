@@ -9,7 +9,6 @@ The most simple method allows you to get all bank accounts that your user has ac
 .. autoclass:: fints.client.FinTS3Client
    :noindex:
    :members: get_sepa_accounts
-   :noindex:
 
 This method will return a list of named tuples of the following type:
 
@@ -61,7 +60,6 @@ Fetching holdings
 You can fetch the holdings of an account with the ``get_holdings`` method:
 
 .. autoclass:: fints.client.FinTS3Client
-   :noindex:
    :members: get_holdings
    :noindex:
 

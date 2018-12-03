@@ -3,6 +3,11 @@
 Working with TANs
 =================
 
+Many operations in FinTS will require a form of two-step authentication, called TANs. TANs are
+mostly required for operations that move money or change details of a bank account. TANs can be
+generated with a multidue of methods, including paper lists, smartcard readers, SMS messages, and
+smartphone apps.
+
 TAN methods
 -----------
 
@@ -16,47 +21,23 @@ The returned dictionary maps identifiers (generally: three-digit numerals) to in
 :func:`~fints.formals.TwoStepParametersCommon` subclass with varying fields, depending on the
 version of the two-step process and the bank.
 
-.. autoclass:: fints.formals.TwoStepParameters3
-   :noindex:
-   :undoc-members:
-   :members:
-   :inherited-members:
-   :member-order: bysource
-   :exclude-members: is_unset, naive_parse, print_nested
+The `name` field of theese objects provides a user-friendly name of the TAN mechanism that you
+can display to the user to choose from. To select a TAN mechanism, you can use
+:func:`~fints.client.FinTS3PinTanClient.set_tan_mechanism`, which takes the identifier used as
+key in the :func:`~fints.client.FinTS3PinTanClient.get_tan_mechanisms` return value.
 
-.. autoclass:: fints.formals.TwoStepParameters5
-   :noindex:
-   :undoc-members:
-   :members:
-   :inherited-members:
-   :member-order: bysource
-   :exclude-members: is_unset, naive_parse, print_nested
+If the ``description_required`` attribute for the TAN mechanism is :attr:`~fints.formals.DescriptionRequired.MUST`,
+you will need to get a list of TAN media with :func:`~fints.client.FinTS3PinTanClient.get_tan_media` and select the
+appropriate one with :func:`~fints.client.FinTS3PinTanClient.set_tan_medium`.
 
-The `name` field provides a user-friendly name of the TAN mechanism that you can display to the user
-to choose from.
+You may not change the active TAN mechanism or TAN medium within a standing dialog (see :ref:`client-dialog-state`).
 
-To select a TAN mechanism/query the currently selected TAN mechanism use the appropriate functions which
-take/return the identifier used as key in the `get_tan_mechanisms` return value.
+The selection of the active TAN mechanism/medium is stored with the persistent client data (see :ref:`client-state`).
 
 .. autoclass:: fints.client.FinTS3PinTanClient
-   :members: get_tan_mechanisms, set_tan_mechanism, get_current_tan_mechanism
+   :members: get_tan_mechanisms, set_tan_mechanism, get_current_tan_mechanism, get_tan_media, set_tan_medium
    :noindex:
    :undoc-members:
-
-.. warning:: If the ``description_required`` attribute for the TAN mechanism is :attr:`~fints.formals.DescriptionRequired.MUST`,
-             you will need to get a list of TAN media with `get_tan_media()` and select the appropriate
-             one with `set_tan_medium()`.
-
-## FIXME The TAN media stuff is probably wrongly documented (and badly tested)
-
-.. autoclass:: fints.client.FinTS3PinTanClient
-   :members: get_tan_media, set_tan_medium
-   :noindex:
-   :undoc-members:
-
-
-You may not change the active TAN mechanism or TAN medium within a standing dialog. (See XXX)
-The selection of the active TAN mechanism/medium is stored with the persistent client data. (See XXX)
 
 TAN challenges
 --------------
@@ -109,7 +90,7 @@ For example:
 
 .. code-block:: python
 
-    tan = input('Bitte die TAN eingeben.')
+    tan = input('Please enter the TAN code: ')
     result = client.send_tan(result, tan)
 
 
@@ -143,7 +124,7 @@ You SHOULD use this facility together with the client and dialog state restorati
 
     tan_request = NeedRetryResponse.from_data(tan_data)
     print("TAN request: {}".format(tan_request.challenge))
-    tan = input('Enter TAN')
+    tan = input('Enter TAN: ')
 
 .. code-block:: python
    :caption: Third step
@@ -155,3 +136,23 @@ You SHOULD use this facility together with the client and dialog state restorati
 
     print(response.status)
     print(response.responses)
+
+
+Reference
+---------
+
+.. autoclass:: fints.formals.TwoStepParameters3
+   :noindex:
+   :undoc-members:
+   :members:
+   :inherited-members:
+   :member-order: bysource
+   :exclude-members: is_unset, naive_parse, print_nested
+
+.. autoclass:: fints.formals.TwoStepParameters5
+   :noindex:
+   :undoc-members:
+   :members:
+   :inherited-members:
+   :member-order: bysource
+   :exclude-members: is_unset, naive_parse, print_nested

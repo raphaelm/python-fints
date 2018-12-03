@@ -3,6 +3,8 @@
 The client object
 =================
 
+.. _client-state:
+
 Storing and restoring client state
 ----------------------------------
 
@@ -14,7 +16,7 @@ across invocations. This includes
  * The User Parameter Data (UPD) with information about the user account and allowed actions
 
 .. autoclass:: fints.client.FinTS3Client
-   :members: __init__, deconstruct, set_data
+   :members: deconstruct, set_data
    :noindex:
    :undoc-members:
 
@@ -66,6 +68,7 @@ For transactions involving TANs it may be required by the bank to issue both ste
 within the same dialog. In this case it's mandatory to use a standing dialog, because otherwise each
 step would be issued in its own, implicit, dialog.
 
+.. _client-dialog-state:
 
 Storing and restoring dialog state
 ----------------------------------

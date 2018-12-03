@@ -732,7 +732,7 @@ class FinTS3Client:
         :param control_sum: Sum of all debits (required if there are multiple)
         :param currency: Debit currency
         :param book_as_single: Kindly ask the bank to put multiple transactions as separate lines on the bank statement (defaults to ``False``)
-        :param pain_descriptor: URN of the PAIN message schema used.
+        :param pain_descriptor: URN of the PAIN message schema used. Defaults to ``urn:iso:std:iso:20022:tech:xsd:pain.008.003.01``.
         :return: Returns either a NeedRetryResponse or TransactionResponse (with data['task_id'] set, if available)
         """
 
