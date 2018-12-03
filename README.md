@@ -22,8 +22,10 @@ Limitations
 Credits and License
 -------------------
 
-Maintainer: Raphael Michel <mail@raphaelmichel.de>
+This library is maintained by Raphael Michel <mail@raphaelmichel.de>
+and features major contributions by Henryk Plötz.
 
-Big thanks to: Daniel Nowak, Patrick Braune, Mathias Dalheimer, Christopher Grebs, Markus Schindler
+Further thanks for improving this library go out to:
+Daniel Nowak, Patrick Braune, Mathias Dalheimer, Christopher Grebs, Markus Schindler, and many more.
 
 License: LGPL
