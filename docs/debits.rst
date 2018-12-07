@@ -53,25 +53,26 @@ You can easily generate XML using the ``sepaxml`` python library:
 
         client.set_tan_medium(media[0])
 
-    res = client.sepa_debit(
-        account=accounts[0],
-        data=pain_message,
-        multiple=False,
-        control_sum=Decimal('1.00'),
-        pain_descriptor='urn:iso:std:iso:20022:tech:xsd:pain.008.002.02'
-    )
+    with client:
+        res = client.sepa_debit(
+            account=accounts[0],
+            data=pain_message,
+            multiple=False,
+            control_sum=Decimal('1.00'),
+            pain_descriptor='urn:iso:std:iso:20022:tech:xsd:pain.008.002.02'
+        )
 
-    if isinstance(res, NeedTANResponse):
-        print(res.challenge)
+        if isinstance(res, NeedTANResponse):
+            print(res.challenge)
 
-        if getattr(res, 'challenge_hhduc', None):
-            try:
-                terminal_flicker_unix(res.challenge_hhduc)
-            except KeyboardInterrupt:
-                pass
+            if getattr(res, 'challenge_hhduc', None):
+                try:
+                    terminal_flicker_unix(res.challenge_hhduc)
+                except KeyboardInterrupt:
+                    pass
 
-        tan = input('Please enter TAN:')
-        res = client.send_tan(res, tan)
+            tan = input('Please enter TAN:')
+            res = client.send_tan(res, tan)
 
-    print(res.status)
-    print(res.responses)
+        print(res.status)
+        print(res.responses)

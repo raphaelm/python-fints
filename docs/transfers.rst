@@ -1,3 +1,5 @@
+.. _transfers:
+
 Sending SEPA transfers
 ======================
 
@@ -38,29 +40,30 @@ Full example
 
         client.set_tan_medium(media[0])
 
-    res = client.simple_sepa_transfer(
-        account=accounts[0],
-        iban='DE12345',
-        bic='BIC12345',
-        amount=Decimal('7.00'),
-        recipient_name='Foo',
-        account_name='Test',
-        reason='Birthday gift',
-        endtoend_id='NOTPROVIDED',
-    )
+    with client:
+        res = client.simple_sepa_transfer(
+            account=accounts[0],
+            iban='DE12345',
+            bic='BIC12345',
+            amount=Decimal('7.00'),
+            recipient_name='Foo',
+            account_name='Test',
+            reason='Birthday gift',
+            endtoend_id='NOTPROVIDED',
+        )
 
-    if isinstance(res, NeedTANResponse):
-        print(res.challenge)
+        if isinstance(res, NeedTANResponse):
+            print(res.challenge)
 
-        if getattr(res, 'challenge_hhduc', None):
-            try:
-                terminal_flicker_unix(res.challenge_hhduc)
-            except KeyboardInterrupt:
-                pass
+            if getattr(res, 'challenge_hhduc', None):
+                try:
+                    terminal_flicker_unix(res.challenge_hhduc)
+                except KeyboardInterrupt:
+                    pass
 
-        tan = input('Please enter TAN:')
-        res = client.send_tan(res, tan)
+            tan = input('Please enter TAN:')
+            res = client.send_tan(res, tan)
 
-    print(res.status)
-    print(res.responses)
+        print(res.status)
+        print(res.responses)
 

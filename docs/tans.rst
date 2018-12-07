@@ -21,7 +21,7 @@ The returned dictionary maps identifiers (generally: three-digit numerals) to in
 :func:`~fints.formals.TwoStepParametersCommon` subclass with varying fields, depending on the
 version of the two-step process and the bank.
 
-The `name` field of theese objects provides a user-friendly name of the TAN mechanism that you
+The `name` field of these objects provides a user-friendly name of the TAN mechanism that you
 can display to the user to choose from. To select a TAN mechanism, you can use
 :func:`~fints.client.FinTS3PinTanClient.set_tan_mechanism`, which takes the identifier used as
 key in the :func:`~fints.client.FinTS3PinTanClient.get_tan_mechanisms` return value.
@@ -112,6 +112,9 @@ You SHOULD use this facility together with the client and dialog state restorati
    :caption: First step
 
     client = FinTS3PinTanClient(...)
+    # Optionally: choose a tan mechanism with
+    # client.set_tan_mechanism(…)
+
     with client:
         response = client.sepa_transfer(...)
     
