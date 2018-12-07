@@ -136,10 +136,30 @@ class FloatField(DataElementField):
         return retval
 
 
-class AmountField(FixedLengthMixin, FloatField):
+class AmountField(FixedLengthMixin, DataElementField):
     type = 'wrt'
+    _DOC_TYPE = decimal.Decimal
     _FIXED_LENGTH = [None, None, 15]
     # FIXME Needs test
+
+    def _parse_value(self, value):
+        if isinstance(value, float):
+            return value
+
+        if isinstance(value, decimal.Decimal):
+            return value
+
+        _value = str(value)
+        if not re.match(r'^(?:0|[1-9]\d*),(?:\d*[1-9]|)$', _value):
+            raise TypeError("Only digits and ',' allowed for value of type 'float', no superfluous leading or trailing zeroes allowed: {!r}".format(value))
+
+        return decimal.Decimal(_value.replace(",", "."))
+
+    def _render_value(self, value):
+        retval = str(value)
+        retval = retval.replace('.', ',').rstrip('0')
+        self._check_value_length(retval)
+        return retval
 
 
 class BinaryField(DataElementField):
