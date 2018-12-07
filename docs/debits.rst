@@ -1,3 +1,5 @@
+.. _debits:
+
 Creating SEPA debits
 ====================
 

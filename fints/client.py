@@ -661,7 +661,7 @@ class FinTS3Client:
         xml = sepa.export().decode()
         return self.sepa_transfer(account, xml)
 
-    def sepa_transfer(self, account: SEPAAccount, pain_message: bytes, multiple=False,
+    def sepa_transfer(self, account: SEPAAccount, pain_message: str, multiple=False,
                       control_sum=None, currency='EUR', book_as_single=False,
                       pain_descriptor='urn:iso:std:iso:20022:tech:xsd:pain.001.001.03'):
         """

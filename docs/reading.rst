@@ -16,6 +16,8 @@ This method will return a list of named tuples of the following type:
 
 You will need this account object for many further operations to show which account you want to operate on.
 
+.. _information:
+
 Fetching bank information
 -------------------------
 
@@ -39,6 +41,7 @@ You can fetch the current balance of an account with the ``get_balance`` operati
 This method will return a list of ``Balance`` objects from the ``mt-940`` library. You can find more information
 in `their documentation <https://mt940.readthedocs.io/en/latest/mt940.html#mt940.models.Balance>`_.
 
+.. _transactions:
 
 Reading account transactions
 ----------------------------
