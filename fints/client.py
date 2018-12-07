@@ -168,7 +168,7 @@ class FinTS3Client:
         self.upa = None
         self.upd = SegmentSequence()
         self.product_name = 'python-fints'
-        self.product_version = version
+        self.product_version = version[:5]
         self.response_callbacks = []
         self._standing_dialog = None
 
