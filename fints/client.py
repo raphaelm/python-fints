@@ -155,7 +155,7 @@ class FinTS3Client:
         if isinstance(bank_identifier, BankIdentifier):
             self.bank_identifier = bank_identifier
         elif isinstance(bank_identifier, str):
-            self.bank_identifier = BankIdentifier('280', bank_identifier)
+            self.bank_identifier = BankIdentifier(BankIdentifier.COUNTRY_ALPHA_TO_NUMERIC['DE'], bank_identifier)
         else:
             raise TypeError("bank_identifier must be BankIdentifier or str (BLZ)")
         self.system_id = SYSTEM_ID_UNASSIGNED

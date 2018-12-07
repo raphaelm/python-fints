@@ -110,6 +110,44 @@ class SignatureAlgorithm(DataElementGroup):
 
 
 class BankIdentifier(DataElementGroup):
+    COUNTRY_ALPHA_TO_NUMERIC = {
+        # Kapitel E.4 der SEPA-Geschäftsvorfälle
+        'BE': '056',
+        'BG': '100',
+        'DK': '208',
+        'DE': '280',
+        'FI': '246',
+        'FR': '250',
+        'GR': '300',
+        'GB': '826',
+        'IE': '372',
+        'IS': '352',
+        'IT': '380',
+        'JP': '392',
+        'CA': '124',
+        'HR': '191',
+        'LI': '438',
+        'LU': '442',
+        'NL': '528',
+        'AT': '040',
+        'PL': '616',
+        'PT': '620',
+        'RO': '642',
+        'RU': '643',
+        'SE': '752',
+        'CH': '756',
+        'SK': '703',
+        'SI': '705',
+        'ES': '724',
+        'CZ': '203',
+        'TR': '792',
+        'HU': '348',
+        'US': '840',
+        'EU': '978'
+    }
+    COUNTRY_NUMERIC_TO_ALPHA = {v: k for k, v in COUNTRY_ALPHA_TO_NUMERIC.items()}
+    COUNTRY_NUMERIC_TO_ALPHA['276'] = 'DE'  # not yet in use by banks, but defined by ISO
+
     country_identifier = DataElementField(type='ctr')
     bank_code = DataElementField(type='an', max_length=30)
 
@@ -418,9 +456,6 @@ class KTZ1(DataElementGroup):
         from fints.models import SEPAAccount
         if not self.is_sepa:
             return None
-        if not self.bank_identifier.country_identifier == '280':
-            # FIXME Limitation of SEPAAccount object
-            return None
         return SEPAAccount(self.iban, self.bic, self.account_number, self.subaccount_number, self.bank_identifier.bank_code)
 
     @classmethod
@@ -432,7 +467,7 @@ class KTZ1(DataElementGroup):
             account_number=acc.accountnumber,
             subaccount_number=acc.subaccount,
             bank_identifier=BankIdentifier(
-                country_identifier='280',
+                country_identifier=BankIdentifier.COUNTRY_ALPHA_TO_NUMERIC[acc.bic[4:6]],
                 bank_code=acc.blz
             )
         )
@@ -470,7 +505,7 @@ class Account2(DataElementGroup):
         return cls(
             account_number=acc.accountnumber,
             subaccount_number=acc.subaccount,
-            country_identifier='280',
+            country_identifier=BankIdentifier.COUNTRY_ALPHA_TO_NUMERIC[acc.bic[4:6]],
             bank_code=acc.blz,
         )
 
@@ -489,7 +524,7 @@ class Account3(DataElementGroup):
             account_number=acc.accountnumber,
             subaccount_number=acc.subaccount,
             bank_identifier=BankIdentifier(
-                country_identifier='280',
+                country_identifier=BankIdentifier.COUNTRY_ALPHA_TO_NUMERIC[acc.bic[4:6]],
                 bank_code=acc.blz
             )
         )
