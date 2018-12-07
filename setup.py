@@ -1,9 +1,8 @@
 from codecs import open
 from os import path
 
-from setuptools import find_packages, setup
-
 from fints import version
+from setuptools import find_packages, setup
 
 here = path.abspath(path.dirname(__file__))
 
@@ -35,7 +34,7 @@ setup(
 
     keywords='hbci banking fints',
     install_requires=[
-        'requests', 'mt-940', 'sepaxml==2.0.*'
+        'requests', 'mt-940', 'sepaxml==2.0.*', 'bleach',
     ],
 
     packages=find_packages(include=['fints', 'fints.*']),

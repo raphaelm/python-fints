@@ -3,62 +3,66 @@
 Working with TANs
 =================
 
+Many operations in FinTS will require a form of two-step authentication, called TANs. TANs are
+mostly required for operations that move money or change details of a bank account. TANs can be
+generated with a multidue of methods, including paper lists, smartcard readers, SMS messages, and
+smartphone apps.
+
 TAN methods
 -----------
 
-Before doing any operations involving TANs, you should get a list of supported TAN methods and select the TAN method
-you want to use:
+Before doing any operations involving TANs, you should get a list of supported TAN mechanisms:
 
 .. code-block:: python
 
-    methods = client.get_tan_methods()
-    method = methods[0]
+    mechanisms = client.get_tan_mechanisms()
 
-The returned values have a subtype ``fints.models.TANMethod``, with varying parameters depending on the version
-used by the bank:
+The returned dictionary maps identifiers (generally: three-digit numerals) to instances of a
+:func:`~fints.formals.TwoStepParametersCommon` subclass with varying fields, depending on the
+version of the two-step process and the bank.
 
-.. autoclass:: fints.client.FinTS3Client
+The `name` field of these objects provides a user-friendly name of the TAN mechanism that you
+can display to the user to choose from. To select a TAN mechanism, you can use
+:func:`~fints.client.FinTS3PinTanClient.set_tan_mechanism`, which takes the identifier used as
+key in the :func:`~fints.client.FinTS3PinTanClient.get_tan_mechanisms` return value.
+
+If the ``description_required`` attribute for the TAN mechanism is :attr:`~fints.formals.DescriptionRequired.MUST`,
+you will need to get a list of TAN media with :func:`~fints.client.FinTS3PinTanClient.get_tan_media` and select the
+appropriate one with :func:`~fints.client.FinTS3PinTanClient.set_tan_medium`.
+
+You may not change the active TAN mechanism or TAN medium within a standing dialog (see :ref:`client-dialog-state`).
+
+The selection of the active TAN mechanism/medium is stored with the persistent client data (see :ref:`client-state`).
+
+.. autoclass:: fints.client.FinTS3PinTanClient
+   :members: get_tan_mechanisms, set_tan_mechanism, get_current_tan_mechanism, get_tan_media, set_tan_medium
    :noindex:
-   :members: get_tan_methods
-
-.. autoclass:: fints.models.TANMethod1
-
-.. autoclass:: fints.models.TANMethod2
-
-.. autoclass:: fints.models.TANMethod3
-
-.. autoclass:: fints.models.TANMethod4
-
-.. autoclass:: fints.models.TANMethod5
-
-.. autoclass:: fints.models.TANMethod6
-
-.. warning:: If the ``description_required`` attribute is ``2``, you will need to get the description of the TAN medium
-             you want to use and pass it as ``tan_description`` to some operations. You can send a request for this
-             information with the ``client.get_tan_description()`` method call. Currently, this returns an unparsed
-             response from the bank. In the future, we will probably return a structured result here.
+   :undoc-members:
 
 TAN challenges
 --------------
 
-You should then pass the chosen ``TANMethod`` object to your operation, e.g. ``start_simple_sepa_transfer``.
-If a TAN is required, this operation will return a ``TANChallenge``, again depending on the version used by the bank.
+When you try to perform an operation that requires a TAN to proceed, you will receive an object containing
+the bank's challenge (and some internal data to continue the operation once the TAN has been processed):
 
-.. autoclass:: fints.models.TANChallenge3
-
-.. autoclass:: fints.models.TANChallenge4
-
-.. autoclass:: fints.models.TANChallenge5
-
-.. autoclass:: fints.models.TANChallenge6
+.. autoclass:: fints.client.NeedTANResponse
+   :undoc-members:
+   :members:
 
 The ``challenge`` attribute will contain human-readable instructions on how to proceed.
+
+The ``challenge_html`` attribute will possibly contain a nicer, formatted, HTML version of the challenge text
+that you should prefer if your primary interface can render HTML. The contents are guaranteed to be proper and
+clean (by using the `bleach` library): They can be used with `mark_safe` in Django.
+
+The ``challenge_hhduc`` attribute will contain the challenge to be used with a TAN generator device using the
+Hand Held Device Unidirectional Coupling specification (such as a Flicker-Code).
 
 Flicker-Code / optiTAN
 ----------------------
 
 If you want to use chipTAN with an optical TAN device, we provide utilities to print the flicker code on
-a unix terminal. Just pass the ``result.challenge_hhd_uc`` value to this method:
+a unix terminal. Just pass the ``challenge_hhd_uc`` value to this method:
 
 .. autofunction:: fints.hhd.flicker.terminal_flicker_unix
 
@@ -72,18 +76,86 @@ with the TAN:
     except KeyboardInterrupt:
         pass
 
+
 Sending the TAN
 ---------------
 
 Once obtained the TAN, you can send it with the ``send_tan`` client method:
 
-.. autoclass:: fints.client.FinTS3Client
-   :noindex:
+.. autoclass:: fints.client.FinTS3PinTanClient
    :members: send_tan
+   :noindex:
 
 For example:
 
 .. code-block:: python
 
-    tan = input('Bitte die TAN eingeben.')
+    tan = input('Please enter the TAN code: ')
     result = client.send_tan(result, tan)
+
+
+Storing and restoring TAN state
+-------------------------------
+
+The :func:`~fints.client.NeedTANResponse.get_data` method and
+:func:`~fints.client.NeedRetryResponse.from_data` factory method can be used to store and restore
+a TAN state object between steps.
+
+.. autoclass:: fints.client.NeedRetryResponse
+   :undoc-members:
+   :members: from_data
+
+You SHOULD use this facility together with the client and dialog state restoration facilities:
+
+
+.. code-block:: python
+   :caption: First step
+
+    client = FinTS3PinTanClient(...)
+    # Optionally: choose a tan mechanism with
+    # client.set_tan_mechanism(…)
+
+    with client:
+        response = client.sepa_transfer(...)
+    
+        dialog_data = client.pause_dialog()
+    client_data = client.deconstruct()
+    tan_data = response.get_data()
+
+.. code-block:: python
+   :caption: Second step
+
+    tan_request = NeedRetryResponse.from_data(tan_data)
+    print("TAN request: {}".format(tan_request.challenge))
+    tan = input('Enter TAN: ')
+
+.. code-block:: python
+   :caption: Third step
+
+    tan_request = NeedRetryResponse.from_data(tan_data)
+    client = FinTS3PinTanClient(..., from_data=client_data)
+    with client.resume_dialog(dialog_data):
+        response = client.send_tan(tan_request, tan)
+
+    print(response.status)
+    print(response.responses)
+
+
+Reference
+---------
+
+.. autoclass:: fints.formals.TwoStepParameters3
+   :noindex:
+   :undoc-members:
+   :members:
+   :inherited-members:
+   :member-order: bysource
+   :exclude-members: is_unset, naive_parse, print_nested
+
+.. autoclass:: fints.formals.TwoStepParameters5
+   :noindex:
+   :undoc-members:
+   :members:
+   :inherited-members:
+   :member-order: bysource
+   :exclude-members: is_unset, naive_parse, print_nested

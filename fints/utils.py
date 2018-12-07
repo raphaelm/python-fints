@@ -1,8 +1,15 @@
-import mt940
+import base64
+import inspect
+import json
 import re
-from .models import Holding
-from datetime import datetime
+import zlib
 from contextlib import contextmanager
+from datetime import datetime
+from enum import Enum
+
+import mt940
+
+from .models import Holding
 
 
 def mt940_to_array(data):
@@ -12,32 +19,124 @@ def mt940_to_array(data):
     return transactions.parse(data)
 
 
-def print_segments(message):
-    segments = str(message).split("'")
-    for idx, seg in enumerate(segments):
-        print(u"{}: {}".format(idx, seg.encode('utf-8')))
+def classproperty(f):
+    class fx:
+        def __init__(self, getter):
+            self.getter = getter
+        def __get__(self, obj, type=None):
+            return self.getter(type)
+    return fx(f)
 
 
-def fints_escape(content):
-    """
-    Escape strings
-
-    Ref:  https://www.hbci-zka.de/dokumente/spezifikation_deutsch/fintsv3/FinTS_3.0_Formals_2017-05-11_final_version.pdf
-    Section  H.1.1
-    """
-    return content.replace('?', '??').replace('+', '?+').replace(':', '?:').replace("'", "?'").replace('@', '?@')
-
-
-def fints_unescape(content):
-    return content.replace('??', '?').replace("?'", "'").replace('?+', '+').replace('?:', ':').replace('?@', '@')
+def compress_datablob(magic: bytes, version: int, data: dict):
+    data = dict(data)
+    for k, v in data.items():
+        if k.endswith("_bin"):
+            if v:
+                data[k] = base64.b64encode(v).decode("us-ascii")
+    serialized = json.dumps(data).encode('utf-8')
+    compressed = zlib.compress(serialized, 9)
+    return b';'.join([magic, b'1', str(version).encode('us-ascii'), compressed])
 
 
-def split_for_data_groups(seg):
-    return re.split('\+(?<!\?\+)', seg)
+def decompress_datablob(magic: bytes, blob: bytes, obj: object = None):
+    if not blob.startswith(magic):
+        raise ValueError("Incorrect data blob")
+    s = blob.split(b';', 3)
+    if len(s) != 4:
+        raise ValueError("Incorrect data blob")
+    if not s[1].isdigit() or not s[2].isdigit():
+        raise ValueError("Incorrect data blob")
+    encoding_version = int(s[1].decode('us-ascii'), 10)
+    blob_version = int(s[2].decode('us-ascii'), 10)
+
+    if encoding_version != 1:
+        raise ValueError("Unsupported encoding version {}".format(encoding_version))
+
+    decompressed = zlib.decompress(s[3])
+    data = json.loads(decompressed.decode('utf-8'))
+    for k, v in data.items():
+        if k.endswith("_bin"):
+            if v:
+                data[k] = base64.b64decode(v.encode('us-ascii'))
+
+    if obj:
+        setfunc = getattr(obj, "_set_data_v{}".format(blob_version), None)
+        if not setfunc:
+            raise ValueError("Unknown data blob version")
+
+        setfunc(data)
+    else:
+        return blob_version, data
 
 
-def split_for_data_elements(deg):
-    return re.split(':(?<!\?:)', deg)
+class SubclassesMixin:
+    @classmethod
+    def _all_subclasses(cls):
+        for subcls in cls.__subclasses__():
+            yield from subcls._all_subclasses()
+        yield cls
+
+
+class DocTypeMixin:
+    _DOC_TYPE = None
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        type_ = self._DOC_TYPE
+        if type_ is None:
+            if isinstance(getattr(self, 'type', None), type):
+                type_ = getattr(self, 'type')
+
+        if type_ is not None:
+            if not self.__doc__:
+                self.__doc__ = ""
+
+            name = type_.__name__
+            if type_.__module__ != 'builtins':
+                name = "{}.{}".format(type_.__module__, name)
+
+            self.__doc__ = self.__doc__ + "\n\n:type: :class:`{}`".format(name)
+
+
+class FieldRenderFormatStringMixin:
+    _FORMAT_STRING = None
+
+    def _render_value(self, value):
+        retval = self._FORMAT_STRING.format(value)
+        self._check_value_length(retval)
+
+        return retval
+
+
+class FixedLengthMixin:
+    _FIXED_LENGTH = [None, None, None]
+    _DOC_TYPE = str
+
+    def __init__(self, *args, **kwargs):
+        for i, a in enumerate(('length', 'min_length', 'max_length')):
+            kwargs[a] = self._FIXED_LENGTH[i] if len(self._FIXED_LENGTH) > i else None
+
+        super().__init__(*args, **kwargs)
+
+
+class ShortReprMixin:
+    def __repr__(self):
+        return "{}{}({})".format(
+            "{}.".format(self.__class__.__module__),
+            self.__class__.__name__,
+            ", ".join(
+                ("{!r}".format(value) if not name.startswith("_") else "{}={!r}".format(name, value))
+                for (name, value) in self._repr_items
+            )
+        )
+
+    def print_nested(self, stream=None, level=0, indent="    ", prefix="", first_level_indent=True, trailer="", print_doc=True, first_line_suffix=""):
+        stream.write(
+            ( (prefix + level*indent) if first_level_indent else "")
+            + "{!r}{}{}\n".format(self, trailer, first_line_suffix)
+        )
 
 
 class MT535_Miniparser:
@@ -142,6 +241,7 @@ class Password(str):
 
     def __init__(self, value):
         self.value = value
+        self.blocked = False
 
     @classmethod
     @contextmanager
@@ -152,8 +252,13 @@ class Password(str):
         finally:
             cls.protected = False
 
+    def block(self):
+        self.blocked = True
+
     def __str__(self):
-        return '***' if self.protected else self.value
+        if self.blocked and not self.protected:
+            raise Exception("Refusing to use PIN after block")
+        return '***' if self.protected else str(self.value)
 
     def __repr__(self):
         return self.__str__().__repr__()
@@ -163,3 +268,32 @@ class Password(str):
 
     def replace(self, *args, **kwargs):
         return self.__str__().replace(*args, **kwargs)
+
+
+class RepresentableEnum(Enum):
+    def __init__(self, *args, **kwargs):
+        Enum.__init__(self)
+
+        # Hack alert: Try to parse the docstring from the enum source, if available. Fail softly.
+        # FIXME Needs test
+        try:
+            val_1 = val_2 = repr(args[0])
+            if val_1.startswith("'"):
+                val_2 = '"' + val_1[1:-1] + '"'
+            elif val_1.startswith('"'):
+                val_2 = "'" + val_1[1:-1] + "'"
+            regex = re.compile(r"^.*?\S+\s*=\s*(?:(?:{})|(?:{}))\s*#:\s*(\S.*)$".format(
+                        re.escape(val_1), re.escape(val_2)))
+            for line in inspect.getsourcelines(self.__class__)[0]:
+                m = regex.match(line)
+                if m:
+                    self.__doc__ = m.group(1).strip()
+                    break
+        except:
+            raise
+
+    def __repr__(self):
+        return "{}.{}.{}".format(self.__class__.__module__, self.__class__.__name__, self.name)
+
+    def __str__(self):
+        return self.value

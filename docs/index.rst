@@ -7,15 +7,25 @@ FinTS client library
 This is a pure-python implementation of FinTS (formerly known as HBCI), a
 online-banking protocol commonly supported by German banks.
 
-Documentation content
----------------------
+Library user documentation content
+----------------------------------
 
 .. toctree::
    :maxdepth: 2
 
    quickstart
    reading
+   client
    tans
    transfers
    debits
    tested
+   upgrading_1_2
+
+
+Library developer documentation content
+---------------------------------------
+.. toctree::
+   :maxdepth: 2
+
+   developer/index

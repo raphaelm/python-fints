@@ -1,38 +1,401 @@
 import datetime
 import logging
-import re
+from abc import ABCMeta, abstractmethod
+from collections import OrderedDict
+from contextlib import contextmanager
 from decimal import Decimal
+from enum import Enum
 
-from mt940.models import Balance
+import bleach
 from sepaxml import SepaTransfer
 
-from fints.segments.debit import HKDSE, HKDME
+from . import version
 from .connection import FinTSHTTPSConnection
 from .dialog import FinTSDialog
-from .message import FinTSMessage
-from .models import SEPAAccount, TANMethod, TANChallenge6, TANChallenge5, TANChallenge3, TANChallenge4, TANChallenge
-from .segments.accounts import HKSPA
-from .segments.auth import HKTAN, HKTAB
-from .segments.depot import HKWPD
-from .segments.saldo import HKSAL
-from .segments.statement import HKKAZ
-from .segments.transfer import HKCCS, HKCCM
-from .utils import mt940_to_array, MT535_Miniparser, split_for_data_groups, split_for_data_elements, Password
+from .exceptions import *
+from .formals import (
+    CUSTOMER_ID_ANONYMOUS, KTI1, BankIdentifier, DescriptionRequired,
+    SynchronizationMode, TANMediaClass4, TANMediaType2,
+)
+from .message import FinTSInstituteMessage
+from .models import SEPAAccount
+from .parser import FinTS3Serializer
+from .security import (
+    PinTanDummyEncryptionMechanism, PinTanOneStepAuthenticationMechanism,
+    PinTanTwoStepAuthenticationMechanism,
+)
+from .segments.accounts import HISPA1, HKSPA1
+from .segments.auth import HIPINS1, HKTAB4, HKTAB5, HKTAN3, HKTAN5
+from .segments.bank import HIBPA3, HIUPA4, HKKOM4
+from .segments.debit import (
+    HKDBS1, HKDBS2, HKDMB1, HKDMC1, HKDME1, HKDME2,
+    HKDSC1, HKDSE1, HKDSE2, DebitResponseBase,
+)
+from .segments.depot import HKWPD5, HKWPD6
+from .segments.dialog import HIRMG2, HIRMS2, HISYN4, HKSYN3
+from .segments.journal import HKPRO3, HKPRO4
+from .segments.saldo import HKSAL5, HKSAL6, HKSAL7
+from .segments.statement import DKKKU2, HKKAZ5, HKKAZ6, HKKAZ7
+from .segments.transfer import HKCCM1, HKCCS1
+from .types import SegmentSequence
+from .utils import (
+    MT535_Miniparser, Password, SubclassesMixin,
+    compress_datablob, decompress_datablob, mt940_to_array,
+)
 
 logger = logging.getLogger(__name__)
 
+SYSTEM_ID_UNASSIGNED = '0'
+DATA_BLOB_MAGIC = b'python-fints_DATABLOB'
+DATA_BLOB_MAGIC_RETRY = b'python-fints_RETRY_DATABLOB'
+
+
+class FinTSOperations(Enum):
+    """This enum is used as keys in the 'supported_operations' member of the get_information() response.
+
+    The enum value is a tuple of transaction types ("Geschäftsvorfälle"). The operation is supported if
+    any of the listed transaction types is present/allowed.
+    """
+    GET_BALANCE = ("HKSAL", )
+    GET_TRANSACTIONS = ("HKKAZ", )
+    GET_CREDIT_CARD_TRANSACTIONS = ("DKKKU", )
+    GET_STATEMENT = ("HKEKA", )
+    GET_STATEMENT_PDF = ("HKEKP", )
+    GET_HOLDINGS = ("HKWPD", )
+    GET_SEPA_ACCOUNTS = ("HKSPA", )
+    GET_SCHEDULED_DEBITS_SINGLE = ("HKDBS", )
+    GET_SCHEDULED_DEBITS_MULTIPLE = ("HKDMB", )
+    GET_STATUS_PROTOCOL = ("HKPRO", )
+    SEPA_TRANSFER_SINGLE = ("HKCCS", )
+    SEPA_TRANSFER_MULTIPLE = ("HKCCM", )
+    SEPA_DEBIT_SINGLE = ("HKDSE", )
+    SEPA_DEBIT_MULTIPLE = ("HKDME", )
+    SEPA_DEBIT_SINGLE_COR1 = ("HKDSC", )
+    SEPA_DEBIT_MULTIPLE_COR1 = ("HKDMC", )
+    SEPA_STANDING_DEBIT_SINGLE_CREATE = ("HKDDE", )
+    GET_SEPA_STANDING_DEBITS_SINGLE = ("HKDDB", )
+    SEPA_STANDING_DEBIT_SINGLE_DELETE = ("HKDDL", )
+
+
+class NeedRetryResponse(SubclassesMixin, metaclass=ABCMeta):
+    """Base class for Responses that need the operation to be externally retried.
+
+    A concrete subclass of this class is returned, if an operation cannot be completed and needs a retry/completion.
+    Typical (and only) example: Requiring a TAN to be provided."""
+
+    @abstractmethod
+    def get_data(self) -> bytes:
+        """Return a compressed datablob representing this object.
+
+        To restore the object, use :func:`fints.client.NeedRetryResponse.from_data`.
+        """
+        raise NotImplementedError
+
+    @classmethod
+    def from_data(cls, blob):
+        """Restore an object instance from a compressed datablob.
+
+        Returns an instance of a concrete subclass."""
+        version, data = decompress_datablob(DATA_BLOB_MAGIC_RETRY, blob)
+
+        if version == 1:
+            for clazz in cls._all_subclasses():
+                if clazz.__name__ == data["_class_name"]:
+                    return clazz._from_data_v1(data)
+
+        raise Exception("Invalid data blob data or version")
+
+
+class ResponseStatus(Enum):
+    """Error status of the response"""
+
+    UNKNOWN = 0
+    SUCCESS = 1  #: Response indicates Success
+    WARNING = 2  #: Response indicates a Warning
+    ERROR = 3  #: Response indicates an Error
+
+
+_RESPONSE_STATUS_MAPPING = {
+    '0': ResponseStatus.SUCCESS,
+    '3': ResponseStatus.WARNING,
+    '9': ResponseStatus.ERROR,
+}
+
+
+class TransactionResponse:
+    """Result of a FinTS operation.
+
+    The status member indicates the highest type of errors included in this Response object.
+    The responses member lists all individual response lines/messages, there may be multiple (e.g. 'Message accepted' and 'Order executed').
+    The data member may contain further data appropriate to the operation that was executed."""
+    status = ResponseStatus
+    responses = list
+    data = dict
+
+    def __init__(self, response_message):
+        self.status = ResponseStatus.UNKNOWN
+        self.responses = []
+        self.data = {}
+
+        for hirms in response_message.find_segments(HIRMS2):
+            for resp in hirms.responses:
+                self.set_status_if_higher(_RESPONSE_STATUS_MAPPING.get(resp.code[0], ResponseStatus.UNKNOWN))
+
+    def set_status_if_higher(self, status):
+        if status.value > self.status.value:
+            self.status = status
+
+    def __repr__(self):
+        return "<{o.__class__.__name__}(status={o.status!r}, responses={o.responses!r}, data={o.data!r})>".format(o=self)
+
 
 class FinTS3Client:
-    version = 300
-
-    def __init__(self):
+    def __init__(self, bank_identifier, user_id, customer_id=None, from_data: bytes=None):
         self.accounts = []
+        if isinstance(bank_identifier, BankIdentifier):
+            self.bank_identifier = bank_identifier
+        elif isinstance(bank_identifier, str):
+            self.bank_identifier = BankIdentifier(BankIdentifier.COUNTRY_ALPHA_TO_NUMERIC['DE'], bank_identifier)
+        else:
+            raise TypeError("bank_identifier must be BankIdentifier or str (BLZ)")
+        self.system_id = SYSTEM_ID_UNASSIGNED
+        self.user_id = user_id
+        self.customer_id = customer_id or user_id
+        self.bpd_version = 0
+        self.bpa = None
+        self.bpd = SegmentSequence()
+        self.upd_version = 0
+        self.upa = None
+        self.upd = SegmentSequence()
+        self.product_name = 'python-fints'
+        self.product_version = version
+        self.response_callbacks = []
+        self._standing_dialog = None
 
-    def _new_dialog(self):
+        if from_data:
+            self.set_data(bytes(from_data))
+
+    def _new_dialog(self, lazy_init=False):
         raise NotImplemented()
 
-    def _new_message(self, dialog: FinTSDialog, segments, tan=None):
+    def _ensure_system_id(self):
         raise NotImplemented()
+
+    def _process_response(self, dialog, segment, response):
+        pass
+
+    def process_response_message(self, dialog, message: FinTSInstituteMessage, internal_send=True):
+        bpa = message.find_segment_first(HIBPA3)
+        if bpa:
+            self.bpa = bpa
+            self.bpd_version = bpa.bpd_version
+            self.bpd = SegmentSequence(
+                message.find_segments(
+                    callback=lambda m: len(m.header.type) == 6 and m.header.type[1] == 'I' and m.header.type[5] == 'S'
+                )
+            )
+
+        upa = message.find_segment_first(HIUPA4)
+        if upa:
+            self.upa = upa
+            self.upd_version = upa.upd_version
+            self.upd = SegmentSequence(
+                message.find_segments('HIUPD')
+            )
+
+        for seg in message.find_segments(HIRMG2):
+            for response in seg.responses:
+                if not internal_send:
+                    self._log_response(None, response)
+
+                    self._call_callbacks(None, response)
+
+                self._process_response(dialog, None, response)
+
+        for seg in message.find_segments(HIRMS2):
+            for response in seg.responses:
+                segment = None  # FIXME: Provide segment
+
+                if not internal_send:
+                    self._log_response(segment, response)
+
+                    self._call_callbacks(segment, response)
+
+                self._process_response(dialog, segment, response)
+
+    def _send_with_possible_retry(self, dialog, command_seg, resume_func):
+        response = dialog._send(command_seg)
+        return resume_func(command_seg, response)
+
+    def __enter__(self):
+        if self._standing_dialog:
+            raise Exception("Cannot double __enter__() {}".format(self))
+        self._standing_dialog = self._get_dialog()
+        self._standing_dialog.__enter__()
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        if self._standing_dialog:
+            self._standing_dialog.__exit__(exc_type, exc_value, traceback)
+        else:
+            raise Exception("Cannot double __exit__() {}".format(self))
+
+        self._standing_dialog = None
+
+    def _get_dialog(self, lazy_init=False):
+        if lazy_init and self._standing_dialog:
+            raise Exception("Cannot _get_dialog(lazy_init=True) with _standing_dialog")
+
+        if self._standing_dialog:
+            return self._standing_dialog
+
+        if not lazy_init:
+            self._ensure_system_id()
+
+        return self._new_dialog(lazy_init=lazy_init)
+
+    def _set_data_v1(self, data):
+        self.system_id = data.get('system_id', self.system_id)
+
+        if all(x in data for x in ('bpd_bin', 'bpa_bin', 'bpd_version')):
+            if data['bpd_version'] >= self.bpd_version and data['bpa_bin']:
+                self.bpd = SegmentSequence(data['bpd_bin'])
+                self.bpa = SegmentSequence(data['bpa_bin']).segments[0]
+                self.bpd_version = data['bpd_version']
+
+        if all(x in data for x in ('upd_bin', 'upa_bin', 'upd_version')):
+            if data['upd_version'] >= self.upd_version and data['upa_bin']:
+                self.upd = SegmentSequence(data['upd_bin'])
+                self.upa = SegmentSequence(data['upa_bin']).segments[0]
+                self.upd_version = data['upd_version']
+
+    def _deconstruct_v1(self, including_private=False):
+        data = {
+            "system_id": self.system_id,
+            "bpd_bin": self.bpd.render_bytes(),
+            "bpa_bin": FinTS3Serializer().serialize_message(self.bpa) if self.bpa else None,
+            "bpd_version": self.bpd_version,
+        }
+
+        if including_private:
+            data.update({
+                "upd_bin": self.upd.render_bytes(),
+                "upa_bin": FinTS3Serializer().serialize_message(self.upa) if self.upa else None,
+                "upd_version": self.upd_version,
+            })
+
+        return data
+
+    def deconstruct(self, including_private: bool=False) -> bytes:
+        """Return state of this FinTSClient instance as an opaque datablob. You should not
+        use this object after calling this method.
+
+        Information about the connection is implicitly retrieved from the bank and
+        cached in the FinTSClient. This includes: system identifier, bank parameter
+        data, user parameter data. It's not strictly required to retain this information
+        across sessions, but beneficial. If possible, an API user SHOULD use this method
+        to serialize the client instance before destroying it, and provide the serialized
+        data next time an instance is constructed.
+
+        Parameter `including_private` should be set to True, if the storage is sufficiently
+        secure (with regards to confidentiality) to include private data, specifically,
+        account numbers and names. Most often this is the case.
+
+        Note: No connection information is stored in the datablob, neither is the PIN.
+        """
+        data = self._deconstruct_v1(including_private=including_private)
+        return compress_datablob(DATA_BLOB_MAGIC, 1, data)
+
+    def set_data(self, blob: bytes):
+        """Restore a datablob created with deconstruct().
+
+        You should only call this method once, and only immediately after constructing
+        the object and before calling any other method or functionality (e.g. __enter__()).
+        For convenience, you can pass the `set_data` parameter to __init__()."""
+        decompress_datablob(DATA_BLOB_MAGIC, blob, self)
+
+    def _log_response(self, segment, response):
+        if response.code[0] in ('0', '1'):
+            log_target = logger.info
+        elif response.code[0] in ('3',):
+            log_target = logger.warning
+        else:
+            log_target = logger.error
+
+        log_target("Dialog response: {} - {}{}".format(
+            response.code,
+            response.text,
+            " ({!r})".format(response.parameters) if response.parameters else "")
+        )
+
+    def get_information(self):
+        """
+        Return information about the connected bank.
+
+        Note: Can only be filled after the first communication with the bank.
+        If in doubt, use a construction like::
+        
+            f = FinTS3Client(...)
+            with f:
+                info = f.get_information()
+
+        Returns a nested dictionary::
+
+            bank:
+                name: Bank Name
+                supported_operations: dict(FinTSOperations -> boolean)
+            accounts:
+                - iban: IBAN
+                  account_number: Account Number
+                  subaccount_number: Sub-Account Number
+                  bank_identifier: fints.formals.BankIdentifier(...)
+                  customer_id: Customer ID
+                  type: Account type
+                  currency: Currency
+                  owner_name: ['Owner Name 1', 'Owner Name 2 (optional)']
+                  product_name: Account product name
+                  supported_operations: dict(FinTSOperations -> boolean)
+                - ...
+
+        """
+        retval = {
+            'bank': {},
+            'accounts': [],
+            'auth': {},
+        }
+        if self.bpa:
+            retval['bank']['name'] = self.bpa.bank_name
+        if self.bpd.segments:
+            retval['bank']['supported_operations'] = {
+                op: any(self.bpd.find_segment_first(cmd[0]+'I'+cmd[2:]+'S') for cmd in op.value)
+                for op in FinTSOperations
+            }
+            hispas = self.bpd.find_segment_first('HISPAS')
+            if hispas:
+                retval['bank']['supported_sepa_formats'] = list(hispas.parameter.supported_sepa_formats)
+            else:
+                retval['bank']['supported_sepa_formats'] = []
+        if self.upd.segments:
+            for upd in self.upd.find_segments('HIUPD'):
+                acc = {}
+                acc['iban'] = upd.iban
+                acc['account_number'] = upd.account_information.account_number
+                acc['subaccount_number'] = upd.account_information.subaccount_number
+                acc['bank_identifier'] = upd.account_information.bank_identifier
+                acc['customer_id'] = upd.customer_id
+                acc['type'] = upd.account_type
+                acc['currency'] = upd.account_currency
+                acc['owner_name'] = []
+                if upd.name_account_owner_1:
+                    acc['owner_name'].append(upd.name_account_owner_1)
+                if upd.name_account_owner_2:
+                    acc['owner_name'].append(upd.name_account_owner_2)
+                acc['product_name'] = upd.account_product_name
+                acc['supported_operations'] = {
+                    op: any(allowed_transaction.transaction in op.value for allowed_transaction in upd.allowed_transactions)
+                    for op in FinTSOperations
+                }
+                retval['accounts'].append(acc)
+        return retval
 
     def get_sepa_accounts(self):
         """
@@ -40,115 +403,123 @@ class FinTS3Client:
 
         :return: List of SEPAAccount objects.
         """
-        dialog = self._new_dialog()
-        dialog.sync()
-        dialog.init()
 
-        def _get_msg():
-            return self._new_message(dialog, [
-                HKSPA(3, None, None, None)
-            ])
-
-        with self.pin.protect():
-            logger.debug('Sending HKSPA: {}'.format(_get_msg()))
-
-        resp = dialog.send(_get_msg())
-        logger.debug('Got HKSPA response: {}'.format(resp))
-        dialog.end()
-
-        accounts = resp._find_segment('HISPA')
-        accountlist = accounts.split('+')[1:]
+        with self._get_dialog() as dialog:
+            response = dialog.send(HKSPA1())
+            
         self.accounts = []
-        for acc in accountlist:
-            arr = acc.split(':')
-            self.accounts.append(SEPAAccount(
-                iban=arr[1], bic=arr[2], accountnumber=arr[3], subaccount=arr[4], blz=arr[6]
+        for seg in response.find_segments(HISPA1):
+            self.accounts.extend(seg.accounts)
+
+        return [a for a in [acc.as_sepa_account() for acc in self.accounts] if a]
+
+    def _fetch_with_touchdowns(self, dialog, segment_factory, *args, **kwargs):
+        """Execute a sequence of fetch commands on dialog.
+        segment_factory must be a callable with one argument touchdown. Will be None for the
+        first call and contains the institute's touchdown point on subsequent calls.
+        segment_factory must return a command segment.
+        Extra arguments will be passed to FinTSMessage.response_segments.
+        Return value is a concatenated list of the return values of FinTSMessage.response_segments().
+        """
+        responses = []
+        touchdown_counter = 1
+        touchdown = None
+
+        while touchdown or touchdown_counter == 1:
+            seg = segment_factory(touchdown)
+
+            rm = dialog.send(seg)
+
+            for resp in rm.response_segments(seg, *args, **kwargs):
+                responses.append(resp)
+
+            touchdown = None
+            for response in rm.responses(seg, '3040'):
+                touchdown = response.parameters[0]
+                break
+
+            if touchdown:
+                logger.info('Fetching more results ({})...'.format(touchdown_counter))
+
+            touchdown_counter += 1
+
+        return responses
+
+    def _find_highest_supported_command(self, *segment_classes, **kwargs):
+        """Search the BPD for the highest supported version of a segment."""
+        return_parameter_segment = kwargs.get("return_parameter_segment", False)
+
+        parameter_segment_name = "{}I{}S".format(segment_classes[0].TYPE[0], segment_classes[0].TYPE[2:])
+        version_map = dict((clazz.VERSION, clazz) for clazz in segment_classes)
+        max_version = self.bpd.find_segment_highest_version(parameter_segment_name, version_map.keys())
+        if not max_version:
+            raise FinTSUnsupportedOperation('No supported {} version found. I support {}, bank supports {}.'.format(
+                parameter_segment_name,
+                tuple(version_map.keys()),
+                tuple(v.header.version for v in self.bpd.find_segments(parameter_segment_name))
             ))
 
-        return self.accounts
+        if return_parameter_segment:
+            return max_version, version_map.get(max_version.header.version)
+        else:
+            return version_map.get(max_version.header.version)
 
-    def get_statement(self, account: SEPAAccount, start_date: datetime.datetime, end_date: datetime.date):
+    def get_transactions(self, account: SEPAAccount, start_date: datetime.date = None, end_date: datetime.date = None):
         """
-        Fetches the statement of a bank account in a certain timeframe.
+        Fetches the list of transactions of a bank account in a certain timeframe.
 
         :param account: SEPA
         :param start_date: First day to fetch
         :param end_date: Last day to fetch
         :return: A list of mt940.models.Transaction objects
         """
-        logger.info('Start fetching from {} to {}'.format(start_date, end_date))
 
-        dialog = self._new_dialog()
-        dialog.sync()
-        dialog.init()
+        with self._get_dialog() as dialog:
+            hkkaz = self._find_highest_supported_command(HKKAZ5, HKKAZ6, HKKAZ7)
 
-        def _get_msg():
-            return self._create_statement_message(dialog, account, start_date, end_date, None)
+            logger.info('Start fetching from {} to {}'.format(start_date, end_date))
+            responses = self._fetch_with_touchdowns(
+                dialog,
+                lambda touchdown: hkkaz(
+                    account=hkkaz._fields['account'].type.from_sepa_account(account),
+                    all_accounts=False,
+                    date_start=start_date,
+                    date_end=end_date,
+                    touchdown_point=touchdown,
+                ),
+                'HIKAZ'
+            )
+            logger.info('Fetching done.')
 
-        with self.pin.protect():
-            logger.debug('Send message: {}'.format(_get_msg()))
-
-        msg = _get_msg()
-        resp = dialog.send(msg)
-        touchdowns = resp.get_touchdowns(msg)
-        responses = [resp]
-        touchdown_counter = 1
-
-        while HKKAZ.type in touchdowns:
-            logger.info('Fetching more results ({})...'.format(touchdown_counter))
-
-            with self.pin.protect():
-                logger.debug('Send message: {}'.format(
-                    self._create_statement_message(dialog, account, start_date, end_date, touchdowns[HKKAZ.type])
-                ))
-
-            msg = self._create_statement_message(dialog, account, start_date, end_date, touchdowns[HKKAZ.type])
-            resp = dialog.send(msg)
-            responses.append(resp)
-            touchdowns = resp.get_touchdowns(msg)
-
-            touchdown_counter += 1
-
-        logger.info('Fetching done.')
-
-        re_data = re.compile(r'[^@]*@([0-9]+)@(.+)', flags=re.MULTILINE | re.DOTALL)
         statement = []
-        for resp in responses:
-            seg = resp._find_segment('HIKAZ')
-            if seg:
-                m = re_data.match(seg)
-                if m:
-                    statement += mt940_to_array(m.group(2))
+        for seg in responses:
+            # Note: MT940 messages are encoded in the S.W.I.F.T character set,
+            # which is a subset of ISO 8859. There are no character in it that
+            # differ between ISO 8859 variants, so we'll arbitrarily chose 8859-1.
+            statement += mt940_to_array(seg.statement_booked.decode('iso-8859-1'))
 
         logger.debug('Statement: {}'.format(statement))
 
-        dialog.end()
         return statement
 
-    def _create_statement_message(self, dialog: FinTSDialog, account: SEPAAccount, start_date, end_date, touchdown):
-        hversion = dialog.hkkazversion
+    def get_credit_card_transactions(self, account: SEPAAccount, credit_card_number: str, start_date: datetime.date = None, end_date: datetime.date = None):
+        # FIXME Reverse engineered, probably wrong
+        with self._get_dialog() as dialog:
+            dkkku = self._find_highest_supported_command(DKKKU2)
 
-        if hversion in (4, 5, 6):
-            acc = ':'.join([
-                account.accountnumber, account.subaccount, str(280), account.blz
-            ])
-        elif hversion == 7:
-            acc = ':'.join([
-                account.iban, account.bic, account.accountnumber, account.subaccount, str(280), account.blz
-            ])
-        else:
-            raise ValueError('Unsupported HKKAZ version {}'.format(hversion))
-
-        return self._new_message(dialog, [
-            HKKAZ(
-                3,
-                hversion,
-                acc,
-                start_date,
-                end_date,
-                touchdown
+            responses = self._fetch_with_touchdowns(
+                dialog,
+                lambda touchdown: dkkku(
+                    account=dkkku._fields['account'].type.from_sepa_account(account) if account else None,
+                    credit_card_number=credit_card_number,
+                    date_start=start_date,
+                    date_end=end_date,
+                    touchdown_point=touchdown,
+                ),
+                'DIKKU'
             )
-        ])
+
+        return responses
 
     def get_balance(self, account: SEPAAccount):
         """
@@ -157,55 +528,19 @@ class FinTS3Client:
         :param account: SEPA account to fetch the balance
         :return: A mt940.models.Balance object
         """
-        # init dialog
-        dialog = self._new_dialog()
-        dialog.sync()
-        dialog.init()
 
-        # execute job
-        def _get_msg():
-            return self._create_balance_message(dialog, account)
+        with self._get_dialog() as dialog:
+            hksal = self._find_highest_supported_command(HKSAL5, HKSAL6, HKSAL7)
 
-        with self.pin.protect():
-            logger.debug('Sending HKSAL: {}'.format(_get_msg()))
-
-        resp = dialog.send(_get_msg())
-        logger.debug('Got HKSAL response: {}'.format(resp))
-
-        # end dialog
-        dialog.end()
-
-        # find segment and split up to balance part
-        seg = resp._find_segment('HISAL')
-        arr = split_for_data_elements(split_for_data_groups(seg)[4])
-
-        # get balance date
-        date = datetime.datetime.strptime(arr[3], "%Y%m%d").date()
-
-        # return balance
-        return Balance(arr[0], arr[1], date, currency=arr[2])
-
-    def _create_balance_message(self, dialog: FinTSDialog, account: SEPAAccount):
-        hversion = dialog.hksalversion
-
-        if hversion in (1, 2, 3, 4, 5, 6):
-            acc = ':'.join([
-                account.accountnumber, account.subaccount, str(280), account.blz
-            ])
-        elif hversion == 7:
-            acc = ':'.join([
-                account.iban, account.bic, account.accountnumber, account.subaccount, str(280), account.blz
-            ])
-        else:
-            raise ValueError('Unsupported HKSAL version {}'.format(hversion))
-
-        return self._new_message(dialog, [
-            HKSAL(
-                3,
-                hversion,
-                acc
+            seg = hksal(
+                account=hksal._fields['account'].type.from_sepa_account(account),
+                all_accounts=False,
             )
-        ])
+
+            response = dialog.send(seg)
+
+            for resp in response.response_segments(seg, 'HISAL'):
+                return resp.balance_booked.as_mt940_Balance()
 
     def get_holdings(self, account: SEPAAccount):
         """
@@ -215,92 +550,87 @@ class FinTS3Client:
         :return: List of Holding objects
         """
         # init dialog
-        dialog = self._new_dialog()
-        dialog.sync()
-        dialog.init()
+        with self._get_dialog() as dialog:
+            hkwpd = self._find_highest_supported_command(HKWPD5, HKWPD6)
 
-        # execute job
-        def _get_msg():
-            return self._create_get_holdings_message(dialog, account)
+            responses = self._fetch_with_touchdowns(
+                dialog,
+                lambda touchdown: hkwpd(
+                    account=hkwpd._fields['account'].type.from_sepa_account(account),
+                    touchdown_point=touchdown,
+                ),
+                'HIWPD'
+            )
 
-        with self.pin.protect():
-            logger.debug('Sending HKWPD: {}'.format(_get_msg()))
-
-        resp = dialog.send(_get_msg())
-        logger.debug('Got HIWPD response: {}'.format(resp))
-
-        # end dialog
-        dialog.end()
-
-        # find segment and split up to balance part
-        seg = resp._find_segment('HIWPD')
-        if seg:
-            mt535_lines = str.splitlines(seg)
-            # The first line contains a FinTS HIWPD header - drop it.
+        holdings = []
+        for resp in responses:
+            mt535_lines = str.splitlines(resp.holdings)
+            # The first line is empty - drop it.
             del mt535_lines[0]
             mt535 = MT535_Miniparser()
-            return mt535.parse(mt535_lines)
-        else:
+            holdings.extend(mt535.parse(mt535_lines))
+
+        if not holdings:
             logger.debug('No HIWPD response segment found - maybe account has no holdings?')
-            return []
+        return holdings
 
-    def _create_get_holdings_message(self, dialog: FinTSDialog, account: SEPAAccount):
-        hversion = dialog.hksalversion
+    def get_scheduled_debits(self, account: SEPAAccount, multiple=False):
+        with self._get_dialog() as dialog:
+            if multiple:
+                command_classes = (HKDMB1, )
+                response_type = "HIDMB"
+            else:
+                command_classes = (HKDBS1, HKDBS2)
+                response_type = "HKDBS"
 
-        if hversion in (1, 2, 3, 4, 5, 6):
-            acc = ':'.join([
-                account.accountnumber, account.subaccount, str(280), account.blz
-            ])
-        elif hversion == 7:
-            acc = ':'.join([
-                account.iban, account.bic, account.accountnumber, account.subaccount, str(280), account.blz
-            ])
-        else:
-            raise ValueError('Unsupported HKSAL version {}'.format(hversion))
+            hkdbs = self._find_highest_supported_command(*command_classes)
 
-        return self._new_message(dialog, [
-            HKWPD(
-                3,
-                hversion,
-                acc,
+            responses = self._fetch_with_touchdowns(
+                dialog,
+                lambda touchdown: hkdbs(
+                    account=hkdbs._fields['account'].type.from_sepa_account(account),
+                    touchdown_point=touchdown,
+                ),
+                response_type,
             )
-        ])
 
-    def _create_send_tan_message(self, dialog: FinTSDialog, challenge: TANChallenge, tan):
-        return self._new_message(dialog, [
-            HKTAN(3, '2', challenge.reference, '', challenge.version)
-        ], tan)
+        return responses
 
-    def send_tan(self, challenge: TANChallenge, tan: str):
+    def get_status_protocol(self):
+        with self._get_dialog() as dialog:
+            hkpro = self._find_highest_supported_command(HKPRO3, HKPRO4)
+
+            responses = self._fetch_with_touchdowns(
+                dialog,
+                lambda touchdown: hkpro(
+                    touchdown_point=touchdown,
+                ),
+                'HIPRO',
+            )
+
+        return responses
+
+    def get_communication_endpoints(self):
+        with self._get_dialog() as dialog:
+            hkkom = self._find_highest_supported_command(HKKOM4)
+
+            responses = self._fetch_with_touchdowns(
+                dialog,
+                lambda touchdown: hkkom(
+                    touchdown_point=touchdown,
+                ),
+                'HIKOM'
+            )
+
+        return responses
+
+    def simple_sepa_transfer(self, account: SEPAAccount, iban: str, bic: str,
+                             recipient_name: str, amount: Decimal, account_name: str, reason: str,
+                             endtoend_id='NOTPROVIDED'):
         """
-        Sends a TAN to confirm a pending operation.
-
-        :param challenge: TANChallenge to respond to
-        :param tan: TAN value
-        :return: Currently no response
-        """
-        if challenge.tan_process != '4':
-            raise NotImplementedError("TAN process {} currently not implemented".format(challenge.tan_process))
-        with self.pin.protect():
-            logger.debug('Sending HKTAN: {}'.format(self._create_send_tan_message(
-                challenge.dialog, challenge, tan
-            )))
-
-        resp = challenge.dialog.send(self._create_send_tan_message(
-            challenge.dialog, challenge, tan
-        ))
-        logger.debug('Got HKTAN response: {}'.format(resp))
-
-        challenge.dialog.end()
-
-    def start_simple_sepa_transfer(self, account: SEPAAccount, tan_method: TANMethod, iban: str, bic: str,
-                                   recipient_name: str, amount: Decimal, account_name: str, reason: str,
-                                   endtoend_id='NOTPROVIDED', tan_description=''):
-        """
-        Start a simple SEPA transfer.
+        Simple SEPA transfer.
 
         :param account: SEPAAccount to start the transfer from.
-        :param tan_method: TANMethod object to use.
         :param iban: Recipient's IBAN
         :param bic: Recipient's BIC
         :param recipient_name: Recipient name
@@ -308,8 +638,7 @@ class FinTS3Client:
         :param account_name: Sender account name
         :param reason: Transfer reason
         :param endtoend_id: End-to-end-Id (defaults to ``NOTPROVIDED``)
-        :param tan_description: TAN medium description (if required)
-        :return: Returns a TANChallenge object
+        :return: Returns either a NeedRetryResponse or TransactionResponse
         """
         config = {
             "name": account_name,
@@ -323,183 +652,553 @@ class FinTS3Client:
             "name": recipient_name,
             "IBAN": iban,
             "BIC": bic,
-            "amount": int(Decimal(amount) * 100),  # in cents
+            "amount": round(Decimal(amount) * 100),  # in cents
             "execution_date": datetime.date(1999, 1, 1),
             "description": reason,
             "endtoend_id": endtoend_id,
         }
         sepa.add_payment(payment)
         xml = sepa.export().decode()
-        return self.start_sepa_transfer(account, xml, tan_method, tan_description)
+        return self.sepa_transfer(account, xml)
 
-    def _get_start_sepa_transfer_message(self, dialog, account: SEPAAccount, pain_message: str, tan_method,
-                                         tan_description, multiple, control_sum, currency, book_as_single):
-        if multiple:
-            if not control_sum:
-                raise ValueError("Control sum required.")
-            segreq = HKCCM(3, account, pain_message, control_sum, currency, book_as_single)
-        else:
-            segreq = HKCCS(3, account, pain_message)
-        segtan = HKTAN(4, '4', '', tan_description, tan_method.version)
-        return self._new_message(dialog, [
-            segreq,
-            segtan
-        ])
-
-    def start_sepa_transfer(self, account: SEPAAccount, pain_message: str, tan_method, tan_description='',
-                            multiple=False, control_sum=None, currency='EUR', book_as_single=False):
+    def sepa_transfer(self, account: SEPAAccount, pain_message: str, multiple=False,
+                      control_sum=None, currency='EUR', book_as_single=False,
+                      pain_descriptor='urn:iso:std:iso:20022:tech:xsd:pain.001.001.03'):
         """
-        Start a custom SEPA transfer.
+        Custom SEPA transfer.
 
         :param account: SEPAAccount to send the transfer from.
         :param pain_message: SEPA PAIN message containing the transfer details.
-        :param tan_method: TANMethod object to use.
-        :param tan_description: TAN medium description (if required)
         :param multiple: Whether this message contains multiple transfers.
         :param control_sum: Sum of all transfers (required if there are multiple)
         :param currency: Transfer currency
         :param book_as_single: Kindly ask the bank to put multiple transactions as separate lines on the bank statement (defaults to ``False``)
-        :return: Returns a TANChallenge object
+        :param pain_descriptor: URN of the PAIN message schema used.
+        :return: Returns either a NeedRetryResponse or TransactionResponse
         """
-        dialog = self._new_dialog()
-        dialog.sync()
-        dialog.tan_mechs = [tan_method]
-        dialog.init()
 
-        with self.pin.protect():
-            logger.debug('Sending: {}'.format(self._get_start_sepa_transfer_message(
-                dialog, account, pain_message, tan_method, tan_description, multiple, control_sum, currency,
-                book_as_single
-            )))
+        with self._get_dialog() as dialog:
+            if multiple:
+                command_class = HKCCM1
+            else:
+                command_class = HKCCS1
 
-        resp = dialog.send(self._get_start_sepa_transfer_message(
-            dialog, account, pain_message, tan_method, tan_description, multiple, control_sum, currency,
-            book_as_single
-        ))
-        logger.debug('Got response: {}'.format(resp))
-        return self._tan_requiring_response(dialog, resp)
+            hiccxs, hkccx = self._find_highest_supported_command(
+                command_class,
+                return_parameter_segment=True
+            )
 
-    def _get_start_sepa_debit_message(self, dialog, account: SEPAAccount, pain_message: str, tan_method,
-                                      tan_description, multiple, control_sum, currency, book_as_single):
-        if multiple:
-            if not control_sum:
-                raise ValueError("Control sum required.")
-            segreq = HKDME(3, account, pain_message, control_sum, currency, book_as_single)
-        else:
-            segreq = HKDSE(3, account, pain_message)
-        segtan = HKTAN(4, '4', '', tan_description, tan_method.version)
-        return self._new_message(dialog, [
-            segreq,
-            segtan
-        ])
+            seg = hkccx(
+                account=hkccx._fields['account'].type.from_sepa_account(account),
+                sepa_descriptor=pain_descriptor,
+                sepa_pain_message=pain_message.encode(),
+            )
 
-    def start_sepa_debit(self, account: SEPAAccount, pain_message: str, tan_method, tan_description='',
-                         multiple=False, control_sum=None, currency='EUR', book_as_single=False):
+            if multiple:
+                if hiccxs.parameter.sum_amount_required and control_sum is None:
+                    raise ValueError("Control sum required.")
+                if book_as_single and not hiccxs.parameter.single_booking_allowed:
+                    raise FinTSUnsupportedOperation("Single booking not allowed by bank.")
+
+                if control_sum:
+                    seg.sum_amount.amount = control_sum
+                    seg.sum_amount.currency = currency
+
+                if book_as_single:
+                    seg.request_single_booking = True
+
+            return self._send_with_possible_retry(dialog, seg, self._continue_sepa_transfer)
+
+    def _continue_sepa_transfer(self, command_seg, response):
+        retval = TransactionResponse(response)
+
+        for seg in response.find_segments(HIRMS2):
+            for resp in seg.responses:
+                retval.set_status_if_higher(_RESPONSE_STATUS_MAPPING.get(resp.code[0], ResponseStatus.UNKNOWN))
+                retval.responses.append(resp)
+
+        return retval
+
+    def sepa_debit(self, account: SEPAAccount, pain_message: str, multiple=False, cor1=False,
+                   control_sum=None, currency='EUR', book_as_single=False,
+                   pain_descriptor='urn:iso:std:iso:20022:tech:xsd:pain.008.003.01'):
         """
-        Start a custom SEPA debit.
+        Custom SEPA debit.
 
         :param account: SEPAAccount to send the debit from.
         :param pain_message: SEPA PAIN message containing the debit details.
-        :param tan_method: TANMethod object to use.
-        :param tan_description: TAN medium description (if required)
         :param multiple: Whether this message contains multiple debits.
+        :param cor1: Whether to use COR1 debit (lead time reduced to 1 day)
         :param control_sum: Sum of all debits (required if there are multiple)
         :param currency: Debit currency
         :param book_as_single: Kindly ask the bank to put multiple transactions as separate lines on the bank statement (defaults to ``False``)
-        :return: Returns a TANChallenge object
+        :param pain_descriptor: URN of the PAIN message schema used. Defaults to ``urn:iso:std:iso:20022:tech:xsd:pain.008.003.01``.
+        :return: Returns either a NeedRetryResponse or TransactionResponse (with data['task_id'] set, if available)
         """
-        dialog = self._new_dialog()
-        dialog.sync()
-        dialog.tan_mechs = [tan_method]
-        dialog.init()
 
-        with self.pin.protect():
-            logger.debug('Sending: {}'.format(self._get_start_sepa_debit_message(
-                dialog, account, pain_message, tan_method, tan_description, multiple, control_sum, currency,
-                book_as_single
-            )))
+        with self._get_dialog() as dialog:
+            if multiple:
+                if cor1:
+                    command_candidates = (HKDMC1, )
+                else:
+                    command_candidates = (HKDME1, HKDME2)
+            else:
+                if cor1:
+                    command_candidates = (HKDSC1, )
+                else:
+                    command_candidates = (HKDSE1, HKDSE2)
 
-        resp = dialog.send(self._get_start_sepa_debit_message(
-            dialog, account, pain_message, tan_method, tan_description, multiple, control_sum, currency,
-            book_as_single
-        ))
-        logger.debug('Got response: {}'.format(resp))
-        return self._tan_requiring_response(dialog, resp)
-
-    def _tan_requiring_response(self, dialog, resp):
-        seg = resp._find_segment('HITAN')
-        s = split_for_data_groups(seg)
-        spl = split_for_data_elements(s[0])
-        if spl[2] == '3':
-            model = TANChallenge3
-        elif spl[2] == '4':
-            model = TANChallenge4
-        elif spl[2] == '5':
-            model = TANChallenge5
-        elif spl[2] == '6':
-            model = TANChallenge6
-        else:
-            raise NotImplementedError(
-                "HITAN segment version {} is currently not implemented".format(
-                    spl[2]
-                )
+            hidxxs, hkdxx = self._find_highest_supported_command(
+                *command_candidates,
+                return_parameter_segment=True
             )
-        return model(dialog, *s[1:1 + len(model.args)])
 
-    def get_tan_methods(self):
+            seg = hkdxx(
+                account=hkdxx._fields['account'].type.from_sepa_account(account),
+                sepa_descriptor=pain_descriptor,
+                sepa_pain_message=pain_message.encode(),
+            )
+
+            if multiple:
+                if hidxxs.parameter.sum_amount_required and control_sum is None:
+                    raise ValueError("Control sum required.")
+                if book_as_single and not hidxxs.parameter.single_booking_allowed:
+                    raise FinTSUnsupportedOperation("Single booking not allowed by bank.")
+
+                if control_sum:
+                    seg.sum_amount.amount = control_sum
+                    seg.sum_amount.currency = currency
+
+                if book_as_single:
+                    seg.request_single_booking = True
+
+            return self._send_with_possible_retry(dialog, seg, self._continue_sepa_debit)
+
+    def _continue_sepa_debit(self, command_seg, response):
+        retval = TransactionResponse(response)
+
+        for seg in response.find_segments(HIRMS2):
+            for resp in seg.responses:
+                retval.set_status_if_higher(_RESPONSE_STATUS_MAPPING.get(resp.code[0], ResponseStatus.UNKNOWN))
+                retval.responses.append(resp)
+
+        for seg in response.find_segments(DebitResponseBase):
+            if seg.task_id:
+                retval.data['task_id'] = seg.task_id
+
+        if not 'task_id' in retval.data:
+            for seg in response.find_segments('HITAN'):
+                if hasattr(seg, 'task_reference') and seg.task_reference:
+                    retval.data['task_id'] = seg.task_reference
+
+        return retval
+
+    def add_response_callback(self, cb):
+        # FIXME document
+        self.response_callbacks.append(cb)
+
+    def remove_response_callback(self, cb):
+        # FIXME document
+        self.response_callbacks.remove(cb)
+
+    def set_product(self, product_name, product_version):
+        """Set the product name and version that is transmitted as part of our identification
+        
+        According to 'FinTS Financial Transaction Services, Schnittstellenspezifikation, Formals',
+        version 3.0, section C.3.1.3, you should fill this with useful information about the
+        end-user product, *NOT* the FinTS library."""
+
+        self.product_name = product_name
+        self.product_version = product_version
+
+    def _call_callbacks(self, *cb_data):
+        for cb in self.response_callbacks:
+            cb(*cb_data)
+
+    def pause_dialog(self):
+        """Pause a standing dialog and return the saved dialog state.
+
+        Sometimes, for example in a web app, it's not possible to keep a context open
+        during user input. In some cases, though, it's required to send a response
+        within the same dialog that issued the original task (f.e. TAN with TANTimeDialogAssociation.NOT_ALLOWED).
+        This method freezes the current standing dialog (started with FinTS3Client.__enter__()) and
+        returns the frozen state.
+
+        Commands MUST NOT be issued in the dialog after calling this method.
+
+        MUST be used in conjunction with deconstruct()/set_data().
+
+        Caller SHOULD ensure that the dialog is resumed (and properly ended) within a reasonable amount of time.
+
+        :Example:
+
+        ::
+
+            client = FinTS3PinTanClient(..., from_data=None)
+            with client:
+                challenge = client.sepa_transfer(...)
+
+                dialog_data = client.pause_dialog()
+
+                # dialog is now frozen, no new commands may be issued
+                # exiting the context does not end the dialog
+
+            client_data = client.deconstruct()
+
+            # Store dialog_data and client_data out-of-band somewhere
+            # ... Some time passes ...
+            # Later, possibly in a different process, restore the state
+
+            client = FinTS3PinTanClient(..., from_data=client_data)
+            with client.resume_dialog(dialog_data):
+                client.send_tan(...)
+
+                # Exiting the context here ends the dialog, unless frozen with pause_dialog() again.
         """
-        Returns a list of TAN methods.
+        if not self._standing_dialog:
+            raise Exception("Cannot pause dialog, no standing dialog exists")
+        return self._standing_dialog.pause()
 
-        :return: List of TANMethod objects
+    @contextmanager
+    def resume_dialog(self, dialog_data):
+        # FIXME document, test,    NOTE NO UNTRUSTED SOURCES
+        if self._standing_dialog:
+            raise Exception("Cannot resume dialog, existing standing dialog")
+        self._standing_dialog = FinTSDialog.create_resume(self, dialog_data)
+        with self._standing_dialog:
+            yield self
+        self._standing_dialog = None
+
+
+class NeedTANResponse(NeedRetryResponse):
+    challenge_raw = None  #: Raw challenge as received by the bank
+    challenge = None  #: Textual challenge to be displayed to the user
+    challenge_html = None  #: HTML-safe challenge text, possibly with formatting
+    challenge_hhduc = None  #: HHD_UC challenge to be transmitted to the TAN generator
+    challenge_matrix = None  #: Matrix code challenge: tuple(mime_type, data)
+
+    def __init__(self, command_seg, tan_request, resume_method=None, tan_request_structured=False):
+        self.command_seg = command_seg
+        self.tan_request = tan_request
+        self.tan_request_structured = tan_request_structured
+        if hasattr(resume_method, '__func__'):
+            self.resume_method = resume_method.__func__.__name__
+        else:
+            self.resume_method = resume_method
+        self._parse_tan_challenge()
+
+    def __repr__(self):
+        return '<o.__class__.__name__(command_seg={o.command_seg!r}, tan_request={o.tan_request!r})>'.format(o=self)
+
+    @classmethod
+    def _from_data_v1(cls, data):
+        if data["version"] == 1:
+            segs = SegmentSequence(data['segments_bin']).segments
+            return cls(segs[0], segs[1], data['resume_method'], data['tan_request_structured'])
+
+        raise Exception("Wrong blob data version")
+
+    def get_data(self) -> bytes:
+        """Return a compressed datablob representing this object.
+        
+        To restore the object, use :func:`fints.client.NeedRetryResponse.from_data`.
         """
-        dialog = self._new_dialog()
-        dialog.sync()
-        dialog.init()
-        dialog.end()
-        return dialog.tan_mechs
+        data = {
+            "_class_name": self.__class__.__name__,
+            "version": 1,
+            "segments_bin": SegmentSequence([self.command_seg, self.tan_request]).render_bytes(),
+            "resume_method": self.resume_method,
+            "tan_request_structured": self.tan_request_structured,
+        }
+        return compress_datablob(DATA_BLOB_MAGIC_RETRY, 1, data)
 
-    def _create_get_tan_description_message(self, dialog: FinTSDialog):
-        return self._new_message(dialog, [
-            HKTAB(3)
-        ])
+    def _parse_tan_challenge(self):
+        self.challenge_raw = self.tan_request.challenge
+        self.challenge = self.challenge_raw
+        self.challenge_html = None
+        self.challenge_hhduc = None
+        self.challenge_matrix = None
 
-    def get_tan_description(self):
-        """
-        TAN method meta data, currently unparsed
+        if hasattr(self.tan_request, 'challenge_hhduc'):
+            if self.tan_request.challenge_hhduc:
+                if len(self.tan_request.challenge_hhduc) < 256:
+                    self.challenge_hhduc = self.tan_request.challenge_hhduc.decode('us-ascii')
+                else:
+                    data = self.tan_request.challenge_hhduc
+                    type_len_field, data = data[:2], data[2:]
+                    if len(type_len_field) == 2:
+                        type_len = type_len_field[0]*256 + type_len_field[1]
+                        type_data, data = data[:type_len], data[type_len:]
 
-        :return: str
-        """
-        dialog = self._new_dialog()
-        dialog.sync()
-        dialog.init()
+                        content_len_field, data = data[:2], data[2:]
+                        if len(content_len_field) == 2:
+                            content_len = content_len_field[0]*256 + content_len_field[1]
+                            content_data, data = data[:content_len], data[content_len:]
 
-        with self.pin.protect():
-            logger.debug('Sending HKTAB: {}'.format(self._create_get_tan_description_message(dialog)))
+                            self.challenge_matrix = (type_data.decode('us-ascii', 'replace'), content_data)
 
-        resp = dialog.send(self._create_get_tan_description_message(dialog))
-        logger.debug('Got HKTAB response: {}'.format(resp))
-        dialog.end()
+        if self.challenge.startswith('CHLGUC  '):
+            l = self.challenge[8:12]
+            if l.isdigit():
+                self.challenge_hhduc = self.challenge[12:(12+int(l,10))]
+                self.challenge = self.challenge[(12+int(l,10)):]
 
-        seg = resp._find_segment('HITAB')
-        deg = split_for_data_groups(seg)
+        if self.challenge.startswith('CHLGTEXT'):
+            self.challenge = self.challenge[12:]
 
-        return deg[2]
+        if self.tan_request_structured:
+            self.challenge_html = bleach.clean(
+                self.challenge,
+                tags=['br', 'p', 'b', 'i', 'u', 'ul', 'ol', 'li'],
+                attributes={},
+            )
+        else:
+            self.challenge_html = bleach.clean(self.challenge, tags=[])
+
+
+# Note: Implementing HKTAN#6 implies support for Strong Customer Authentication (SCA)
+#  which may require TANs for many more operations including dialog initialization.
+#  We do not currently support that.
+IMPLEMENTED_HKTAN_VERSIONS = {
+    3: HKTAN3,
+    5: HKTAN5,
+}
 
 
 class FinTS3PinTanClient(FinTS3Client):
 
-    def __init__(self, blz, username, pin, server):
-        self.username = username
-        self.blz = blz
-        self.pin = Password(pin)
+    def __init__(self, bank_identifier, user_id, pin, server, customer_id=None, *args, **kwargs):
+        self.pin = Password(pin) if pin is not None else pin
+        self._pending_tan = None
         self.connection = FinTSHTTPSConnection(server)
-        self.systemid = 0
-        super().__init__()
+        self.allowed_security_functions = []
+        self.selected_security_function = None
+        self.selected_tan_medium = None
+        super().__init__(bank_identifier=bank_identifier, user_id=user_id, customer_id=customer_id, *args, **kwargs)
 
-    def _new_dialog(self):
-        dialog = FinTSDialog(self.blz, self.username, self.pin, self.systemid, self.connection)
-        return dialog
+    def _new_dialog(self, lazy_init=False):
+        if self.pin is None:
+            enc = None
+            auth = []
+        elif not self.selected_security_function or self.selected_security_function == '999':
+            enc = PinTanDummyEncryptionMechanism(1)
+            auth = [PinTanOneStepAuthenticationMechanism(self.pin)]
+        else:
+            enc = PinTanDummyEncryptionMechanism(2)
+            auth = [PinTanTwoStepAuthenticationMechanism(
+                self,
+                self.selected_security_function,
+                self.pin,
+            )]
 
-    def _new_message(self, dialog: FinTSDialog, segments, tan=None):
-        return FinTSMessage(self.blz, self.username, self.pin, dialog.systemid, dialog.dialogid, dialog.msgno,
-                            segments, dialog.tan_mechs, tan)
+        return FinTSDialog(
+            self,
+            lazy_init=lazy_init,
+            enc_mechanism=enc,
+            auth_mechanisms=auth,
+        )
+
+    def _ensure_system_id(self):
+        if self.system_id != SYSTEM_ID_UNASSIGNED or self.user_id == CUSTOMER_ID_ANONYMOUS:
+            return
+
+        with self._get_dialog(lazy_init=True) as dialog:
+            response = dialog.init(
+                HKSYN3(SynchronizationMode.NEW_SYSTEM_ID),
+            )
+            
+        seg = response.find_segment_first(HISYN4)
+        if not seg:
+            raise ValueError('Could not find system_id')
+        self.system_id = seg.system_id
+
+    def _set_data_v1(self, data):
+        super()._set_data_v1(data)
+        self.selected_tan_medium = data.get('selected_tan_medium', self.selected_tan_medium)
+        self.selected_security_function = data.get('selected_security_function', self.selected_security_function)
+        self.allowed_security_functions = data.get('allowed_security_functions', self.allowed_security_functions)
+
+    def _deconstruct_v1(self, including_private=False):
+        data = super()._deconstruct_v1(including_private=including_private)
+        data.update({
+            "selected_security_function": self.selected_security_function,
+            "selected_tan_medium": self.selected_tan_medium,
+        })
+
+        if including_private:
+            data.update({
+                "allowed_security_functions": self.allowed_security_functions,
+            })
+
+        return data
+
+    def _get_tan_segment(self, orig_seg, tan_process, tan_seg=None):
+        tan_mechanism = self.get_tan_mechanisms()[self.get_current_tan_mechanism()]
+
+        hitans = self.bpd.find_segment_first('HITANS', tan_mechanism.VERSION)
+        hktan = IMPLEMENTED_HKTAN_VERSIONS.get(tan_mechanism.VERSION)
+
+        seg = hktan(tan_process=tan_process)
+
+        if tan_process == '1':
+            seg.segment_type = orig_seg.header.type
+            account_ = getattr(orig_seg, 'account', None)
+            if isinstance(account_, KTI1):
+                seg.account = account_
+            raise NotImplementedError("TAN-Process 1 not implemented")
+
+        if tan_process in ('1', '3', '4') and \
+            tan_mechanism.supported_media_number > 1 and \
+            tan_mechanism.description_required == DescriptionRequired.MUST:
+                seg.tan_medium_name = self.selected_tan_medium
+
+        if tan_process in ('2', '3'):
+            seg.task_reference = tan_seg.task_reference
+
+        if tan_process in ('1', '2'):
+            seg.further_tan_follows = False
+
+        return seg
+
+    def _need_twostep_tan_for_segment(self, seg):
+        if not self.selected_security_function or self.selected_security_function == '999':
+            return False
+        else:
+            hipins = self.bpd.find_segment_first(HIPINS1)
+            if not hipins:
+                return False
+            else:
+                for requirement in hipins.parameter.transaction_tans_required:
+                    if seg.header.type == requirement.transaction:
+                        return requirement.tan_required
+
+        return False
+
+    def _send_with_possible_retry(self, dialog, command_seg, resume_func):
+        with dialog:
+            if self._need_twostep_tan_for_segment(command_seg):
+                tan_seg = self._get_tan_segment(command_seg, '4')
+
+                response = dialog.send(command_seg, tan_seg)
+
+                for resp in response.responses(tan_seg):
+                    if resp.code == '0030':
+                        return NeedTANResponse(command_seg, response.find_segment_first('HITAN'), resume_func, self.is_challenge_structured())
+                    if resp.code.startswith('9'):
+                        raise Exception("Error response: {!r}".format(response))
+            else:
+                response = dialog.send(command_seg)
+
+            return resume_func(command_seg, response)
+
+    def is_challenge_structured(self):
+        param = self.get_tan_mechanisms()[self.get_current_tan_mechanism()]
+        if hasattr(param, 'challenge_structured'):
+            return param.challenge_structured
+        return False
+
+    def send_tan(self, challenge: NeedTANResponse, tan: str):
+        """
+        Sends a TAN to confirm a pending operation.
+
+        :param challenge: NeedTANResponse to respond to
+        :param tan: TAN value
+        :return: Currently no response
+        """
+
+        with self._get_dialog() as dialog:
+            tan_seg = self._get_tan_segment(challenge.command_seg, '2', challenge.tan_request)
+            self._pending_tan = tan
+
+            response = dialog.send(tan_seg)
+
+            resume_func = getattr(self, challenge.resume_method)
+            return resume_func(challenge.command_seg, response)
+
+    def _process_response(self, dialog, segment, response):
+        if response.code == '3920':
+            self.allowed_security_functions = list(response.parameters)
+            if self.selected_security_function is None or not self.selected_security_function in self.allowed_security_functions:
+                # Select the first available twostep security_function that we support
+                for security_function, parameter in self.get_tan_mechanisms().items():
+                    if security_function == '999':
+                        # Skip onestep TAN
+                        continue
+                    if parameter.tan_process != '2':
+                        # Only support process variant 2 for now
+                        continue
+                    try:
+                        self.set_tan_mechanism(parameter.security_function)
+                        break
+                    except NotImplementedError:
+                        pass
+                else:
+                    # Fall back to onestep
+                    self.set_tan_mechanism('999')
+
+        if (not dialog.open and response.code.startswith('9')) or response.code in ('9340', '9910', '9930', '9931', '9942'):
+            # Assume all 9xxx errors in a not-yet-open dialog refer to the PIN or authentication
+            # During a dialog also listen for the following codes which may explicitly indicate an
+            # incorrect pin: 9340, 9910, 9930, 9931, 9942
+            # Fail-safe block all further attempts with this PIN
+            if self.pin:
+                self.pin.block()
+            raise FinTSClientPINError("Error during dialog initialization, PIN wrong?")
+
+    def get_tan_mechanisms(self):
+        """
+        Get the available TAN mechanisms.
+
+        Note: Only checks for HITANS versions listed in IMPLEMENTED_HKTAN_VERSIONS.
+
+        :return: Dictionary of security_function: TwoStepParameters objects.
+        """
+
+        retval = OrderedDict()
+
+        for version in sorted(IMPLEMENTED_HKTAN_VERSIONS.keys()):
+            for seg in self.bpd.find_segments('HITANS', version):
+                for parameter in seg.parameter.twostep_parameters:
+                    if parameter.security_function in self.allowed_security_functions:
+                        retval[parameter.security_function] = parameter
+
+        return retval
+
+    def get_current_tan_mechanism(self):
+        return self.selected_security_function
+
+    def set_tan_mechanism(self, security_function):
+        if self._standing_dialog:
+            raise Exception("Cannot change TAN mechanism with a standing dialog")
+        self.selected_security_function = security_function
+
+    def set_tan_medium(self, tan_medium):
+        if self._standing_dialog:
+            raise Exception("Cannot change TAN medium with a standing dialog")
+        self.selected_tan_medium = tan_medium
+
+    def get_tan_media(self, media_type = TANMediaType2.ALL, media_class = TANMediaClass4.ALL):
+        """Get information about TAN lists/generators.
+
+        Returns tuple of fints.formals.TANUsageOption and a list of fints.formals.TANMedia4 or fints.formals.TANMedia5 objects."""
+
+        with self._get_dialog() as dialog:
+            hktab = self._find_highest_supported_command(HKTAB4, HKTAB5)
+
+            seg = hktab(
+                tan_media_type = media_type,
+                tan_media_class = str(media_class),
+            )
+
+            response = dialog.send(seg)
+
+            for resp in response.response_segments(seg, 'HITAB'):
+                return resp.tan_usage_option, list(resp.tan_media_list)
+
+    def get_information(self):
+        retval = super().get_information()
+        retval['auth'] = {
+            'current_tan_mechanism': self.get_current_tan_mechanism(),
+            'tan_mechanisms': self.get_tan_mechanisms(),
+        }
+        return retval
