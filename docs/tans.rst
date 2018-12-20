@@ -144,6 +144,14 @@ You SHOULD use this facility together with the client and dialog state restorati
 Reference
 ---------
 
+.. autoclass:: fints.formals.TwoStepParameters2
+   :noindex:
+   :undoc-members:
+   :members:
+   :inherited-members:
+   :member-order: bysource
+   :exclude-members: is_unset, naive_parse, print_nested
+
 .. autoclass:: fints.formals.TwoStepParameters3
    :noindex:
    :undoc-members:

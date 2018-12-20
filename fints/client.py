@@ -25,7 +25,7 @@ from .security import (
     PinTanTwoStepAuthenticationMechanism,
 )
 from .segments.accounts import HISPA1, HKSPA1
-from .segments.auth import HIPINS1, HKTAB4, HKTAB5, HKTAN3, HKTAN5
+from .segments.auth import HIPINS1, HKTAB4, HKTAB5, HKTAN2, HKTAN3, HKTAN5
 from .segments.bank import HIBPA3, HIUPA4, HKKOM4
 from .segments.debit import (
     HKDBS1, HKDBS2, HKDMB1, HKDMC1, HKDME1, HKDME2,
@@ -960,6 +960,7 @@ class NeedTANResponse(NeedRetryResponse):
 #  which may require TANs for many more operations including dialog initialization.
 #  We do not currently support that.
 IMPLEMENTED_HKTAN_VERSIONS = {
+    2: HKTAN2,
     3: HKTAN3,
     5: HKTAN5,
 }
@@ -1047,7 +1048,7 @@ class FinTS3PinTanClient(FinTS3Client):
                 seg.account = account_
             raise NotImplementedError("TAN-Process 1 not implemented")
 
-        if tan_process in ('1', '3', '4') and \
+        if tan_process in ('1', '3', '4') and hasattr(tan_mechanism, 'supported_media_number') and \
             tan_mechanism.supported_media_number > 1 and \
             tan_mechanism.description_required == DescriptionRequired.MUST:
                 seg.tan_medium_name = self.selected_tan_medium
