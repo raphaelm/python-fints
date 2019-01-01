@@ -1051,7 +1051,7 @@ class FinTS3PinTanClient(FinTS3Client):
         if tan_process in ('1', '3', '4') and hasattr(tan_mechanism, 'supported_media_number') and \
             tan_mechanism.supported_media_number > 1 and \
             tan_mechanism.description_required == DescriptionRequired.MUST:
-                seg.tan_medium_name = self.selected_tan_medium
+                seg.tan_medium_name = self.selected_tan_medium.tan_medium_name
 
         if tan_process in ('2', '3'):
             seg.task_reference = tan_seg.task_reference
