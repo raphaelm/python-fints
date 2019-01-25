@@ -32,3 +32,7 @@ class FinTSConnectionError(FinTSError):
 
 class FinTSUnsupportedOperation(FinTSError):
     pass
+
+
+class FinTSNoResponseError(FinTSError):
+    pass

@@ -1,6 +1,7 @@
 from collections import Iterable, OrderedDict
 from contextlib import suppress
 
+from .exceptions import FinTSNoResponseError
 from .utils import SubclassesMixin
 
 
@@ -244,7 +245,7 @@ class SegmentSequence:
                                  first_line_suffix=docstring)
         stream.write((prefix + level * indent) + "]){}\n".format(trailer))
 
-    def find_segments(self, query=None, version=None, callback=None, recurse=True):
+    def find_segments(self, query=None, version=None, callback=None, recurse=True, throw=False):
         """Yields an iterable of all matching segments.
 
         :param query: Either a str or class specifying a segment type (such as 'HNHBK', or :class:`~fints.segments.message.HNHBK3`), or a list or tuple of strings or classes.
@@ -253,9 +254,11 @@ class SegmentSequence:
                         If a list/tuple is specified, segments returning any matching version will be returned.
         :param callback: A callable that will be given the segment as its sole argument and must return a boolean indicating whether to return this segment.
         :param recurse: If True (the default), recurse into SegmentSequenceField values, otherwise only look at segments in this SegmentSequence.
+        :param throw: If True, a FinTSNoResponseError is thrown if no result is found. Defaults to False.
 
         The match results of all given parameters will be AND-combined.
         """
+        found_something = False
 
         if query is None:
             query = []
@@ -275,12 +278,20 @@ class SegmentSequence:
                     ((not version) or any(s.header.version == v for v in version)) and \
                     callback(s):
                 yield s
+                found_something = True
 
             if recurse:
                 for name, field in s._fields.items():
                     val = getattr(s, name)
                     if val and hasattr(val, 'find_segments'):
-                        yield from val.find_segments(query=query, version=version, callback=callback, recurse=recurse)
+                        for v in val.find_segments(query=query, version=version, callback=callback, recurse=recurse):
+                            yield v
+                            found_something = True
+
+        if throw and not found_something:
+            raise FinTSNoResponseError(
+                'The bank\'s response did not contain a response to your request, please inspect debug log.'
+            )
 
     def find_segment_first(self, *args, **kwargs):
         """Finds the first matching segment.

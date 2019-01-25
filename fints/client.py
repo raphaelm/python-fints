@@ -408,7 +408,7 @@ class FinTS3Client:
             response = dialog.send(HKSPA1())
             
         self.accounts = []
-        for seg in response.find_segments(HISPA1):
+        for seg in response.find_segments(HISPA1, throw=True):
             self.accounts.extend(seg.accounts)
 
         return [a for a in [acc.as_sepa_account() for acc in self.accounts] if a]
