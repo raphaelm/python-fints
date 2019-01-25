@@ -1,5 +1,5 @@
 from fints.client import FinTS3PinTanClient, TransactionResponse, NeedTANResponse, ResponseStatus, NeedRetryResponse
-from fints.exceptions import FinTSClientPINError
+from fints.exceptions import FinTSClientPINError, FinTSClientTemporaryAuthError
 from decimal import Decimal
 import pytest
 
@@ -36,6 +36,27 @@ def test_pin_wrong(fints_server):
         fints_server,
     )
     with pytest.raises(FinTSClientPINError):
+        with client:
+            pass
+
+    assert client.pin.blocked
+
+    with pytest.raises(Exception):
+        with client:
+            pass
+
+    with pytest.raises(Exception, match="Refusing"):
+        str(client.pin)
+
+
+def test_pin_locked(fints_server):
+    client = FinTS3PinTanClient(
+        '12345678',
+        'test1',
+        '3938',
+        fints_server,
+    )
+    with pytest.raises(FinTSClientTemporaryAuthError):
         with client:
             pass
 

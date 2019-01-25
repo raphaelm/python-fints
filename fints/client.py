@@ -1146,6 +1146,14 @@ class FinTS3PinTanClient(FinTS3Client):
                 self.pin.block()
             raise FinTSClientPINError("Error during dialog initialization, PIN wrong?")
 
+        if response.code == '3938':
+            # Account locked, e.g. after three wrong password attempts. Theoretically, the bank might allow us to
+            # send a HKPSA with a TAN to unlock, but since the library currently doesn't implement it and there's only
+            # one chance to get it right, let's rather error iout.
+            if self.pin:
+                self.pin.block()
+            raise FinTSClientTemporaryAuthError("Account is temporarily locked.")
+
     def get_tan_mechanisms(self):
         """
         Get the available TAN mechanisms.

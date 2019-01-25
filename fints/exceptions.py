@@ -10,6 +10,10 @@ class FinTSClientPINError(FinTSClientError):
     pass
 
 
+class FinTSClientTemporaryAuthError(FinTSClientError):
+    pass
+
+
 class FinTSDialogError(FinTSError):
     pass
 

@@ -45,7 +45,7 @@ def fints_server():
                 if pinmatch.group(2):
                     tan = pinmatch.group(2).decode('us-ascii')
 
-            if pin != '1234':
+            if pin not in ('1234', '3938'):
                 return "HIRMG::2+9910::Pin ungültig'".encode('utf-8')
 
             result = []
@@ -65,8 +65,11 @@ def fints_server():
                     responses.append(b'3050::UPD nicht mehr aktuell, aktuelle Version enthalten.')
                     segments.append(b"HIUPA:57:4:4+test1+3+0'HIUPD:58:6:4+1::280:12345678+DE111234567800000001+test1++EUR+Fullname++Girokonto++HKSAK:1+HKISA:1+HKSSP:1+HKSAL:1+HKKAZ:1+HKEKA:1+HKCDB:1+HKPSP:1+HKCSL:1+HKCDL:1+HKPAE:1+HKPPD:1+HKCDN:1+HKCSB:1+HKCUB:1+HKQTG:1+HKSPA:1+HKDSB:1+HKCCM:1+HKCUM:1+HKCCS:1+HKCDE:1+HKCSE:1+HKDSW:1+HKPRO:1+HKSAL:1+HKKAZ:1+HKTUL:1+HKTUB:1+HKPRO:1+GKVPU:1+GKVPD:1'HIUPD:59:6:4+2::280:12345678+DE111234567800000002+test1++EUR+Fullname++Tagesgeld++HKSAK:1+HKISA:1+HKSSP:1+HKSAL:1+HKKAZ:1+HKEKA:1+HKPSP:1+HKCSL:1+HKPAE:1+HKCSB:1+HKCUB:1+HKQTG:1+HKSPA:1+HKCUM:1+HKCCS:1+HKCSE:1+HKPRO:1+HKSAL:1+HKKAZ:1+HKTUL:1+HKTUB:1+HKPRO:1+GKVPU:1+GKVPD:1'")
 
-                responses.append(b'3920::Zugelassene TAN-Verfahren fur den Benutzer:942')
-                responses.append(b'0901::*PIN gultig.')
+                if pin == '3938':
+                    responses.append(b'3938::Ihr Zugang ist vorl\u00e4ufig gesperrt - Bitte PIN-Sperre aufheben.')
+                else:
+                    responses.append(b'3920::Zugelassene TAN-Verfahren fur den Benutzer:942')
+                    responses.append(b'0901::*PIN gultig.')
                 responses.append(b'0020::*Dialoginitialisierung erfolgreich')
 
                 result.append(b"HIRMS::2:"+b"+".join(responses)+b"'")
