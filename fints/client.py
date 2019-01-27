@@ -324,7 +324,12 @@ class FinTS3Client:
         log_target("Dialog response: {} - {}{}".format(
             response.code,
             response.text,
-            " ({!r})".format(response.parameters) if response.parameters else "")
+            " ({!r})".format(response.parameters) if response.parameters else ""),
+            extra={
+                'fints_response_code': response.code,
+                'fints_response_text': response.text,
+                'fints_response_parameters': response.parameters,
+            }
         )
 
     def get_information(self):
