@@ -1,6 +1,7 @@
 import datetime
 import logging
 from abc import ABCMeta, abstractmethod
+from base64 import b64decode
 from collections import OrderedDict
 from contextlib import contextmanager
 from decimal import Decimal
@@ -942,6 +943,10 @@ class NeedTANResponse(NeedRetryResponse):
             if l.isdigit():
                 self.challenge_hhduc = self.challenge[12:(12+int(l,10))]
                 self.challenge = self.challenge[(12+int(l,10)):]
+
+                if self.challenge_hhduc.startswith('iVBO'):
+                    self.challenge_matrix = ('image/png', b64decode(self.challenge_hhduc))
+                    self.challenge_hhduc = None
 
         if self.challenge.startswith('CHLGTEXT'):
             self.challenge = self.challenge[12:]
