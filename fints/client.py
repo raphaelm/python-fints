@@ -17,7 +17,7 @@ from .exceptions import *
 from .formals import (
     CUSTOMER_ID_ANONYMOUS, KTI1, BankIdentifier, DescriptionRequired,
     SynchronizationMode, TANMediaClass4, TANMediaType2,
-)
+    SupportedMessageTypes)
 from .message import FinTSInstituteMessage
 from .models import SEPAAccount
 from .parser import FinTS3Serializer
@@ -36,7 +36,7 @@ from .segments.depot import HKWPD5, HKWPD6
 from .segments.dialog import HIRMG2, HIRMS2, HISYN4, HKSYN3
 from .segments.journal import HKPRO3, HKPRO4
 from .segments.saldo import HKSAL5, HKSAL6, HKSAL7
-from .segments.statement import DKKKU2, HKKAZ5, HKKAZ6, HKKAZ7
+from .segments.statement import DKKKU2, HKKAZ5, HKKAZ6, HKKAZ7, HKCAZ1
 from .segments.transfer import HKCCM1, HKCCS1
 from .types import SegmentSequence
 from .utils import (
@@ -507,6 +507,40 @@ class FinTS3Client:
         logger.debug('Statement: {}'.format(statement))
 
         return statement
+
+    def get_transactions_xml(self, account: SEPAAccount, start_date: datetime.date = None,
+                             end_date: datetime.date = None) -> list:
+        """
+        Fetches the list of transactions of a bank account in a certain timeframe as camt.052.001.02 XML files.
+
+        :param account: SEPA
+        :param start_date: First day to fetch
+        :param end_date: Last day to fetch
+        :return: A list of binary XML objects
+        """
+
+        with self._get_dialog() as dialog:
+            hkcaz = self._find_highest_supported_command(HKCAZ1)
+
+            logger.info('Start fetching from {} to {}'.format(start_date, end_date))
+            responses = self._fetch_with_touchdowns(
+                dialog,
+                lambda touchdown: hkcaz(
+                    account=hkcaz._fields['account'].type.from_sepa_account(account),
+                    all_accounts=False,
+                    date_start=start_date,
+                    date_end=end_date,
+                    touchdown_point=touchdown,
+                    supported_camt_messages=SupportedMessageTypes('urn:iso:std:iso:20022:tech:xsd:camt.052.001.02'),
+                ),
+                'HICAZ'
+            )
+            logger.info('Fetching done.')
+
+        xml_streams = []
+        for seg in responses:
+            xml_streams.append(seg.statement_booked)
+        return xml_streams
 
     def get_credit_card_transactions(self, account: SEPAAccount, credit_card_number: str, start_date: datetime.date = None, end_date: datetime.date = None):
         # FIXME Reverse engineered, probably wrong

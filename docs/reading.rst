@@ -50,7 +50,7 @@ You can fetch the banking statement of an account within a certain timeframe wit
 operation.
 
 .. autoclass:: fints.client.FinTS3Client
-   :members: get_transactions
+   :members: get_transactions, get_transactions_xml
    :noindex:
 
 This method will return a list of ``Transaction`` objects from the ``mt-940`` library. You can find more information

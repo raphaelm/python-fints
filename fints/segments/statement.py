@@ -1,5 +1,5 @@
 from fints.fields import DataElementField, DataElementGroupField
-from fints.formals import KTI1, Account2, Account3, QueryCreditCardStatements2
+from fints.formals import KTI1, Account2, Account3, QueryCreditCardStatements2, SupportedMessageTypes
 
 from .base import FinTS3Segment, ParameterSegment
 
@@ -87,3 +87,29 @@ class DIKKUS2(ParameterSegment):
 
     Source: Reverse engineered"""
     parameter = DataElementGroupField(type=QueryCreditCardStatements2, _d="Parameter Kreditkartenumsätze anfordern")
+
+
+class HKCAZ1(FinTS3Segment):
+    """Kontoumsätze anfordern/Zeitraum, version 5
+
+    Source: HBCI Homebanking-Computer-Interface, Schnittstellenspezifikation"""
+    account = DataElementGroupField(type=KTI1, _d="Kontoverbindung international")
+    supported_camt_messages = DataElementGroupField(type=SupportedMessageTypes, _d="Kontoverbindung international")
+    all_accounts = DataElementField(type='jn', _d="Alle Konten")
+    date_start = DataElementField(type='dat', required=False, _d="Von Datum")
+    date_end = DataElementField(type='dat', required=False, _d="Bis Datum")
+    max_number_responses = DataElementField(type='num', max_length=4, required=False, _d="Maximale Anzahl Einträge")
+    touchdown_point = DataElementField(type='an', max_length=35, required=False, _d="Aufsetzpunkt")
+
+
+class HICAZ1(FinTS3Segment):
+    """Kontoumsätze rückmelden/Zeitraum, version 1
+
+    Source: HBCI Homebanking-Computer-Interface, Schnittstellenspezifikation"""
+    account = DataElementGroupField(type=Account3, _d="Kontoverbindung Auftraggeber")
+    all_accounts = DataElementField(type='jn', _d="Alle Konten")
+    camt_descriptor = DataElementField(type='an', _d="camt-Deskriptor")
+    # According to specification, statement_booked is a DEG with one binary XML *per day*. However, banks apparently
+    # send just one XML instead.
+    statement_booked = DataElementField(type='bin', _d="Gebuchte Umsätze")
+    statement_pending = DataElementField(type='bin', required=False, _d="Nicht gebuchte Umsätze")

@@ -953,3 +953,12 @@ class GetSEPAAccountParameter1(DataElementGroup):
     national_account_allowed = DataElementField(type='jn', _d="Nationale Kontoverbindung erlaubt")
     structured_purpose_allowed = DataElementField(type='jn', _d="Strukturierter Verwendungszweck erlaubt")
     supported_sepa_formats = DataElementField(type='an', max_length=256, max_count=99, required=False, _d="Unterstützte SEPA-Datenformate")
+
+
+class SupportedMessageTypes(DataElementGroup):
+    """Unterstützte camt-Messages
+
+    Source:  Messages - Multibankfähige Geschäftsvorfälle (SEPA) - C.2.3.1.1.1
+    """
+    expected_type = AlphanumericField(_d='Unterstützte camt-messages')
+    # TODO: Support passing an arbitrary number of values here
