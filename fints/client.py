@@ -59,6 +59,7 @@ class FinTSOperations(Enum):
     """
     GET_BALANCE = ("HKSAL", )
     GET_TRANSACTIONS = ("HKKAZ", )
+    GET_TRANSACTIONS_XML = ("HKCAZ", )
     GET_CREDIT_CARD_TRANSACTIONS = ("DKKKU", )
     GET_STATEMENT = ("HKEKA", )
     GET_STATEMENT_PDF = ("HKEKP", )
@@ -516,7 +517,7 @@ class FinTS3Client:
         :param account: SEPA
         :param start_date: First day to fetch
         :param end_date: Last day to fetch
-        :return: A list of binary XML objects
+        :return: A list of bytestrings containing XML documents
         """
 
         with self._get_dialog() as dialog:

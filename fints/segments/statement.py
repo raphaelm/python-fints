@@ -106,8 +106,7 @@ class HICAZ1(FinTS3Segment):
     """Kontoumsätze rückmelden/Zeitraum, version 1
 
     Source: HBCI Homebanking-Computer-Interface, Schnittstellenspezifikation"""
-    account = DataElementGroupField(type=Account3, _d="Kontoverbindung Auftraggeber")
-    all_accounts = DataElementField(type='jn', _d="Alle Konten")
+    account = DataElementGroupField(type=KTI1, _d="Kontoverbindung Auftraggeber")
     camt_descriptor = DataElementField(type='an', _d="camt-Deskriptor")
     # According to specification, statement_booked is a DEG with one binary XML *per day*. However, banks apparently
     # send just one XML instead.
