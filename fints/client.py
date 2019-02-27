@@ -605,7 +605,12 @@ class FinTS3Client:
 
         holdings = []
         for resp in responses:
-            mt535_lines = str.splitlines(resp.holdings)
+            if type(resp.holdings) == bytes:
+                holding_str = resp.holdings.decode()
+            else:
+                holding_str = resp.holdings
+
+            mt535_lines = str.splitlines(holding_str)
             # The first line is empty - drop it.
             del mt535_lines[0]
             mt535 = MT535_Miniparser()
