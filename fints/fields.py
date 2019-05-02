@@ -150,8 +150,8 @@ class AmountField(FixedLengthMixin, DataElementField):
             return value
 
         _value = str(value)
-        if not re.match(r'^(?:0|[1-9]\d*),(?:\d*[1-9]|)$', _value):
-            raise TypeError("Only digits and ',' allowed for value of type 'float', no superfluous leading or trailing zeroes allowed: {!r}".format(value))
+        if not re.match(r'^(?:0|[1-9]\d*)(?:,)?(?:\d*[1-9]|)$', _value):
+            raise TypeError("Only digits and ',' allowed for value of type 'decimal', no superfluous leading or trailing zeroes allowed: {!r}".format(value))
 
         return decimal.Decimal(_value.replace(",", "."))
 
