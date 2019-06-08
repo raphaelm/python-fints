@@ -340,7 +340,7 @@ class FinTS3Client:
 
         Note: Can only be filled after the first communication with the bank.
         If in doubt, use a construction like::
-        
+
             f = FinTS3Client(...)
             with f:
                 info = f.get_information()
@@ -413,7 +413,7 @@ class FinTS3Client:
 
         with self._get_dialog() as dialog:
             response = dialog.send(HKSPA1())
-            
+
         self.accounts = []
         for seg in response.find_segments(HISPA1, throw=True):
             self.accounts.extend(seg.accounts)
@@ -849,7 +849,7 @@ class FinTS3Client:
 
     def set_product(self, product_name, product_version):
         """Set the product name and version that is transmitted as part of our identification
-        
+
         According to 'FinTS Financial Transaction Services, Schnittstellenspezifikation, Formals',
         version 3.0, section C.3.1.3, you should fill this with useful information about the
         end-user product, *NOT* the FinTS library."""
@@ -946,7 +946,7 @@ class NeedTANResponse(NeedRetryResponse):
 
     def get_data(self) -> bytes:
         """Return a compressed datablob representing this object.
-        
+
         To restore the object, use :func:`fints.client.NeedRetryResponse.from_data`.
         """
         data = {
@@ -1057,7 +1057,7 @@ class FinTS3PinTanClient(FinTS3Client):
             response = dialog.init(
                 HKSYN3(SynchronizationMode.NEW_SYSTEM_ID),
             )
-            
+
         seg = response.find_segment_first(HISYN4)
         if not seg:
             raise ValueError('Could not find system_id')
@@ -1098,7 +1098,7 @@ class FinTS3PinTanClient(FinTS3Client):
                 seg.account = account_
             raise NotImplementedError("TAN-Process 1 not implemented")
 
-        if tan_process in ('1', '3', '4') and hasattr(tan_mechanism, 'supported_media_number') and \
+        if tan_process in ('1', '3', '4') and getattr(tan_mechanism, 'supported_media_number', None) is not None and \
             tan_mechanism.supported_media_number > 1 and \
             tan_mechanism.description_required == DescriptionRequired.MUST:
                 seg.tan_medium_name = self.selected_tan_medium.tan_medium_name
