@@ -960,5 +960,4 @@ class SupportedMessageTypes(DataElementGroup):
 
     Source:  Messages - Multibankfähige Geschäftsvorfälle (SEPA) - C.2.3.1.1.1
     """
-    expected_type = AlphanumericField(_d='Unterstützte camt-messages')
-    # TODO: Support passing an arbitrary number of values here
+    expected_type = AlphanumericField(max_length=256, max_count=99, required=True, _d='Unterstützte camt-messages')
