@@ -350,6 +350,8 @@ class FinTS3Client:
             bank:
                 name: Bank Name
                 supported_operations: dict(FinTSOperations -> boolean)
+                supported_formats: dict(FinTSOperation -> ['urn:iso:std:iso:20022:tech:xsd:pain.001.003.03', ...])
+                supported_sepa_formats: ['urn:iso:std:iso:20022:tech:xsd:pain.001.003.03', ...]
             accounts:
                 - iban: IBAN
                   account_number: Account Number
@@ -376,6 +378,15 @@ class FinTS3Client:
                 op: any(self.bpd.find_segment_first(cmd[0]+'I'+cmd[2:]+'S') for cmd in op.value)
                 for op in FinTSOperations
             }
+            retval['bank']['supported_formats'] = {}
+            for op in FinTSOperations:
+                for segment in (self.bpd.find_segment_first(cmd[0] + 'I' + cmd[2:] + 'S') for cmd in op.value):
+                    if not hasattr(segment, 'parameter'):
+                        continue
+                    formats = getattr(segment.parameter, 'supported_sepa_formats', [])
+                    retval['bank']['supported_formats'][op] = list(
+                        set(retval['bank']['supported_formats'].get(op, [])).union(set(formats))
+                    )
             hispas = self.bpd.find_segment_first('HISPAS')
             if hispas:
                 retval['bank']['supported_sepa_formats'] = list(hispas.parameter.supported_sepa_formats)
@@ -670,6 +681,23 @@ class FinTS3Client:
 
         return responses
 
+    def _find_supported_sepa_version(self, candidate_versions):
+        hispas = self.bpd.find_segment_first('HISPAS')
+        if not hispas:
+            logger.warning("Could not determine supported SEPA versions, is the dialogue open? Defaulting to first candidate: %s.", candidate_versions[0])
+            return candidate_versions[0]
+
+        bank_supported = list(hispas.parameter.supported_sepa_formats)
+
+        for candidate in candidate_versions:
+            if "urn:iso:std:iso:20022:tech:xsd:{}".format(candidate) in bank_supported:
+                return candidate
+            if "urn:iso:std:iso:20022:tech:xsd:{}.xsd".format(candidate) in bank_supported:
+                return candidate
+
+        logger.warning("No common supported SEPA version. Defaulting to first candidate and hoping for the best: %s.", candidate_versions[0])
+        return candidate_versions[0]
+
     def simple_sepa_transfer(self, account: SEPAAccount, iban: str, bic: str,
                              recipient_name: str, amount: Decimal, account_name: str, reason: str,
                              endtoend_id='NOTPROVIDED'):
@@ -693,7 +721,8 @@ class FinTS3Client:
             "batch": False,
             "currency": "EUR",
         }
-        sepa = SepaTransfer(config, 'pain.001.001.03')
+        version = self._find_supported_sepa_version(['pain.001.001.03', 'pain.001.003.03'])
+        sepa = SepaTransfer(config, version)
         payment = {
             "name": recipient_name,
             "IBAN": iban,
@@ -705,7 +734,7 @@ class FinTS3Client:
         }
         sepa.add_payment(payment)
         xml = sepa.export().decode()
-        return self.sepa_transfer(account, xml)
+        return self.sepa_transfer(account, xml, pain_descriptor="urn:iso:std:iso:20022:tech:xsd:"+version)
 
     def sepa_transfer(self, account: SEPAAccount, pain_message: str, multiple=False,
                       control_sum=None, currency='EUR', book_as_single=False,
