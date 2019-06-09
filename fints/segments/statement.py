@@ -1,5 +1,6 @@
 from fints.fields import DataElementField, DataElementGroupField
-from fints.formals import KTI1, Account2, Account3, QueryCreditCardStatements2, SupportedMessageTypes
+from fints.formals import KTI1, Account2, Account3, QueryCreditCardStatements2, SupportedMessageTypes, Balance1,\
+    CreditCardTransaction1
 
 from .base import FinTS3Segment, ParameterSegment
 
@@ -81,6 +82,13 @@ class DIKKU2(FinTS3Segment):
     """Kreditkartenumsätze rückmelden, version 2
 
     Source: Reverse engineered"""
+    credit_card_number = DataElementField(type='an', _d="Kreditkartennummer")
+    _unknown_1 = DataElementField(type='an')
+    balance = DataElementGroupField(type=Balance1, _d="Saldo")
+    _unknown_2 = DataElementField(type='an')
+    _unknown_3 = DataElementField(type='an')
+    transactions = DataElementGroupField(type=CreditCardTransaction1, _d="Kreditkartenumsatz", min_count=1, required=False)
+
 
 class DIKKUS2(ParameterSegment):
     """Kreditkartenumsätze anfordern Parameter, version 2
