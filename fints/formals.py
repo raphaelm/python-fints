@@ -659,20 +659,19 @@ class CreditCardTransaction1(DataElementGroup):
 
     Source: Reverse engineered"""
     credit_card_number = DataElementField(type='an', _d="Kreditkartennummer")
-    _date_1 = DataElementField(type='dat', _d="Datum")  # FIXME booked vs. valued date?
-    _date_2 = DataElementField(type='dat', _d="Datum")
-    _unknown_1 = DataElementField(type='an')
-    amount = DataElementField(type='wrt', _d="Wert")
+    receipt_date = DataElementField(type='dat', _d="Belegdatum")
+    booking_date = DataElementField(type='dat', _d="Buchungsatum")
+    value_date = DataElementField(type='dat', _d="Wertstellungsdatum")
+    original_amount = DataElementField(type='wrt', _d="Original-Wert")
     currency = DataElementField(type='cur', _d="Währung")
     credit_debit = CodeField(enum=CreditDebit2, length=1, _d="Soll-Haben-Kennzeichen")
-    _unknown_2 = DataElementField(type='an')
-    _amount_2 = DataElementField(type='wrt', _d="Wert")  # FIXME Maybe own vs. other currency?
-    _currency_2 = DataElementField(type='cur', _d="Währung")
-    _credit_debit_2 = CodeField(enum=CreditDebit2, length=1, _d="Soll-Haben-Kennzeichen")
-    memo = DataElementField(type='an', _d="Betreff")
-    _unknown_3 = DataElementField(type='an', count=8)
-    _unknown_4 = DataElementField(type='jn')
-    _unknown_5 = DataElementField(type='an')
+    exchange_rate = DataElementField(type='float', _d="Umrechnungskurs")
+    booked_amount = DataElementField(type='wrt', _d="Gebuchter Wert")
+    booked_currency = DataElementField(type='cur', _d="Gebuchte Währung")
+    booked_credit_debit = CodeField(enum=CreditDebit2, length=1, _d="Gebuchtes Soll-Haben-Kennzeichen")
+    memo = DataElementField(type='an', _d="Buchungstext", count=9)
+    settled = DataElementField(type='jn')
+    booking_reference = DataElementField(type='an', _d="Buchungsreferenz")
 
 
 
