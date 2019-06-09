@@ -24,6 +24,9 @@ class FinTSHTTPSConnection:
 
         r = requests.post(
             self.url, data=base64.b64encode(msg.render_bytes()),
+            headers={
+                'Content-Type': 'text/plain',
+            },
         )
 
         if r.status_code < 200 or r.status_code > 299:
