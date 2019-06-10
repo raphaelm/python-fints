@@ -543,7 +543,7 @@ class FinTS3Client:
                     date_start=start_date,
                     date_end=end_date,
                     touchdown_point=touchdown,
-                    supported_camt_messages=SupportedMessageTypes('urn:iso:std:iso:20022:tech:xsd:camt.052.001.02'),
+                    supported_camt_messages=SupportedMessageTypes(['urn:iso:std:iso:20022:tech:xsd:camt.052.001.02']),
                 ),
                 'HICAZ'
             )
