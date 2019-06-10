@@ -654,6 +654,27 @@ class Balance2(DataElementGroup):
         )
 
 
+class CreditCardTransaction1(DataElementGroup):
+    """Kreditkartenumsatz
+
+    Source: Reverse engineered"""
+    credit_card_number = DataElementField(type='an', _d="Kreditkartennummer")
+    receipt_date = DataElementField(type='dat', _d="Belegdatum")
+    booking_date = DataElementField(type='dat', _d="Buchungsatum")
+    value_date = DataElementField(type='dat', _d="Wertstellungsdatum")
+    original_amount = DataElementField(type='wrt', _d="Original-Wert")
+    currency = DataElementField(type='cur', _d="Währung")
+    credit_debit = CodeField(enum=CreditDebit2, length=1, _d="Soll-Haben-Kennzeichen")
+    exchange_rate = DataElementField(type='float', _d="Umrechnungskurs")
+    booked_amount = DataElementField(type='wrt', _d="Gebuchter Wert")
+    booked_currency = DataElementField(type='cur', _d="Gebuchte Währung")
+    booked_credit_debit = CodeField(enum=CreditDebit2, length=1, _d="Gebuchtes Soll-Haben-Kennzeichen")
+    memo = DataElementField(type='an', _d="Buchungstext", count=9)
+    settled = DataElementField(type='jn')
+    booking_reference = DataElementField(type='an', _d="Buchungsreferenz")
+
+
+
 class Timestamp1(DataElementGroup):
     """Zeitstempel
 
