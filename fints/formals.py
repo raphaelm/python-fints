@@ -961,3 +961,10 @@ class SupportedMessageTypes(DataElementGroup):
     Source:  Messages - Multibankfähige Geschäftsvorfälle (SEPA) - C.2.3.1.1.1
     """
     expected_type = AlphanumericField(max_length=256, max_count=99, required=True, _d='Unterstützte camt-messages')
+
+
+class BookedCamtStatements1(DataElementGroup):
+    """Gebuchte camt-Umsätze
+
+    Source:  Messages - Multibankfähige Geschäftsvorfälle (SEPA)"""
+    camt_statements = DataElementField(type='bin', min_count=1, required=True, _d="camt-Umsätze gebucht")

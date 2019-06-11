@@ -524,11 +524,13 @@ class FinTS3Client:
                              end_date: datetime.date = None) -> list:
         """
         Fetches the list of transactions of a bank account in a certain timeframe as camt.052.001.02 XML files.
+        Returns both booked and pending transactions.
 
         :param account: SEPA
         :param start_date: First day to fetch
         :param end_date: Last day to fetch
-        :return: A list of bytestrings containing XML documents
+        :return: Two lists of bytestrings containing XML documents, possibly empty: first one for booked transactions,
+            second for pending transactions
         """
 
         with self._get_dialog() as dialog:
@@ -543,16 +545,18 @@ class FinTS3Client:
                     date_start=start_date,
                     date_end=end_date,
                     touchdown_point=touchdown,
-                    supported_camt_messages=SupportedMessageTypes('urn:iso:std:iso:20022:tech:xsd:camt.052.001.02'),
+                    supported_camt_messages=SupportedMessageTypes(['urn:iso:std:iso:20022:tech:xsd:camt.052.001.02']),
                 ),
                 'HICAZ'
             )
             logger.info('Fetching done.')
 
-        xml_streams = []
+        booked_streams = []
+        pending_streams = []
         for seg in responses:
-            xml_streams.append(seg.statement_booked)
-        return xml_streams
+            booked_streams.extend(seg.statement_booked.camt_statements)
+            pending_streams.append(seg.statement_pending)
+        return booked_streams, pending_streams
 
     def get_credit_card_transactions(self, account: SEPAAccount, credit_card_number: str, start_date: datetime.date = None, end_date: datetime.date = None):
         # FIXME Reverse engineered, probably wrong
