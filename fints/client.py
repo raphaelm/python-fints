@@ -509,12 +509,12 @@ class FinTS3Client:
             )
             logger.info('Fetching done.')
 
-        statement = []
-        for seg in responses:
-            # Note: MT940 messages are encoded in the S.W.I.F.T character set,
-            # which is a subset of ISO 8859. There are no character in it that
-            # differ between ISO 8859 variants, so we'll arbitrarily chose 8859-1.
-            statement += mt940_to_array(seg.statement_booked.decode('iso-8859-1'))
+        # Note 1: Some banks send the HIKAZ data in arbitrary splits.
+        # So better concatenate them before MT940 parsing.
+        # Note 2: MT940 messages are encoded in the S.W.I.F.T character set,
+        # which is a subset of ISO 8859. There are no character in it that
+        # differ between ISO 8859 variants, so we'll arbitrarily chose 8859-1.
+        statement = mt940_to_array(''.join([seg.statement_booked.decode('iso-8859-1') for seg in responses]))
 
         logger.debug('Statement: {}'.format(statement))
 
