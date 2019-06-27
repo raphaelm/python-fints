@@ -152,7 +152,7 @@ class TransactionResponse:
 
 
 class FinTS3Client:
-    def __init__(self, bank_identifier, user_id, customer_id=None, from_data: bytes=None):
+    def __init__(self, bank_identifier, user_id, customer_id=None, from_data: bytes=None, product_id=None):
         self.accounts = []
         if isinstance(bank_identifier, BankIdentifier):
             self.bank_identifier = bank_identifier
@@ -169,7 +169,7 @@ class FinTS3Client:
         self.upd_version = 0
         self.upa = None
         self.upd = SegmentSequence()
-        self.product_name = 'python-fints'
+        self.product_name = product_id or 'python-fints'
         self.product_version = version[:5]
         self.response_callbacks = []
         self._standing_dialog = None
