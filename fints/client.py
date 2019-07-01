@@ -161,6 +161,10 @@ class FinTS3Client:
         else:
             raise TypeError("bank_identifier must be BankIdentifier or str (BLZ)")
         self.system_id = SYSTEM_ID_UNASSIGNED
+        if not product_id:
+            logger.warn('You should register your program with the ZKA and pass your own product_id ass a parameter.')
+            product_id = 'DC333D745719C4BD6A6F9DB6A'
+        
         self.user_id = user_id
         self.customer_id = customer_id or user_id
         self.bpd_version = 0
@@ -169,7 +173,7 @@ class FinTS3Client:
         self.upd_version = 0
         self.upa = None
         self.upd = SegmentSequence()
-        self.product_name = product_id or 'python-fints'
+        self.product_name = product_id
         self.product_version = version[:5]
         self.response_callbacks = []
         self._standing_dialog = None
