@@ -162,7 +162,7 @@ class FinTS3Client:
             raise TypeError("bank_identifier must be BankIdentifier or str (BLZ)")
         self.system_id = SYSTEM_ID_UNASSIGNED
         if not product_id:
-            logger.warn('You should register your program with the ZKA and pass your own product_id ass a parameter.')
+            logger.warn('You should register your program with the ZKA and pass your own product_id as a parameter.')
             product_id = 'DC333D745719C4BD6A6F9DB6A'
         
         self.user_id = user_id
