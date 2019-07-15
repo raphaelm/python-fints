@@ -1224,6 +1224,10 @@ class FinTS3PinTanClient(FinTS3Client):
                     # Fall back to onestep
                     self.set_tan_mechanism('999')
 
+        if response.code == '9010':
+            raise FinTSClientError("Error during dialog initialization, could not fetch BPD. Please check that you "
+                                   "passed the correct bank identifier to the HBCI URL of the correct bank.")
+
         if (not dialog.open and response.code.startswith('9')) or response.code in ('9340', '9910', '9930', '9931', '9942'):
             # Assume all 9xxx errors in a not-yet-open dialog refer to the PIN or authentication
             # During a dialog also listen for the following codes which may explicitly indicate an
