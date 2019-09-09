@@ -10,7 +10,8 @@ def fints_client(fints_server):
         '12345678',
         'test1',
         '1234',
-        fints_server
+        fints_server,
+        product_id="TEST-123", product_version="1.2.3",
     )
 
 
@@ -34,6 +35,7 @@ def test_pin_wrong(fints_server):
         'test1',
         '99999',
         fints_server,
+        product_id="TEST-123", product_version="1.2.3",
     )
     with pytest.raises(FinTSClientPINError):
         with client:
@@ -55,6 +57,7 @@ def test_pin_locked(fints_server):
         'test1',
         '3938',
         fints_server,
+        product_id="TEST-123", product_version="1.2.3",
     )
     with pytest.raises(FinTSClientTemporaryAuthError):
         with client:
@@ -85,7 +88,8 @@ def test_resume(fints_client, fints_server):
         'test1',
         '1234',
         fints_server,
-        from_data=c_data
+        from_data=c_data,
+        product_id="TEST-123", product_version="1.2.3",
     )
     assert system_id == fints_client.system_id
 
@@ -104,7 +108,7 @@ def test_transfer_1step(fints_client):
             'Test Receiver',
             Decimal('1.23'),
             'Test Sender',
-            'Test transfer 1step'
+            'Test transfer 1step',
         )
 
         assert isinstance(a, TransactionResponse)
