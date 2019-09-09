@@ -104,7 +104,7 @@ def test_transfer_1step(fints_client):
         a = fints_client.simple_sepa_transfer(
             accounts[0],
             'DE111234567800000002',
-            'GENODE00TES',
+            'GENODE23X42',
             'Test Receiver',
             Decimal('1.23'),
             'Test Sender',
@@ -128,7 +128,7 @@ def test_transfer_1step_regression(fints_client):
         a = fints_client.simple_sepa_transfer(
             accounts[0],
             'DE111234567800000002',
-            'GENODE00TES',
+            'GENODE23X42',
             'Test Receiver',
             1.23,
             'Test Sender',
@@ -145,7 +145,7 @@ def test_transfer_2step(fints_client):
         a = fints_client.simple_sepa_transfer(
             accounts[0],
             'DE111234567800000002',
-            'GENODE00TES',
+            'GENODE23X42',
             'Test Receiver',
             Decimal('2.34'),
             'Test Sender',
@@ -165,7 +165,7 @@ def test_transfer_2step_continue(fints_client):
         a = fints_client.simple_sepa_transfer(
             accounts[0],
             'DE111234567800000002',
-            'GENODE00TES',
+            'GENODE23X42',
             'Test Receiver',
             Decimal('3.42'),
             'Test Sender',
@@ -187,7 +187,7 @@ def test_tan_wrong(fints_client):
         a = fints_client.simple_sepa_transfer(
             accounts[0],
             'DE111234567800000002',
-            'GENODE00TES',
+            'GENODE23X42',
             'Test Receiver',
             Decimal('3.33'),
             'Test Sender',
@@ -204,7 +204,7 @@ def test_tan_hhduc(fints_client):
         a = fints_client.simple_sepa_transfer(
             accounts[0],
             'DE111234567800000002',
-            'GENODE00TES',
+            'GENODE23X42',
             'Test Receiver',
             Decimal('5.23'),
             'Test Sender',
