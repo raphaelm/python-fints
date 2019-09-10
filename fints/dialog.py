@@ -48,6 +48,11 @@ class FinTSDialog:
         if self.paused:
             raise FinTSDialogStateError("Cannot init() a paused dialog")
 
+        if self.client.stay_offline:
+            raise FinTSDialogOfflineError("Cannot open a dialog with stay_offline=True. "
+                                          "This is a control flow error, no online functionality "
+                                          "should have been attempted with this FinTSClient object.")
+
         if self.need_init and not self.open:
             segments = [
                 HKIDN2(

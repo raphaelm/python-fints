@@ -155,7 +155,8 @@ class FinTS3Client:
     def __init__(self,
                  bank_identifier, user_id, customer_id=None,
                  from_data: bytes=None,
-                 product_id=None, product_version=version[:5]):
+                 product_id=None, product_version=version[:5],
+                 stay_offline=False):
         self.accounts = []
         if isinstance(bank_identifier, BankIdentifier):
             self.bank_identifier = bank_identifier
@@ -179,6 +180,7 @@ class FinTS3Client:
         self.product_name = product_id
         self.product_version = product_version
         self.response_callbacks = []
+        self.stay_offline = stay_offline
         self._standing_dialog = None
 
         if from_data:

@@ -22,6 +22,10 @@ class FinTSDialogStateError(FinTSDialogError):
     pass
 
 
+class FinTSDialogOfflineError(FinTSDialogError):
+    pass
+
+
 class FinTSDialogInitError(FinTSDialogError):
     pass
 
