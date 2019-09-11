@@ -458,16 +458,14 @@ class FinTS3Client:
         touchdown_counter = 1
         touchdown = None
 
-        while touchdown or touchdown_counter == 1:
-            seg = segment_factory(touchdown)
+        def _continue(command_seg, rm):
+            nonlocal touchdown_counter
 
-            rm = dialog.send(seg)
-
-            for resp in rm.response_segments(seg, *args, **kwargs):
+            for resp in rm.response_segments(command_seg, *args, **kwargs):
                 responses.append(resp)
 
             touchdown = None
-            for response in rm.responses(seg, '3040'):
+            for response in rm.responses(command_seg, '3040'):
                 touchdown = response.parameters[0]
                 break
 
@@ -475,7 +473,12 @@ class FinTS3Client:
                 logger.info('Fetching more results ({})...'.format(touchdown_counter))
 
             touchdown_counter += 1
+            while touchdown:
+                seg = segment_factory(touchdown)
+                self._send_with_possible_retry(dialog, seg, _continue)
 
+        seg = segment_factory(touchdown)
+        self._send_with_possible_retry(dialog, seg, _continue)
         return responses
 
     def _find_highest_supported_command(self, *segment_classes, **kwargs):
@@ -1150,6 +1153,9 @@ class FinTS3PinTanClient(FinTS3Client):
             tan_mechanism.supported_media_number > 1 and \
             tan_mechanism.description_required == DescriptionRequired.MUST:
                 seg.tan_medium_name = self.selected_tan_medium.tan_medium_name
+
+        if tan_process == '4' and tan_mechanism.VERSION >= 6:
+            seg.segment_type = orig_seg.header.type
 
         if tan_process in ('2', '3'):
             seg.task_reference = tan_seg.task_reference

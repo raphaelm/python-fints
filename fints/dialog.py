@@ -68,8 +68,10 @@ class FinTSDialog:
                     Language2.DE,
                     self.client.product_name,
                     self.client.product_version
-                )
+                ),
             ]
+            if self.client.mode == FinTSClientMode.INTERACTIVE and self.client.get_tan_mechanisms():
+                segments.append(self.client._get_tan_segment(segments[0], '4'))
             for s in extra_segments:
                 segments.append(s)
 
