@@ -1256,6 +1256,9 @@ class FinTS3PinTanClient(FinTS3Client):
                 self.pin.block()
             raise FinTSClientTemporaryAuthError("Account is temporarily locked.")
 
+        if response.code == '9075':
+            raise FinTSSCARequiredError("This operation requires strong customer authentication.")
+
     def get_tan_mechanisms(self):
         """
         Get the available TAN mechanisms.
