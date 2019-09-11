@@ -1135,7 +1135,6 @@ class FinTS3PinTanClient(FinTS3Client):
     def _get_tan_segment(self, orig_seg, tan_process, tan_seg=None):
         tan_mechanism = self.get_tan_mechanisms()[self.get_current_tan_mechanism()]
 
-        hitans = self.bpd.find_segment_first('HITANS', tan_mechanism.VERSION)
         hktan = IMPLEMENTED_HKTAN_VERSIONS.get(tan_mechanism.VERSION)
 
         seg = hktan(tan_process=tan_process)
