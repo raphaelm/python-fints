@@ -473,13 +473,14 @@ class FinTS3Client:
                 logger.info('Fetching more results ({})...'.format(touchdown_counter))
 
             touchdown_counter += 1
-            while touchdown:
+            if touchdown:
                 seg = segment_factory(touchdown)
-                self._send_with_possible_retry(dialog, seg, _continue)
+                return self._send_with_possible_retry(dialog, seg, _continue)
+            else:
+                return responses
 
         seg = segment_factory(touchdown)
-        self._send_with_possible_retry(dialog, seg, _continue)
-        return responses
+        return self._send_with_possible_retry(dialog, seg, _continue)
 
     def _find_highest_supported_command(self, *segment_classes, **kwargs):
         """Search the BPD for the highest supported version of a segment."""
