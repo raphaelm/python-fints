@@ -451,41 +451,45 @@ class FinTS3Client:
 
         return [a for a in [acc.as_sepa_account() for acc in self.accounts] if a]
 
-    def _fetch_with_touchdowns(self, dialog, segment_factory, *args, **kwargs):
+    def _continue_fetch_with_touchdowns(self, command_seg, response):
+        for resp in response.response_segments(command_seg, *self._touchdown_args, **self._touchdown_kwargs):
+            self._touchdown_responses.append(resp)
+
+        touchdown = None
+        for response in response.responses(command_seg, '3040'):
+            touchdown = response.parameters[0]
+            break
+
+        if touchdown:
+            logger.info('Fetching more results ({})...'.format(self._touchdown_counter))
+
+        self._touchdown_counter += 1
+        if touchdown:
+            seg = self._touchdown_segment_factory(touchdown)
+            return self._send_with_possible_retry(self._touchdown_dialog, seg, self._continue_fetch_with_touchdowns)
+        else:
+            return self._touchdown_response_processor(self._touchdown_responses)
+
+    def _fetch_with_touchdowns(self, dialog, segment_factory, response_processor, *args, **kwargs):
         """Execute a sequence of fetch commands on dialog.
         segment_factory must be a callable with one argument touchdown. Will be None for the
         first call and contains the institute's touchdown point on subsequent calls.
         segment_factory must return a command segment.
+        response_processor can be a callable that will be passed the return value of this function and can
+        return a new value instead.
         Extra arguments will be passed to FinTSMessage.response_segments.
         Return value is a concatenated list of the return values of FinTSMessage.response_segments().
         """
-        responses = []
-        touchdown_counter = 1
-        touchdown = None
-
-        def _continue(command_seg, rm):
-            nonlocal touchdown_counter
-
-            for resp in rm.response_segments(command_seg, *args, **kwargs):
-                responses.append(resp)
-
-            touchdown = None
-            for response in rm.responses(command_seg, '3040'):
-                touchdown = response.parameters[0]
-                break
-
-            if touchdown:
-                logger.info('Fetching more results ({})...'.format(touchdown_counter))
-
-            touchdown_counter += 1
-            if touchdown:
-                seg = segment_factory(touchdown)
-                return self._send_with_possible_retry(dialog, seg, _continue)
-            else:
-                return responses
-
-        seg = segment_factory(touchdown)
-        return self._send_with_possible_retry(dialog, seg, _continue)
+        self._touchdown_responses = []
+        self._touchdown_counter = 1
+        self._touchdown = None
+        self._touchdown_dialog = dialog
+        self._touchdown_segment_factory = segment_factory
+        self._touchdown_response_processor = response_processor
+        self._touchdown_args = args
+        self._touchdown_kwargs = kwargs
+        seg = segment_factory(self._touchdown)
+        return self._send_with_possible_retry(dialog, seg, self._continue_fetch_with_touchdowns)
 
     def _find_highest_supported_command(self, *segment_classes, **kwargs):
         """Search the BPD for the highest supported version of a segment."""
@@ -520,7 +524,7 @@ class FinTS3Client:
             hkkaz = self._find_highest_supported_command(HKKAZ5, HKKAZ6, HKKAZ7)
 
             logger.info('Start fetching from {} to {}'.format(start_date, end_date))
-            responses = self._fetch_with_touchdowns(
+            response = self._fetch_with_touchdowns(
                 dialog,
                 lambda touchdown: hkkaz(
                     account=hkkaz._fields['account'].type.from_sepa_account(account),
@@ -529,20 +533,17 @@ class FinTS3Client:
                     date_end=end_date,
                     touchdown_point=touchdown,
                 ),
-                'HIKAZ'
+                lambda responses: mt940_to_array(''.join([seg.statement_booked.decode('iso-8859-1') for seg in responses])),
+                'HIKAZ',
+                # Note 1: Some banks send the HIKAZ data in arbitrary splits.
+                # So better concatenate them before MT940 parsing.
+                # Note 2: MT940 messages are encoded in the S.W.I.F.T character set,
+                # which is a subset of ISO 8859. There are no character in it that
+                # differ between ISO 8859 variants, so we'll arbitrarily chose 8859-1.
             )
             logger.info('Fetching done.')
 
-        # Note 1: Some banks send the HIKAZ data in arbitrary splits.
-        # So better concatenate them before MT940 parsing.
-        # Note 2: MT940 messages are encoded in the S.W.I.F.T character set,
-        # which is a subset of ISO 8859. There are no character in it that
-        # differ between ISO 8859 variants, so we'll arbitrarily chose 8859-1.
-        statement = mt940_to_array(''.join([seg.statement_booked.decode('iso-8859-1') for seg in responses]))
-
-        logger.debug('Statement: {}'.format(statement))
-
-        return statement
+        return response
 
     def get_transactions_xml(self, account: SEPAAccount, start_date: datetime.date = None,
                              end_date: datetime.date = None) -> list:
@@ -571,6 +572,7 @@ class FinTS3Client:
                     touchdown_point=touchdown,
                     supported_camt_messages=SupportedMessageTypes(['urn:iso:std:iso:20022:tech:xsd:camt.052.001.02']),
                 ),
+                lambda responses: responses,  # TODO
                 'HICAZ'
             )
             logger.info('Fetching done.')
@@ -596,6 +598,7 @@ class FinTS3Client:
                     date_end=end_date,
                     touchdown_point=touchdown,
                 ),
+                lambda responses: responses,
                 'DIKKU'
             )
 
@@ -639,6 +642,7 @@ class FinTS3Client:
                     account=hkwpd._fields['account'].type.from_sepa_account(account),
                     touchdown_point=touchdown,
                 ),
+                lambda responses: responses,  # TODO
                 'HIWPD'
             )
 
@@ -676,6 +680,7 @@ class FinTS3Client:
                     account=hkdbs._fields['account'].type.from_sepa_account(account),
                     touchdown_point=touchdown,
                 ),
+                lambda responses: responses,
                 response_type,
             )
 
@@ -690,6 +695,7 @@ class FinTS3Client:
                 lambda touchdown: hkpro(
                     touchdown_point=touchdown,
                 ),
+                lambda responses: responses,
                 'HIPRO',
             )
 
@@ -704,6 +710,7 @@ class FinTS3Client:
                 lambda touchdown: hkkom(
                     touchdown_point=touchdown,
                 ),
+                lambda responses: responses,
                 'HIKOM'
             )
 
