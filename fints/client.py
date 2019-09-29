@@ -187,6 +187,7 @@ class FinTS3Client:
         self.product_version = product_version
         self.response_callbacks = []
         self.mode = mode
+        self.init_tan_response = None
         self._standing_dialog = None
 
         if from_data:
@@ -252,7 +253,11 @@ class FinTS3Client:
 
     def __exit__(self, exc_type, exc_value, traceback):
         if self._standing_dialog:
-            self._standing_dialog.__exit__(exc_type, exc_value, traceback)
+            if exc_type is not None and issubclass(exc_type, FinTSSCARequiredError):
+                # In case of SCARequiredError, the dialog has already been closed by the bank
+                self._standing_dialog.open = False
+            else:
+                self._standing_dialog.__exit__(exc_type, exc_value, traceback)
         else:
             raise Exception("Cannot double __exit__() {}".format(self))
 
@@ -817,6 +822,9 @@ class FinTS3Client:
 
         return retval
 
+    def _continue_dialog_initialization(self, command_seg, response):
+        return response
+
     def sepa_debit(self, account: SEPAAccount, pain_message: str, multiple=False, cor1=False,
                    control_sum=None, currency='EUR', book_as_single=False,
                    pain_descriptor='urn:iso:std:iso:20022:tech:xsd:pain.008.003.01'):
@@ -1078,6 +1086,7 @@ class FinTS3PinTanClient(FinTS3Client):
         self.allowed_security_functions = []
         self.selected_security_function = None
         self.selected_tan_medium = None
+        self._bootstrap_mode = True
         super().__init__(bank_identifier=bank_identifier, user_id=user_id, customer_id=customer_id, *args, **kwargs)
 
     def _new_dialog(self, lazy_init=False):
@@ -1101,6 +1110,11 @@ class FinTS3PinTanClient(FinTS3Client):
             enc_mechanism=enc,
             auth_mechanisms=auth,
         )
+
+    def fetch_tan_mechanisms(self):
+        self.set_tan_mechanism('999')
+        with self._new_dialog():
+            return self.get_current_tan_mechanism()
 
     def _ensure_system_id(self):
         if self.system_id != SYSTEM_ID_UNASSIGNED or self.user_id == CUSTOMER_ID_ANONYMOUS:
@@ -1153,7 +1167,10 @@ class FinTS3PinTanClient(FinTS3Client):
         if tan_process in ('1', '3', '4') and getattr(tan_mechanism, 'supported_media_number', None) is not None and \
             tan_mechanism.supported_media_number > 1 and \
             tan_mechanism.description_required == DescriptionRequired.MUST:
-                seg.tan_medium_name = self.selected_tan_medium.tan_medium_name
+                if self.selected_tan_medium:
+                    seg.tan_medium_name = self.selected_tan_medium.tan_medium_name
+                else:
+                    seg.tan_medium_name = 'DUMMY'
 
         if tan_process == '4' and tan_mechanism.VERSION >= 6:
             seg.segment_type = orig_seg.header.type
@@ -1246,7 +1263,7 @@ class FinTS3PinTanClient(FinTS3Client):
             raise FinTSClientError("Error during dialog initialization, could not fetch BPD. Please check that you "
                                    "passed the correct bank identifier to the HBCI URL of the correct bank.")
 
-        if (not dialog.open and response.code.startswith('9')) or response.code in ('9340', '9910', '9930', '9931', '9942'):
+        if ((not dialog.open and response.code.startswith('9')) or response.code in ('9340', '9910', '9930', '9931', '9942')) and not self._bootstrap_mode:
             # Assume all 9xxx errors in a not-yet-open dialog refer to the PIN or authentication
             # During a dialog also listen for the following codes which may explicitly indicate an
             # incorrect pin: 9340, 9910, 9930, 9931, 9942
@@ -1264,7 +1281,11 @@ class FinTS3PinTanClient(FinTS3Client):
             raise FinTSClientTemporaryAuthError("Account is temporarily locked.")
 
         if response.code == '9075':
-            raise FinTSSCARequiredError("This operation requires strong customer authentication.")
+            if self._bootstrap_mode:
+                if self._standing_dialog:
+                    self._standing_dialog.open = False
+            else:
+                raise FinTSSCARequiredError("This operation requires strong customer authentication.")
 
     def get_tan_mechanisms(self):
         """
@@ -1310,8 +1331,13 @@ class FinTS3PinTanClient(FinTS3Client):
                 tan_media_type = media_type,
                 tan_media_class = str(media_class),
             )
+            tan_seg = self._get_tan_segment(seg, '4')
 
-            response = dialog.send(seg)
+            try:
+                self._bootstrap_mode = True
+                response = dialog.send(seg, tan_seg)
+            finally:
+                self._bootstrap_mode = False
 
             for resp in response.response_segments(seg, 'HITAB'):
                 return resp.tan_usage_option, list(resp.tan_media_list)
