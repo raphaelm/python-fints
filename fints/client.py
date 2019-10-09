@@ -1131,11 +1131,10 @@ class FinTS3PinTanClient(FinTS3Client):
             response = dialog.init(
                 HKSYN3(SynchronizationMode.NEW_SYSTEM_ID),
             )
-
-        seg = response.find_segment_first(HISYN4)
-        if not seg:
-            raise ValueError('Could not find system_id')
-        self.system_id = seg.system_id
+            seg = response.find_segment_first(HISYN4)
+            if not seg:
+                raise ValueError('Could not find system_id')
+            self.system_id = seg.system_id
 
     def _set_data_v1(self, data):
         super()._set_data_v1(data)
