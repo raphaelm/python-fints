@@ -162,7 +162,7 @@ class FinTS3Client:
                  bank_identifier, user_id, customer_id=None,
                  from_data: bytes=None,
                  product_id=None, product_version=version[:5],
-                 mode=FinTSClientMode.NONINTERACTIVE):
+                 mode=FinTSClientMode.NONINTERACTIVE, force_twostep_tan=False):
         self.accounts = []
         if isinstance(bank_identifier, BankIdentifier):
             self.bank_identifier = bank_identifier
@@ -187,6 +187,7 @@ class FinTS3Client:
         self.product_version = product_version
         self.response_callbacks = []
         self.mode = mode
+        self.force_twostep_tan = force_twostep_tan
         self.init_tan_response = None
         self._standing_dialog = None
 
@@ -1190,6 +1191,8 @@ class FinTS3PinTanClient(FinTS3Client):
         return seg
 
     def _need_twostep_tan_for_segment(self, seg):
+        if self.force_twostep_tan:
+            return True
         if not self.selected_security_function or self.selected_security_function == '999':
             return False
         else:
