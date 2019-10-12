@@ -1120,6 +1120,7 @@ class FinTS3PinTanClient(FinTS3Client):
 
     def fetch_tan_mechanisms(self):
         self.set_tan_mechanism('999')
+        self._ensure_system_id()
         with self._new_dialog():
             return self.get_current_tan_mechanism()
 
