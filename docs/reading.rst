@@ -1,6 +1,11 @@
 Reading operations
 ==================
 
+.. note::
+
+   Starting from version 3, **all of the methods on this page** can return a ``NeedTANResponse`` instead of actual
+   data if your bank requires a TAN. You should then enter a TAN, read our chapter :ref:`tans` to find out more.
+
 Fetching your bank accounts
 ---------------------------
 

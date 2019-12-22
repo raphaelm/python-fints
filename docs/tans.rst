@@ -30,6 +30,9 @@ If the ``description_required`` attribute for the TAN mechanism is :attr:`~fints
 you will need to get a list of TAN media with :func:`~fints.client.FinTS3PinTanClient.get_tan_media` and select the
 appropriate one with :func:`~fints.client.FinTS3PinTanClient.set_tan_medium`.
 
+Have a look at the source code of :func:`~fints.utils.minimal_interactive_cli_bootstrap` for an example on how to
+ask the user for these properties.
+
 You may not change the active TAN mechanism or TAN medium within a standing dialog (see :ref:`client-dialog-state`).
 
 The selection of the active TAN mechanism/medium is stored with the persistent client data (see :ref:`client-state`).

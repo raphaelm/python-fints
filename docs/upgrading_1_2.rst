@@ -1,5 +1,5 @@
-Upgrading from python-fints 1.x
-===============================
+Upgrading from python-fints 1.x to 2.x
+======================================
 
 This library has seen a major rewrite in version 2.0 and the API has changed in a lot of places. These are the most
 important changes to know:

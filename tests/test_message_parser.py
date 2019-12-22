@@ -125,8 +125,8 @@ def test_invalid():
         m = FinTS3Parser().parse_message(message6)
 
 
-def test_robust_mode(mock):
-    mock.patch('fints.parser.robust_mode', True)
+def test_robust_mode(mocker):
+    mocker.patch('fints.parser.robust_mode', True)
 
     message1 = rb"""HNHBS:5:1'"""
     with pytest.warns(FinTSParserWarning, match='^Ignoring parser error.*: Required field'):

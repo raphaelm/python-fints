@@ -48,6 +48,12 @@ class FinTSDialog:
         if self.paused:
             raise FinTSDialogStateError("Cannot init() a paused dialog")
 
+        from fints.client import FinTSClientMode, NeedTANResponse
+        if self.client.mode == FinTSClientMode.OFFLINE:
+            raise FinTSDialogOfflineError("Cannot open a dialog with mode=FinTSClientMode.OFFLINE. "
+                                          "This is a control flow error, no online functionality "
+                                          "should have been attempted with this FinTSClient object.")
+
         if self.need_init and not self.open:
             segments = [
                 HKIDN2(
@@ -62,14 +68,31 @@ class FinTSDialog:
                     Language2.DE,
                     self.client.product_name,
                     self.client.product_version
-                )
+                ),
             ]
+
+            if self.client.mode == FinTSClientMode.INTERACTIVE and self.client.get_tan_mechanisms():
+                tan_seg = self.client._get_tan_segment(segments[0], '4')
+                segments.append(tan_seg)
+            else:
+                tan_seg = None
+
             for s in extra_segments:
                 segments.append(s)
 
             try:
                 self.open = True
                 retval = self.send(*segments, internal_send=True)
+
+                if tan_seg:
+                    for resp in retval.responses(tan_seg):
+                        if resp.code == '0030':
+                            self.client.init_tan_response = NeedTANResponse(
+                                None,
+                                retval.find_segment_first('HITAN'),
+                                '_continue_dialog_initialization',
+                                self.client.is_challenge_structured()
+                            )
                 self.need_init = False
                 return retval
             except Exception as e:

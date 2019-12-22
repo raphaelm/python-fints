@@ -14,7 +14,7 @@ from fints.segments.message import HNHBK3, HNVSK3, HNVSD1, HNHBS1
 from fints.formals import SecurityProfile, SecurityIdentificationDetails, SecurityDateTime, EncryptionAlgorithm, KeyName, BankIdentifier
 
 TEST_MESSAGES = {
-    os.path.basename(f).rsplit('.')[0]: open(f, 'rb').read() for f in 
+    os.path.basename(f).rsplit('.')[0]: open(f, 'rb').read() for f in
     glob.glob(os.path.join(os.path.dirname(__file__), "messages", "*.bin"))
 }
 
@@ -81,7 +81,7 @@ def fints_server():
                 result.append("HISYN::4:5+{}'".format(system_id).encode('us-ascii'))
 
             if b"'HKSPA:" in message:
-                result.append(b"HISPA::1:4+J:DE111234567800000001:GENODE00TES:00001::280:1234567890'")
+                result.append(b"HISPA::1:4+J:DE111234567800000001:GENODE23X42:00001::280:1234567890'")
 
             hkkaz = re.search(rb"'HKKAZ:(\d+):7\+[^+]+\+N(?:\+[^+]*\+[^+]*\+[^+]*\+([^+]*))?'", message)
             if hkkaz:

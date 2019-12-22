@@ -14,11 +14,19 @@ class FinTSClientTemporaryAuthError(FinTSClientError):
     pass
 
 
+class FinTSSCARequiredError(FinTSClientError):
+    pass
+
+
 class FinTSDialogError(FinTSError):
     pass
 
 
 class FinTSDialogStateError(FinTSDialogError):
+    pass
+
+
+class FinTSDialogOfflineError(FinTSDialogError):
     pass
 
 

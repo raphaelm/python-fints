@@ -37,7 +37,7 @@ setup(
         'bleach',
         'mt-940',
         'requests',
-        'sepaxml~=2.0',
+        'sepaxml~=2.1',
     ],
 
     packages=find_packages(include=['fints', 'fints.*']),
