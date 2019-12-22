@@ -1139,6 +1139,7 @@ class FinTS3PinTanClient(FinTS3Client):
             response = dialog.init(
                 HKSYN3(SynchronizationMode.NEW_SYSTEM_ID),
             )
+            self.process_response_message(dialog, response, internal_send=True)
             seg = response.find_segment_first(HISYN4)
             if not seg:
                 raise ValueError('Could not find system_id')
@@ -1281,7 +1282,7 @@ class FinTS3PinTanClient(FinTS3Client):
             raise FinTSClientError("Error during dialog initialization, could not fetch BPD. Please check that you "
                                    "passed the correct bank identifier to the HBCI URL of the correct bank.")
 
-        if ((not dialog.open and response.code.startswith('9')) or response.code in ('9340', '9910', '9930', '9931', '9942')) and not self._bootstrap_mode:
+        if ((not dialog.open and response.code.startswith('9')) and not self._bootstrap_mode)  or response.code in ('9340', '9910', '9930', '9931', '9942'):
             # Assume all 9xxx errors in a not-yet-open dialog refer to the PIN or authentication
             # During a dialog also listen for the following codes which may explicitly indicate an
             # incorrect pin: 9340, 9910, 9930, 9931, 9942
