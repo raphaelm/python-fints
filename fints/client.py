@@ -1184,7 +1184,7 @@ class FinTS3PinTanClient(FinTS3Client):
 
         if tan_process in ('1', '3', '4') and self.is_tan_media_required():
             if self.selected_tan_medium:
-                seg.tan_medium_name = self.selected_tan_medium.tan_medium_name
+                seg.tan_medium_name = self.selected_tan_medium
             else:
                 seg.tan_medium_name = 'DUMMY'
 
@@ -1333,7 +1333,7 @@ class FinTS3PinTanClient(FinTS3Client):
     def set_tan_medium(self, tan_medium):
         if self._standing_dialog:
             raise Exception("Cannot change TAN medium with a standing dialog")
-        self.selected_tan_medium = tan_medium
+        self.selected_tan_medium = tan_medium.tan_medium_name
 
     def get_tan_media(self, media_type = TANMediaType2.ALL, media_class = TANMediaClass4.ALL):
         """Get information about TAN lists/generators.
