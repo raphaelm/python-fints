@@ -645,6 +645,9 @@ class FinTS3Client:
                 'HIWPD'
             )
 
+        if isinstance(responses, NeedTANResponse):
+            return responses
+
         holdings = []
         for resp in responses:
             if type(resp.holdings) == bytes:
