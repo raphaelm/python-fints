@@ -153,7 +153,6 @@ class TransactionResponse:
 
 class FinTSClientMode(Enum):
     OFFLINE = 'offline'
-    NONINTERACTIVE = 'noninteractive'
     INTERACTIVE = 'interactive'
 
 
@@ -162,7 +161,7 @@ class FinTS3Client:
                  bank_identifier, user_id, customer_id=None,
                  from_data: bytes=None,
                  product_id=None, product_version=version[:5],
-                 mode=FinTSClientMode.NONINTERACTIVE):
+                 mode=FinTSClientMode.INTERACTIVE):
         self.accounts = []
         if isinstance(bank_identifier, BankIdentifier):
             self.bank_identifier = bank_identifier
