@@ -1160,6 +1160,12 @@ class FinTS3PinTanClient(FinTS3Client):
 
         return data
 
+    def is_tan_media_required(self):
+        tan_mechanism = self.get_tan_mechanisms()[self.get_current_tan_mechanism()]
+        return getattr(tan_mechanism, 'supported_media_number', None) is not None and \
+                tan_mechanism.supported_media_number > 1 and \
+                tan_mechanism.description_required == DescriptionRequired.MUST
+
     def _get_tan_segment(self, orig_seg, tan_process, tan_seg=None):
         tan_mechanism = self.get_tan_mechanisms()[self.get_current_tan_mechanism()]
 
@@ -1174,13 +1180,11 @@ class FinTS3PinTanClient(FinTS3Client):
                 seg.account = account_
             raise NotImplementedError("TAN-Process 1 not implemented")
 
-        if tan_process in ('1', '3', '4') and getattr(tan_mechanism, 'supported_media_number', None) is not None and \
-            tan_mechanism.supported_media_number > 1 and \
-            tan_mechanism.description_required == DescriptionRequired.MUST:
-                if self.selected_tan_medium:
-                    seg.tan_medium_name = self.selected_tan_medium.tan_medium_name
-                else:
-                    seg.tan_medium_name = 'DUMMY'
+        if tan_process in ('1', '3', '4') and self.is_tan_media_required():
+            if self.selected_tan_medium:
+                seg.tan_medium_name = self.selected_tan_medium.tan_medium_name
+            else:
+                seg.tan_medium_name = 'DUMMY'
 
         if tan_process == '4' and tan_mechanism.VERSION >= 6:
             seg.segment_type = orig_seg.header.type
