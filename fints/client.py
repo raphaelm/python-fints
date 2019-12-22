@@ -434,6 +434,13 @@ class FinTS3Client:
                 retval['accounts'].append(acc)
         return retval
 
+    def _get_sepa_accounts(self, command_seg, response):
+        self.accounts = []
+        for seg in response.find_segments(HISPA1, throw=True):
+            self.accounts.extend(seg.accounts)
+
+        return [a for a in [acc.as_sepa_account() for acc in self.accounts] if a]
+
     def get_sepa_accounts(self):
         """
         Returns a list of SEPA accounts
@@ -441,14 +448,9 @@ class FinTS3Client:
         :return: List of SEPAAccount objects.
         """
 
+        seg = HKSPA1()
         with self._get_dialog() as dialog:
-            response = dialog.send(HKSPA1())
-
-        self.accounts = []
-        for seg in response.find_segments(HISPA1, throw=True):
-            self.accounts.extend(seg.accounts)
-
-        return [a for a in [acc.as_sepa_account() for acc in self.accounts] if a]
+            return self._send_with_possible_retry(dialog, seg, self._get_sepa_accounts)
 
     def _continue_fetch_with_touchdowns(self, command_seg, response):
         for resp in response.response_segments(command_seg, *self._touchdown_args, **self._touchdown_kwargs):
