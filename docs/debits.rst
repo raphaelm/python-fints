@@ -44,18 +44,21 @@ You can easily generate XML using the ``sepaxml`` python library:
     pain_message = sepa.export().decode()
 
     client = FinTS3PinTanClient(...)
-
-    accounts = client.get_sepa_accounts()
-    account = accounts[0]
-
-    mechanisms = client.get_tan_mechanisms()
-    mechanism = mechanisms[client.get_current_tan_mechanism()]
-    if mechanism.description_required == fints.formals.DescriptionRequired.MUST:
-        usage_option, media = client.get_tan_media()
-
-        client.set_tan_medium(media[0])
+    minimal_interactive_cli_bootstrap(client)
 
     with client:
+        if client.init_tan_response:
+            print("A TAN is required", client.init_tan_response.challenge)
+
+            if getattr(client.init_tan_response, 'challenge_hhduc', None):
+                try:
+                    terminal_flicker_unix(client.init_tan_response.challenge_hhduc)
+                except KeyboardInterrupt:
+                    pass
+
+            tan = input('Please enter TAN:')
+            client.send_tan(client.init_tan_response, tan)
+
         res = client.sepa_debit(
             account=accounts[0],
             data=pain_message,
@@ -65,7 +68,7 @@ You can easily generate XML using the ``sepaxml`` python library:
         )
 
         if isinstance(res, NeedTANResponse):
-            print(res.challenge)
+            print("A TAN is required", res.challenge)
 
             if getattr(res, 'challenge_hhduc', None):
                 try:

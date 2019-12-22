@@ -20,7 +20,9 @@ Library user documentation content
    transfers
    debits
    tested
+   upgrading_2_3
    upgrading_1_2
+   trouble
 
 
 Library developer documentation content

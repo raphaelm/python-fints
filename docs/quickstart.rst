@@ -24,12 +24,28 @@ of your bank. Logging in with a signature file or chip card is currently not sup
         product_id='Your product ID'
     )
 
-
-You can then execute commands using the client instance:
+Since the implementation of PSD2, you will in almost all cases need to be ready to deal with TANs. For a quick start,
+we included a minimal command-line utility to help choose a TAN method:
 
 .. code-block:: python
 
-    accounts = f.get_sepa_accounts()
+    from fints.utils import minimal_interactive_cli_bootstrap
+    minimal_interactive_cli_bootstrap(f)
+
+You can then open up a real communication dialog to the bank with a ``with`` statement and issue commands:
+commands using the client instance:
+
+.. code-block:: python
+
+    with f:
+        # Since PSD2, a TAN might be needed for dialog initialization. Let's check if there is one required
+        if f.init_tan_response:
+            print("A TAN is required", f.init_tan_response.challenge)
+            tan = input('Please enter TAN:')
+            f.send_tan(f.init_tan_response, tan)
+
+        # Fetch accounts
+        accounts = f.get_sepa_accounts()
 
 Go on to the next pages to find out what commands are supported!
 
