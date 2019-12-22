@@ -603,6 +603,10 @@ class FinTS3Client:
 
         return responses
 
+    def _get_balance(self, command_seg, response):
+        for resp in response.response_segments(command_seg, 'HISAL'):
+            return resp.balance_booked.as_mt940_Balance()
+
     def get_balance(self, account: SEPAAccount):
         """
         Fetches an accounts current balance.
@@ -619,10 +623,8 @@ class FinTS3Client:
                 all_accounts=False,
             )
 
-            response = dialog.send(seg)
-
-            for resp in response.response_segments(seg, 'HISAL'):
-                return resp.balance_booked.as_mt940_Balance()
+            response = self._send_with_possible_retry(dialog, seg, self._get_balance)
+            return response
 
     def get_holdings(self, account: SEPAAccount):
         """
