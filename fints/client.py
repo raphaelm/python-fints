@@ -1342,14 +1342,15 @@ class FinTS3PinTanClient(FinTS3Client):
             hktab = self._find_highest_supported_command(HKTAB4, HKTAB5)
 
             seg = hktab(
-                tan_media_type = media_type,
-                tan_media_class = str(media_class),
+                tan_media_type=media_type,
+                tan_media_class=str(media_class),
             )
-            tan_seg = self._get_tan_segment(seg, '4')
+            # The specification says we should send a dummy HKTAN object but apparently it seems to do more harm than
+            # good.
 
             try:
                 self._bootstrap_mode = True
-                response = dialog.send(seg, tan_seg)
+                response = dialog.send(seg)
             finally:
                 self._bootstrap_mode = False
 
