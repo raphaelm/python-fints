@@ -297,3 +297,36 @@ class RepresentableEnum(Enum):
 
     def __str__(self):
         return self.value
+
+
+def minimal_interactive_cli_bootstrap(client):
+    """
+    This is something you usually implement yourself to ask your user in a nice, user-friendly way about these things.
+    This is mainly included to keep examples in the documentation simple and allow you to get started quickly.
+    """
+    # Fetch available TAN mechanisms by the bank, if we don't know it already. If the client was created with cached data,
+    # the function is already set.
+    if not client.get_current_tan_mechanism():
+        client.fetch_tan_mechanisms()
+        mechanisms = list(client.get_tan_mechanisms().items())
+        if len(mechanisms) > 1:
+            print("Multiple tan mechanisms available. Which one do you prefer?")
+            for i, m in enumerate(mechanisms):
+                print(i, "Function {p.security_function}: {p.name}".format(p=m[1]))
+            choice = input("Choice: ").strip()
+            client.set_tan_mechanism(mechanisms[int(choice)][0])
+
+    if client.is_tan_media_required() and not client.selected_tan_medium:
+        print("We need the name of the TAN medium, let's fetch them from the bank")
+        with client:
+            m = client.get_tan_media()
+        if len(m[1]) == 1:
+            client.set_tan_medium(m[1][0])
+        else:
+            print("Multiple tan media available. Which one do you prefer?")
+            for i, mm in enumerate(m[1]):
+                print(i,
+                      "Medium {p.tan_medium_name}: Phone no. {p.mobile_number_masked}, Last used {p.last_use}".format(
+                          p=mm))
+            choice = input("Choice: ").strip()
+            client.set_tan_medium(m[1][int(choice)])
