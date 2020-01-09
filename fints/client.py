@@ -1344,8 +1344,15 @@ class FinTS3PinTanClient(FinTS3Client):
         """Get information about TAN lists/generators.
 
         Returns tuple of fints.formals.TANUsageOption and a list of fints.formals.TANMedia4 or fints.formals.TANMedia5 objects."""
+        if self.connection.url == 'https://hbci.postbank.de/banking/hbci.do':
+            context = self._new_dialog(lazy_init=True)
+            method = lambda dialog: dialog.init
+        else:
+            context = self._get_dialog()
+            method = lambda dialog: dialog.send
 
-        with self._new_dialog(lazy_init=True) as dialog:
+
+        with context as dialog:
             hktab = self._find_highest_supported_command(HKTAB4, HKTAB5)
 
             seg = hktab(
@@ -1357,7 +1364,7 @@ class FinTS3PinTanClient(FinTS3Client):
 
             try:
                 self._bootstrap_mode = True
-                response = dialog.init(seg)
+                response = method(dialog)(seg, tan_seg=seg)
             finally:
                 self._bootstrap_mode = False
 
