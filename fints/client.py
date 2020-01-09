@@ -1345,6 +1345,7 @@ class FinTS3PinTanClient(FinTS3Client):
 
         Returns tuple of fints.formals.TANUsageOption and a list of fints.formals.TANMedia4 or fints.formals.TANMedia5 objects."""
         if self.connection.url == 'https://hbci.postbank.de/banking/hbci.do':
+            # see https://github.com/raphaelm/python-fints/issues/101#issuecomment-572486099
             context = self._new_dialog(lazy_init=True)
             method = lambda dialog: dialog.init
         else:
