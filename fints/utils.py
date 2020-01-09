@@ -318,8 +318,7 @@ def minimal_interactive_cli_bootstrap(client):
 
     if client.is_tan_media_required() and not client.selected_tan_medium:
         print("We need the name of the TAN medium, let's fetch them from the bank")
-        with client:
-            m = client.get_tan_media()
+        m = client.get_tan_media()
         if len(m[1]) == 1:
             client.set_tan_medium(m[1][0])
         else:

@@ -1345,7 +1345,7 @@ class FinTS3PinTanClient(FinTS3Client):
 
         Returns tuple of fints.formals.TANUsageOption and a list of fints.formals.TANMedia4 or fints.formals.TANMedia5 objects."""
 
-        with self._get_dialog() as dialog:
+        with self._new_dialog(lazy_init=True) as dialog:
             hktab = self._find_highest_supported_command(HKTAB4, HKTAB5)
 
             seg = hktab(
@@ -1357,7 +1357,7 @@ class FinTS3PinTanClient(FinTS3Client):
 
             try:
                 self._bootstrap_mode = True
-                response = dialog.send(seg)
+                response = dialog.init(seg)
             finally:
                 self._bootstrap_mode = False
 
