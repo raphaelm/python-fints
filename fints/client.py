@@ -331,7 +331,7 @@ class FinTS3Client:
 
         You should only call this method once, and only immediately after constructing
         the object and before calling any other method or functionality (e.g. __enter__()).
-        For convenience, you can pass the `set_data` parameter to __init__()."""
+        For convenience, you can pass the `from_data` parameter to __init__()."""
         decompress_datablob(DATA_BLOB_MAGIC, blob, self)
 
     def _log_response(self, segment, response):
