@@ -34,7 +34,7 @@ def clean(code):
         code = code[res.challenge_hhd_uc.index('@', 2) + 1:]
     code = code.replace(" ", "").strip()
     if "CHLGUC" in code and "CHLGTEXT" in code:
-        # Sometimes, HHD 1.3 codes are not transfered in the challenge field but in the free text,
+        # Sometimes, HHD 1.3 codes are not transferred in the challenge field but in the free text,
         # contained in CHLGUCXXXX<code>CHLGTEXT
         code = "0" + code[code.index("CHLGUC") + 11:code.index("CHLGTEXT")]
     return code
