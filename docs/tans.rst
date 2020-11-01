@@ -5,7 +5,7 @@ Working with TANs
 
 Many operations in FinTS will require a form of two-step authentication, called TANs. TANs are
 mostly required for operations that move money or change details of a bank account. TANs can be
-generated with a multidue of methods, including paper lists, smartcard readers, SMS messages, and
+generated with a multitude of methods, including paper lists, smartcard readers, SMS messages, and
 smartphone apps.
 
 TAN methods

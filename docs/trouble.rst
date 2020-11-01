@@ -3,7 +3,7 @@ Troubleshooting and bug reporting
 
 The FinTS specification is long and complicated and in many parts leaves things open to interpretation -- or sometimes
 implementors interpret things differently even though they're not really open to interpretation. This is valid for us,
-but also for the banks. Making the library work with many diffrent banks is hard, and often impossible without access
+but also for the banks. Making the library work with many different banks is hard, and often impossible without access
 to a test account. Therefore, we ask you for patience when reporting issues with different banks -- and you need to be
 ready that we might not be able to help you because we do not have the time or bank account required to dig deeper.
 

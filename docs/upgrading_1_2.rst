@@ -15,12 +15,12 @@ important changes to know:
 
 * The ``start_sepa_debit`` method was renamed to ``sepa_debit`` and no longer takes a TAN method and TAN
   medium description as an argument. The new parameter ``pain_descriptor`` should be passed with the version of the
-  PAIN format, e.g. ``urn:iso:std:iso:20022:tech:xsd:pain.008.003.01``. Also, a new paramter ``cor1`` is optionally
+  PAIN format, e.g. ``urn:iso:std:iso:20022:tech:xsd:pain.008.003.01``. Also, a new parameter ``cor1`` is optionally
   available. → :ref:`debits`
 
 * Working with TANs has changed a lot. ``get_tan_methos`` has been renamed to ``get_tan_mechanisms`` and has a new
   return data type. The chosen TAN method is now set on a client level with ``set_tan_mechanism`` and
-  ``set_tan_medium``. You can find more informations in the chapter :ref:`tans` and a full example in the chapter
+  ``set_tan_medium``. You can find more information in the chapter :ref:`tans` and a full example in the chapter
   :ref:`transfers`.
 
 * Debug logging output now contains parsed syntax structures instead of data blobs and is much easier to read.
