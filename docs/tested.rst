@@ -7,8 +7,9 @@ The following banks have been tested with version 3.x of this library:
 Bank                                     Transactions Holdings Transfer Debits
                                          and Balance
 ======================================== ============ ======== ======== ======
-Postbank                                 Yes
 BBBank eG                                Yes                   Yes
+GLS Bank eG                              Yes
+Postbank                                 Yes
 Sparkasse Heidelberg                     Yes
 ======================================== ============ ======== ======== ======
 
