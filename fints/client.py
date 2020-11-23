@@ -1369,7 +1369,7 @@ class FinTS3PinTanClient(FinTS3Client):
 
             try:
                 self._bootstrap_mode = True
-                response = method(dialog)(seg, tan_seg=seg)
+                response = method(dialog)(seg)
             finally:
                 self._bootstrap_mode = False
 
