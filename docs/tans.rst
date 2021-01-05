@@ -170,3 +170,49 @@ Reference
    :inherited-members:
    :member-order: bysource
    :exclude-members: is_unset, naive_parse, print_nested
+
+
+.. _tans-full-example:
+
+Full example
+------------
+
+A full example on how to get transactions if a TAN is required. If a TAN is required `result` will be an object of type `NeedTANResponse`. Otherwise it will hold your transactions directly.
+
+.. code-block:: python
+
+    import arrow
+    from fints.client import FinTS3PinTanClient, NeedTANResponse
+    from fints.hhd.flicker import terminal_flicker_unix
+
+    client = FinTS3PinTanClient(...)
+    if not client.get_current_tan_mechanism():
+        client.fetch_tan_mechanisms()
+        mechanisms = list(client.get_tan_mechanisms().items())
+        print("Multiple tan mechanisms available. Which one do you prefer?")
+        for i, m in enumerate(mechanisms):
+            print(i, "Function {p.security_function}: {p.name} {p.description_required}".format(p=m[1]))
+        choice = input("Choice: ").strip()
+        client.set_tan_mechanism(mechanisms[int(choice)][0])
+
+    with client:
+        accounts = client.get_sepa_accounts()
+        for account in accounts:
+            print(f"Doing {account.iban}")
+            result = client.get_transactions(account,
+                                             start_date=arrow.now().shift(days=-100).datetime,
+                                             end_date=arrow.now().datetime)
+            if isinstance(result, NeedTANResponse):
+                print("TAN is required")
+                if getattr(result, 'challenge_hhduc', None):
+                    # use TAN-Generator
+                    try:
+                        terminal_flicker_unix(result.challenge_hhduc)
+                    except KeyboardInterrupt:
+                        pass
+                    # else: SMS (depends on what you choose before)
+                tan = input('Please enter TAN:')
+                result = client.send_tan(result, tan)
+            else:
+                print("No TAN is required")
+            print(f"{len(result)} transactions for {account.iban}")

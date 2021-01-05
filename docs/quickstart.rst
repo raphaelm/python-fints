@@ -47,7 +47,7 @@ commands using the client instance:
         # Fetch accounts
         accounts = f.get_sepa_accounts()
 
-Go on to the next pages to find out what commands are supported!
+Go on to the next pages to find out what commands are supported! There is also a full example on how to get your bank transactions if a TAN is required (:ref:`tans-full-example`).
 
 .. note::
 
