@@ -1261,6 +1261,24 @@ class FinTS3PinTanClient(FinTS3Client):
             response = dialog.send(tan_seg)
 
             resume_func = getattr(self, challenge.resume_method)
+            
+            # Restore _touchdown_... attributes
+            if challenge.resume_method == '_continue_fetch_with_touchdowns' and challenge.command_seg.TYPE == 'HKKAZ':
+                self._touchdown_args = ['HIKAZ']
+                self._touchdown_kwargs = {}
+                self._touchdown_responses = []
+                self._touchdown_counter = 1
+                self._touchdown_dialog = dialog
+                self._touchdown_response_processor = lambda responses: mt940_to_array(
+                    ''.join([seg.statement_booked.decode('iso-8859-1') for seg in responses]))
+                hkkaz = self._find_highest_supported_command(HKKAZ5, HKKAZ6, HKKAZ7)
+                self._touchdown_segment_factory = lambda touchdown: hkkaz(
+                    account=challenge.command_seg.account,
+                    all_accounts=False,
+                    date_start=challenge.command_seg.date_start,
+                    date_end=challenge.command_seg.date_end,
+                    touchdown_point=touchdown,
+                )
             return resume_func(challenge.command_seg, response)
 
     def _process_response(self, dialog, segment, response):
