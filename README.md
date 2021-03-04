@@ -22,7 +22,7 @@ Limitations
   * Fetching balances
   * Fetching holdings
   * SEPA transfers and debits (only with required TAN and with specific TAN methods)
-* Supports Python 3.4+
+* Supports Python 3.6+
 
 Credits and License
 -------------------

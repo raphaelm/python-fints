@@ -1,9 +1,10 @@
 language: python
 sudo: false
 python:
-    - "3.4"
-    - "3.5"
     - "3.6"
+    - "3.7"
+    - "3.8"
+    - "3.9"
 install:
     - pip install -U pip wheel coverage codecov
     - pip install -r requirements.txt pytest pytest-mock
