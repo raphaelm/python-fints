@@ -10,11 +10,13 @@ Bank                                     Transactions Holdings Transfer Debits
 Postbank                                 Yes
 BBBank eG                                Yes                   Yes
 Sparkasse Heidelberg                     Yes
+comdirect                                Yes
 ======================================== ============ ======== ======== ======
 
 Tested security functions
 -------------------------
 
+* ``902`` "photoTAN"
 * ``921`` "pushTAN"
 * ``930`` "mobile TAN"
 * ``942`` "mobile TAN"
