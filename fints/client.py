@@ -1016,7 +1016,7 @@ class NeedTANResponse(NeedRetryResponse):
     @classmethod
     def _from_data_v1(cls, data):
         if data["version"] == 1:
-            if data["init_tan"]:
+            if "init_tan" in data:
                 segs = SegmentSequence(data['segments_bin']).segments
                 return cls(None, segs[0], data['resume_method'], data['tan_request_structured'])
             else:
