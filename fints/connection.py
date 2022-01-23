@@ -19,7 +19,7 @@ class FinTSHTTPSConnection:
         log_out = io.StringIO()
         with Password.protect():
             msg.print_nested(stream=log_out, prefix="\t")
-            logger.debug("Sending >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n{}\n>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n".format(log_out.getvalue()))
+            logger.debug(f"Sending >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n{log_out.getvalue()}\n>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n")
             log_out.truncate(0)
 
         r = requests.post(
@@ -30,12 +30,12 @@ class FinTSHTTPSConnection:
         )
 
         if r.status_code < 200 or r.status_code > 299:
-            raise FinTSConnectionError('Bad status code {}'.format(r.status_code))
+            raise FinTSConnectionError(f'Bad status code {r.status_code}')
 
         response = base64.b64decode(r.content.decode('iso-8859-1'))
         retval = FinTSInstituteMessage(segments=response)
 
         with Password.protect():
             retval.print_nested(stream=log_out, prefix="\t")
-            logger.debug("Received <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n{}\n<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n".format(log_out.getvalue()))
+            logger.debug(f"Received <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n{log_out.getvalue()}\n<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n")
         return retval

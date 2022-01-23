@@ -67,13 +67,13 @@ class Field:
 
     def _check_value_length(self, value):
         if self.max_length is not None and len(value) > self.max_length:
-            raise ValueError("Value {!r} cannot be rendered: max_length={} exceeded".format(value, self.max_length))
+            raise ValueError(f"Value {value!r} cannot be rendered: max_length={self.max_length} exceeded")
 
         if self.min_length is not None and len(value) < self.min_length:
-            raise ValueError("Value {!r} cannot be rendered: min_length={} not reached".format(value, self.min_length))
+            raise ValueError(f"Value {value!r} cannot be rendered: min_length={self.min_length} not reached")
 
         if self.length is not None and len(value) != self.length:
-            raise ValueError("Value {!r} cannot be rendered: length={} not satisfied".format(value, self.length))
+            raise ValueError(f"Value {value!r} cannot be rendered: length={self.length} not satisfied")
 
     def render(self, value):
         if value is None:
@@ -85,7 +85,7 @@ class Field:
         if self.__doc__:
             d = self.__doc__.splitlines()[0].strip()
             if d:
-                return " # {}".format(d)
+                return f" # {d}"
         return ""
 
 
@@ -128,10 +128,10 @@ class ValueList:
 
         if self._parent.count is not None:
             if i >= self._parent.count:
-                raise IndexError("Cannot access index {} beyond count {}".format(i, self._parent.count))
+                raise IndexError(f"Cannot access index {i} beyond count {self._parent.count}")
         elif self._parent.max_count is not None:
             if i >= self._parent.max_count:
-                raise IndexError("Cannot access index {} beyound max_count {}".format(i, self._parent.max_count))
+                raise IndexError(f"Cannot access index {i} beyound max_count {self._parent.max_count}")
 
         for x in range(len(self._data), i):
             self.__setitem__(x, None)
@@ -176,7 +176,7 @@ class ValueList:
             yield self[i]
 
     def __repr__(self):
-        return "{!r}".format(list(self))
+        return f"{list(self)!r}"
 
     def print_nested(self, stream=None, level=0, indent="    ", prefix="", first_level_indent=True, trailer="", print_doc=True, first_line_suffix=""):
         import sys
@@ -184,7 +184,7 @@ class ValueList:
 
         stream.write(
             ((prefix + level * indent) if first_level_indent else "")
-            + "[{}\n".format(first_line_suffix)
+            + f"[{first_line_suffix}\n"
         )
         min_true_length = self._get_minimal_true_length()
         skipped_items = 0
@@ -198,13 +198,13 @@ class ValueList:
                 docstring = ""
             if not hasattr(getattr(val, 'print_nested', None), '__call__'):
                 stream.write(
-                    (prefix + (level + 1) * indent) + "{!r},{}\n".format(val, docstring)
+                    (prefix + (level + 1) * indent) + f"{val!r},{docstring}\n"
                 )
             else:
                 val.print_nested(stream=stream, level=level + 2, indent=indent, prefix=prefix, trailer=",", print_doc=print_doc, first_line_suffix=docstring)
         if skipped_items:
-            stream.write((prefix + (level + 1) * indent) + "# {} empty items skipped\n".format(skipped_items))
-        stream.write((prefix + level * indent) + "]{}\n".format(trailer))
+            stream.write((prefix + (level + 1) * indent) + f"# {skipped_items} empty items skipped\n")
+        stream.write((prefix + level * indent) + f"]{trailer}\n")
 
 
 class SegmentSequence:
@@ -223,14 +223,14 @@ class SegmentSequence:
         return FinTS3Serializer().serialize_message(self)
 
     def __repr__(self):
-        return "{}.{}({!r})".format(self.__class__.__module__, self.__class__.__name__, self.segments)
+        return f"{self.__class__.__module__}.{self.__class__.__name__}({self.segments!r})"
 
     def print_nested(self, stream=None, level=0, indent="    ", prefix="", first_level_indent=True, trailer="", print_doc=True, first_line_suffix=""):
         import sys
         stream = stream or sys.stdout
         stream.write(
             ((prefix + level * indent) if first_level_indent else "")
-            + "{}.{}([".format(self.__class__.__module__, self.__class__.__name__)
+            + f"{self.__class__.__module__}.{self.__class__.__name__}(["
             + first_line_suffix
             + "\n"
         )
@@ -239,12 +239,12 @@ class SegmentSequence:
             if docstring:
                 docstring = docstring.splitlines()[0].strip()
             if docstring:
-                docstring = " # {}".format(docstring)
+                docstring = f" # {docstring}"
             else:
                 docstring = ""
             segment.print_nested(stream=stream, level=level + 1, indent=indent, prefix=prefix, first_level_indent=True, trailer=",", print_doc=print_doc,
                                  first_line_suffix=docstring)
-        stream.write((prefix + level * indent) + "]){}\n".format(trailer))
+        stream.write((prefix + level * indent) + f"]){trailer}\n")
 
     def find_segments(self, query=None, version=None, callback=None, recurse=True, throw=False):
         """Yields an iterable of all matching segments.
@@ -350,7 +350,7 @@ class Container(metaclass=ContainerMeta):
         for field_name in self._fields:
             if field_name in kwargs:
                 if field_name in init_values:
-                    raise TypeError("__init__() got multiple values for argument {}".format(field_name))
+                    raise TypeError(f"__init__() got multiple values for argument {field_name}")
                 init_values[field_name] = kwargs.pop(field_name)
 
         super().__init__(*args, **kwargs)
@@ -402,7 +402,7 @@ class Container(metaclass=ContainerMeta):
             self.__class__.__module__,
             self.__class__.__name__,
             ", ".join(
-                "{}={!r}".format(name, val) for (name, val) in self._repr_items
+                f"{name}={val!r}" for (name, val) in self._repr_items
             )
         )
 
@@ -415,7 +415,7 @@ class Container(metaclass=ContainerMeta):
 
         stream.write(
             ((prefix + level * indent) if first_level_indent else "")
-            + "{}.{}(".format(self.__class__.__module__, self.__class__.__name__)
+            + f"{self.__class__.__module__}.{self.__class__.__name__}("
             + first_line_suffix
             + "\n"
         )
@@ -427,12 +427,12 @@ class Container(metaclass=ContainerMeta):
                 docstring = ""
             if not hasattr(getattr(val, 'print_nested', None), '__call__'):
                 stream.write(
-                    (prefix + (level + 1) * indent) + "{} = {!r},{}\n".format(name, val, docstring)
+                    (prefix + (level + 1) * indent) + f"{name} = {val!r},{docstring}\n"
                 )
             else:
                 stream.write(
-                    (prefix + (level + 1) * indent) + "{} = ".format(name)
+                    (prefix + (level + 1) * indent) + f"{name} = "
                 )
                 val.print_nested(stream=stream, level=level + 2, indent=indent, prefix=prefix, first_level_indent=False, trailer=",", print_doc=print_doc,
                                  first_line_suffix=docstring)
-        stream.write((prefix + level * indent) + "){}\n".format(trailer))
+        stream.write((prefix + level * indent) + f"){trailer}\n")

@@ -13,7 +13,7 @@ class FinTS3SegmentMeta(ContainerMeta):
     def _check_fields_recursive(instance):
         for name, field in instance._fields.items():
             if not isinstance(field, (DataElementField, DataElementGroupField)):
-                raise TypeError("{}={!r} is not DataElementField or DataElementGroupField".format(name, field))
+                raise TypeError(f"{name}={field!r} is not DataElementField or DataElementGroupField")
             if isinstance(field, DataElementGroupField):
                 FinTS3SegmentMeta._check_fields_recursive(field.type)
 

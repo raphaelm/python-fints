@@ -51,7 +51,7 @@ def decompress_datablob(magic: bytes, blob: bytes, obj: object = None):
     blob_version = int(s[2].decode('us-ascii'), 10)
 
     if encoding_version != 1:
-        raise ValueError("Unsupported encoding version {}".format(encoding_version))
+        raise ValueError(f"Unsupported encoding version {encoding_version}")
 
     decompressed = zlib.decompress(s[3])
     data = json.loads(decompressed.decode('utf-8'))
@@ -61,7 +61,7 @@ def decompress_datablob(magic: bytes, blob: bytes, obj: object = None):
                 data[k] = base64.b64decode(v.encode('us-ascii'))
 
     if obj:
-        setfunc = getattr(obj, "_set_data_v{}".format(blob_version), None)
+        setfunc = getattr(obj, f"_set_data_v{blob_version}", None)
         if not setfunc:
             raise ValueError("Unknown data blob version")
 
@@ -95,9 +95,9 @@ class DocTypeMixin:
 
             name = type_.__name__
             if type_.__module__ != 'builtins':
-                name = "{}.{}".format(type_.__module__, name)
+                name = f"{type_.__module__}.{name}"
 
-            self.__doc__ = self.__doc__ + "\n\n:type: :class:`{}`".format(name)
+            self.__doc__ = self.__doc__ + f"\n\n:type: :class:`{name}`"
 
 
 class FieldRenderFormatStringMixin:
@@ -124,10 +124,10 @@ class FixedLengthMixin:
 class ShortReprMixin:
     def __repr__(self):
         return "{}{}({})".format(
-            "{}.".format(self.__class__.__module__),
+            f"{self.__class__.__module__}.",
             self.__class__.__name__,
             ", ".join(
-                ("{!r}".format(value) if not name.startswith("_") else "{}={!r}".format(name, value))
+                (f"{value!r}" if not name.startswith("_") else f"{name}={value!r}")
                 for (name, value) in self._repr_items
             )
         )
@@ -135,7 +135,7 @@ class ShortReprMixin:
     def print_nested(self, stream=None, level=0, indent="    ", prefix="", first_level_indent=True, trailer="", print_doc=True, first_line_suffix=""):
         stream.write(
             ( (prefix + level*indent) if first_level_indent else "")
-            + "{!r}{}{}\n".format(self, trailer, first_line_suffix)
+            + f"{self!r}{trailer}{first_line_suffix}\n"
         )
 
 
@@ -213,7 +213,7 @@ class MT535_Miniparser:
                 clauses.append(prevline)
                 clauses.append(line)
             else:
-                prevline += "|{}".format(line)
+                prevline += f"|{line}"
         return clauses
 
     def grab_financial_instrument_segments(self, clauses):
@@ -293,7 +293,7 @@ class RepresentableEnum(Enum):
             raise
 
     def __repr__(self):
-        return "{}.{}.{}".format(self.__class__.__module__, self.__class__.__name__, self.name)
+        return f"{self.__class__.__module__}.{self.__class__.__name__}.{self.name}"
 
     def __str__(self):
         return self.value

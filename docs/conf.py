@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 #
 # python-fints documentation build configuration file, created by
 # sphinx-quickstart on Sun Apr  3 00:09:59 2016.

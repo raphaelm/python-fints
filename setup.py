@@ -39,6 +39,6 @@ setup(
         'requests',
         'sepaxml~=2.1',
     ],
-
+    python_requires=">= 3.6"
     packages=find_packages(include=['fints', 'fints.*']),
 )

@@ -246,7 +246,7 @@ class FinTS3Client:
 
     def __enter__(self):
         if self._standing_dialog:
-            raise Exception("Cannot double __enter__() {}".format(self))
+            raise Exception(f"Cannot double __enter__() {self}")
         self._standing_dialog = self._get_dialog()
         self._standing_dialog.__enter__()
 
@@ -258,7 +258,7 @@ class FinTS3Client:
             else:
                 self._standing_dialog.__exit__(exc_type, exc_value, traceback)
         else:
-            raise Exception("Cannot double __exit__() {}".format(self))
+            raise Exception(f"Cannot double __exit__() {self}")
 
         self._standing_dialog = None
 
@@ -345,7 +345,7 @@ class FinTS3Client:
         log_target("Dialog response: {} - {}{}".format(
             response.code,
             response.text,
-            " ({!r})".format(response.parameters) if response.parameters else ""),
+            f" ({response.parameters!r})" if response.parameters else ""),
             extra={
                 'fints_response_code': response.code,
                 'fints_response_text': response.text,
@@ -462,7 +462,7 @@ class FinTS3Client:
             break
 
         if touchdown:
-            logger.info('Fetching more results ({})...'.format(self._touchdown_counter))
+            logger.info(f'Fetching more results ({self._touchdown_counter})...')
 
         self._touchdown_counter += 1
         if touchdown:
@@ -496,8 +496,8 @@ class FinTS3Client:
         """Search the BPD for the highest supported version of a segment."""
         return_parameter_segment = kwargs.get("return_parameter_segment", False)
 
-        parameter_segment_name = "{}I{}S".format(segment_classes[0].TYPE[0], segment_classes[0].TYPE[2:])
-        version_map = dict((clazz.VERSION, clazz) for clazz in segment_classes)
+        parameter_segment_name = f"{segment_classes[0].TYPE[0]}I{segment_classes[0].TYPE[2:]}S"
+        version_map = {clazz.VERSION: clazz for clazz in segment_classes}
         max_version = self.bpd.find_segment_highest_version(parameter_segment_name, version_map.keys())
         if not max_version:
             raise FinTSUnsupportedOperation('No supported {} version found. I support {}, bank supports {}.'.format(
@@ -524,7 +524,7 @@ class FinTS3Client:
         with self._get_dialog() as dialog:
             hkkaz = self._find_highest_supported_command(HKKAZ5, HKKAZ6, HKKAZ7)
 
-            logger.info('Start fetching from {} to {}'.format(start_date, end_date))
+            logger.info(f'Start fetching from {start_date} to {end_date}')
             response = self._fetch_with_touchdowns(
                 dialog,
                 lambda touchdown: hkkaz(
@@ -571,7 +571,7 @@ class FinTS3Client:
         with self._get_dialog() as dialog:
             hkcaz = self._find_highest_supported_command(HKCAZ1)
 
-            logger.info('Start fetching from {} to {}'.format(start_date, end_date))
+            logger.info(f'Start fetching from {start_date} to {end_date}')
             responses = self._fetch_with_touchdowns(
                 dialog,
                 lambda touchdown: hkcaz(
@@ -735,9 +735,9 @@ class FinTS3Client:
         bank_supported = list(hispas.parameter.supported_sepa_formats)
 
         for candidate in candidate_versions:
-            if "urn:iso:std:iso:20022:tech:xsd:{}".format(candidate) in bank_supported:
+            if f"urn:iso:std:iso:20022:tech:xsd:{candidate}" in bank_supported:
                 return candidate
-            if "urn:iso:std:iso:20022:tech:xsd:{}.xsd".format(candidate) in bank_supported:
+            if f"urn:iso:std:iso:20022:tech:xsd:{candidate}.xsd" in bank_supported:
                 return candidate
 
         logger.warning("No common supported SEPA version. Defaulting to first candidate and hoping for the best: %s.", candidate_versions[0])
@@ -1233,7 +1233,7 @@ class FinTS3PinTanClient(FinTS3Client):
                     if resp.code == '0030':
                         return NeedTANResponse(command_seg, response.find_segment_first('HITAN'), resume_func, self.is_challenge_structured())
                     if resp.code.startswith('9'):
-                        raise Exception("Error response: {!r}".format(response))
+                        raise Exception(f"Error response: {response!r}")
             else:
                 response = dialog.send(command_seg)
 

@@ -20,8 +20,8 @@ DATA_BLOB_MAGIC = b'python-fints_DIALOG_DATABLOB'
 class FinTSDialog:
     def __init__(self, client=None, lazy_init=False, enc_mechanism=None, auth_mechanisms=None):
         self.client = client
-        self.next_message_number = dict((v, 1) for v in MessageDirection)
-        self.messages = dict((v, {}) for v in MessageDirection)
+        self.next_message_number = {v: 1 for v in MessageDirection}
+        self.messages = {v: {} for v in MessageDirection}
         self.auth_mechanisms = auth_mechanisms or []
         self.enc_mechanism = enc_mechanism
         self.open = False

@@ -160,7 +160,7 @@ class FinTS3Parser:
             return self._parse_segment_as_class(clazz, segment)
         except FinTSParserError as e:
             if robust_mode:
-                warnings.warn("Ignoring parser error and returning generic object: {}. Turn off robust_mode to see Exception.".format(str(e)), FinTSParserWarning)
+                warnings.warn(f"Ignoring parser error and returning generic object: {str(e)}. Turn off robust_mode to see Exception.", FinTSParserWarning)
                 return self._parse_segment_as_class(FinTS3Segment, segment)
             else:
                 raise
@@ -178,7 +178,7 @@ class FinTS3Parser:
                     val = next(data)
                 except StopIteration:
                     if field.required:
-                        raise FinTSParserError("Required field {}.{} was not present".format(seg.__class__.__name__, name))
+                        raise FinTSParserError(f"Required field {seg.__class__.__name__}.{name} was not present")
                     break
 
                 try:
@@ -188,7 +188,7 @@ class FinTS3Parser:
                         deg = self.parse_deg_noniter(field.type, val, field.required)
                         setattr(seg, name, deg)
                 except ValueError as e:
-                    raise FinTSParserError("Wrong input when setting {}.{}".format(seg.__class__.__name__, name)) from e
+                    raise FinTSParserError(f"Wrong input when setting {seg.__class__.__name__}.{name}") from e
             else:
                 i = 0
                 while True:
@@ -204,7 +204,7 @@ class FinTS3Parser:
                             deg = self.parse_deg_noniter(field.type, val, field.required)
                             getattr(seg, name)[i] = deg
                     except ValueError as e:
-                        raise FinTSParserError("Wrong input when setting {}.{}".format(seg.__class__.__name__, name)) from e
+                        raise FinTSParserError(f"Wrong input when setting {seg.__class__.__name__}.{name}") from e
 
                     i = i + 1
 
@@ -227,7 +227,7 @@ class FinTS3Parser:
 
         remainder = list(data_i)
         if remainder:
-            raise FinTSParserError("Unparsed data {!r} after parsing {!r}".format(remainder, clazz))
+            raise FinTSParserError(f"Unparsed data {remainder!r} after parsing {clazz!r}")
 
         return retval
 
@@ -246,13 +246,13 @@ class FinTS3Parser:
                             setattr(retval, name, next(data_i))
                         except StopIteration:
                             if required and field.required:
-                                raise FinTSParserError("Required field {}.{} was not present".format(retval.__class__.__name__, name))
+                                raise FinTSParserError(f"Required field {retval.__class__.__name__}.{name} was not present")
                             break
                     else:
                         deg = self.parse_deg(field.type, data_i, required and field.required)
                         setattr(retval, name, deg)
                 except ValueError as e:
-                    raise FinTSParserError("Wrong input when setting {}.{}".format(retval.__class__.__name__, name)) from e
+                    raise FinTSParserError(f"Wrong input when setting {retval.__class__.__name__}.{name}") from e
             else:
                 i = 0
                 while True:
@@ -269,7 +269,7 @@ class FinTS3Parser:
                             getattr(retval, name)[i] = deg
 
                     except ValueError as e:
-                        raise FinTSParserError("Wrong input when setting {}.{}".format(retval.__class__.__name__, name)) from e
+                        raise FinTSParserError(f"Wrong input when setting {retval.__class__.__name__}.{name}") from e
 
                     i = i + 1
 
@@ -450,7 +450,7 @@ class FinTS3Serializer:
         if isinstance(val, str):
             return re.sub(r"([+:'@?])", r"?\1", val).encode('iso-8859-1')
         elif isinstance(val, bytes):
-            return "@{}@".format(len(val)).encode('us-ascii') + val
+            return f"@{len(val)}@".encode('us-ascii') + val
         elif val is None:
             return b''
         else:

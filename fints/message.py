@@ -21,7 +21,7 @@ class FinTSMessage(SegmentSequence):
 
     def __iadd__(self, segment: FinTS3Segment):
         if not isinstance(segment, FinTS3Segment):
-            raise TypeError("Can only append FinTS3Segment instances, not {!r}".format(segment))
+            raise TypeError(f"Can only append FinTS3Segment instances, not {segment!r}")
         segment.header.number = self.next_segment_number
         self.next_segment_number += 1
         self.segments.append(segment)

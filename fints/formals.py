@@ -629,7 +629,7 @@ class Balance1(DataElementGroup):
         from mt940.models import Balance
         return Balance(
             self.credit_debit.value,
-            "{:.12f}".format(self.amount).rstrip('0'),
+            f"{self.amount:.12f}".rstrip('0'),
             self.date,
             currency=self.currency
         )
@@ -648,7 +648,7 @@ class Balance2(DataElementGroup):
         from mt940.models import Balance
         return Balance(
             self.credit_debit.value,
-            "{:.12f}".format(self.amount.amount).rstrip('0'),
+            f"{self.amount.amount:.12f}".rstrip('0'),
             self.date,
             currency=self.amount.currency
         )

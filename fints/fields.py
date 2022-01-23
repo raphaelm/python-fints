@@ -17,7 +17,7 @@ class ContainerField(TypedField):
     def _check_value(self, value):
         if self.type:
             if not isinstance(value, self.type):
-                raise TypeError("Value {!r} is not of type {!r}".format(value, self.type))
+                raise TypeError(f"Value {value!r} is not of type {self.type!r}")
         super()._check_value(value)
 
     def _default_value(self):
@@ -33,7 +33,7 @@ class GenericField(FieldRenderFormatStringMixin, DataElementField):
     _FORMAT_STRING = "{}"
 
     def _parse_value(self, value):
-        warnings.warn("Generic field used for type {!r} value {!r}".format(self.type, value))
+        warnings.warn(f"Generic field used for type {self.type!r} value {value!r}")
         return value
 
 
@@ -48,7 +48,7 @@ class GenericGroupField(DataElementGroupField):
     
     def _parse_value(self, value):
         if self.type is None:
-            warnings.warn("Generic field used for type {!r} value {!r}".format(self.type, value))
+            warnings.warn(f"Generic field used for type {self.type!r} value {value!r}")
         return value
 
 
@@ -76,7 +76,7 @@ class NumericField(FieldRenderFormatStringMixin, DataElementField):
     def _parse_value(self, value): 
         _value = str(value)
         if len(_value) > 1 and _value[0] == '0':
-            raise ValueError("Leading zeroes not allowed for value of type 'num': {!r}".format(value))
+            raise ValueError(f"Leading zeroes not allowed for value of type 'num': {value!r}")
         return int(_value, 10)
 
 
@@ -106,7 +106,7 @@ class DigitsField(FieldRenderFormatStringMixin, DataElementField):
     def _parse_value(self, value): 
         _value = str(value)
         if not re.match(r'^\d*$', _value):
-            raise TypeError("Only digits allowed for value of type 'dig': {!r}".format(value))
+            raise TypeError(f"Only digits allowed for value of type 'dig': {value!r}")
         return _value
 
 
@@ -125,7 +125,7 @@ class FloatField(DataElementField):
 
         _value = str(value)
         if not re.match(r'^(?:0|[1-9]\d*),(?:\d*[1-9]|)$', _value):
-            raise TypeError("Only digits and ',' allowed for value of type 'float', no superfluous leading or trailing zeroes allowed: {!r}".format(value))
+            raise TypeError(f"Only digits and ',' allowed for value of type 'float', no superfluous leading or trailing zeroes allowed: {value!r}")
 
         return float(_value.replace(",", "."))
 
@@ -151,7 +151,7 @@ class AmountField(FixedLengthMixin, DataElementField):
 
         _value = str(value)
         if not re.match(r'^(?:0|[1-9]\d*)(?:,)?(?:\d*[1-9]|)$', _value):
-            raise TypeError("Only digits and ',' allowed for value of type 'decimal', no superfluous leading or trailing zeroes allowed: {!r}".format(value))
+            raise TypeError(f"Only digits and ',' allowed for value of type 'decimal', no superfluous leading or trailing zeroes allowed: {value!r}")
 
         return decimal.Decimal(_value.replace(",", "."))
 
@@ -197,7 +197,7 @@ class BooleanField(FixedLengthMixin, AlphanumericField):
         elif value == "N" or value is False:
             return False
         else:
-            raise ValueError("Invalid value {!r} for BooleanField".format(value))
+            raise ValueError(f"Invalid value {value!r} for BooleanField")
 
 
 class CodeFieldMixin:
@@ -270,7 +270,7 @@ class DateField(FixedLengthMixin, NumericField):
         return datetime.date(int(val[0:4]), int(val[4:6]), int(val[6:8]))
 
     def _render_value(self, value):
-        val = "{:04d}{:02d}{:02d}".format(value.year, value.month, value.day)
+        val = f"{value.year:04d}{value.month:02d}{value.day:02d}"
         val = int(val)
         return super()._render_value(val)
 
@@ -287,7 +287,7 @@ class TimeField(FixedLengthMixin, DigitsField):
         return datetime.time(int(val[0:2]), int(val[2:4]), int(val[4:6]))
 
     def _render_value(self, value):
-        val = "{:02d}{:02d}{:02d}".format(value.hour, value.minute, value.second)
+        val = f"{value.hour:02d}{value.minute:02d}{value.second:02d}"
         return super()._render_value(val)
 
 
