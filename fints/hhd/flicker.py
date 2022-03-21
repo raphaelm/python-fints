@@ -234,6 +234,19 @@ class Startcode(DE):
         l = int(s, 16) + (1 << BIT_CONTROLBYTE)
         return h(l, 2)
 
+def code_to_bitstream(code):
+    """Convert a flicker code into a bitstream in strings."""
+    # Inspired by Andreas Schiermeier
+    # https://git.ccc-ffm.de/?p=smartkram.git;a=blob_plain;f=chiptan/flicker/flicker.sh;h
+    # =7066293b4e790c2c4c1f6cbdab703ed9976ffe1f;hb=refs/heads/master
+    code = parse(code).render()
+    data = swap_bytes(code)
+    stream = ['10000', '00000', '11111', '01111', '11111', '01111', '11111']
+    for c in data:
+        v = int(c, 16)
+        stream.append('1' + str(v & 1) + str((v & 2) >> 1) + str((v & 4) >> 2) + str((v & 8) >> 3))
+        stream.append('0' + str(v & 1) + str((v & 2) >> 1) + str((v & 4) >> 2) + str((v & 8) >> 3))
+    return stream
 
 def terminal_flicker_unix(code, field_width=3, space_width=3, height=1, clear=False, wait=0.05):
     """
@@ -246,19 +259,11 @@ def terminal_flicker_unix(code, field_width=3, space_width=3, height=1, clear=Fa
     :param clear: Clear terminal after every line (default: ``False``).
     :param wait: Waiting interval between lines (default: 0.05).
     """
-    # Inspired by Andreas Schiermeier
-    # https://git.ccc-ffm.de/?p=smartkram.git;a=blob_plain;f=chiptan/flicker/flicker.sh;h
-    # =7066293b4e790c2c4c1f6cbdab703ed9976ffe1f;hb=refs/heads/master
-    code = parse(code).render()
-    data = swap_bytes(code)
+    stream = code_to_bitstream(code)
+
     high = '\033[48;05;15m'
     low = '\033[48;05;0m'
     std = '\033[0m'
-    stream = ['10000', '00000', '11111', '01111', '11111', '01111', '11111']
-    for c in data:
-        v = int(c, 16)
-        stream.append('1' + str(v & 1) + str((v & 2) >> 1) + str((v & 4) >> 2) + str((v & 8) >> 3))
-        stream.append('0' + str(v & 1) + str((v & 2) >> 1) + str((v & 4) >> 2) + str((v & 8) >> 3))
 
     while True:
         for frame in stream:
