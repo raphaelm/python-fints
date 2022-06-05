@@ -329,3 +329,33 @@ def minimal_interactive_cli_bootstrap(client):
                           p=mm))
             choice = input("Choice: ").strip()
             client.set_tan_medium(m[1][int(choice)])
+
+
+def decode_phototan_image(data):
+    """
+    This decodes photoTAN data sent as challenge_hhduc into its mime type and the actual image data.
+
+    :returns: a dictionary with two values, 'mime_type' and 'image'
+    :rtype: dict
+
+    The markup of the data is taken from https://github.com/hbci4j/hbci4java/blob/c8eabe6809e8d0271f944ea28a59ed6b736af56e/src/main/java/org/kapott/hbci/manager/MatrixCode.java#L61-L97
+    The encoding is taken from https://github.com/hbci4j/hbci4java/blob/c8eabe6809e8d0271f944ea28a59ed6b736af56e/src/main/java/org/kapott/hbci/comm/Comm.java#L46
+    """
+    # Mime type length is the first two bytes of data
+    mime_type_length = int.from_bytes(data[:2], byteorder='big')
+
+    # The mime type follows from byte three to (mime_type_length - 1)
+    mime_type = data[2:2 + mime_type_length].decode("iso-8859-1")
+
+    # The image length is coded in the next two bytes
+    image_length_start = 2 + mime_type_length
+    image_length = int.from_bytes(data[image_length_start:2 + image_length_start], byteorder='big')
+
+    # The actual image data is everything that follows.
+    # To be compatible with possible future extensions, we still slice the data
+    image = data[2 + image_length_start: 2 + image_length_start + image_length]
+
+    return {
+        "mime_type": mime_type,
+        "image": image
+    }
