@@ -75,27 +75,21 @@ with the TAN:
 .. code-block:: python
 
     try:
-        terminal_flicker_unix(result.challenge_hhd_uc)
+        terminal_flicker_unix(result.challenge_hhduc)
     except KeyboardInterrupt:
         pass
 
 photoTAN
 --------
 
-If you want to use photoTAN, we provide a helper function to decode the challenge. Pass the ``challenge_hhd_uc`` value to this method:
-
-.. autofunction:: fints.hhd.utils.decode_phototan_image
-
-This returns a dictionary with a ``mime_type`` and an ``image`` field. The ``image`` field contains the binary data
-of the image itself and can e.g. be written to a file
+If you want to use photoTAN, use the ``challenge_matrix`` attribute to access the image file, e.g. by writing it to
+a file:
 
 .. code-block:: python
-    from fints.utils import decode_phototan_image
 
-    data = decode_phototan_image(challenge_hhduc)
-    writer = open("tan.png", "wb")
-    writer.write(data["image"])
-    writer.close()
+    with open("tan.png", "wb") as writer:
+       writer.write(result.challenge_matrix[1])
+       writer.close()
 
 Sending the TAN
 ---------------
