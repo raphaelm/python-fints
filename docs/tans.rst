@@ -80,7 +80,7 @@ with the TAN:
         pass
 
 photoTAN
-----------------------
+--------
 
 If you want to use photoTAN, we provide a helper function to decode the challenge. Pass the ``challenge_hhd_uc`` value to this method:
 
