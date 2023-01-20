@@ -37,7 +37,7 @@ from .segments.dialog import HIRMG2, HIRMS2, HISYN4, HKSYN3
 from .segments.journal import HKPRO3, HKPRO4
 from .segments.saldo import HKSAL5, HKSAL6, HKSAL7
 from .segments.statement import DKKKU2, HKKAZ5, HKKAZ6, HKKAZ7, HKCAZ1
-from .segments.transfer import HKCCM1, HKCCS1
+from .segments.transfer import HKCCM1, HKCCS1, HKIPZ1, HKIPM1
 from .types import SegmentSequence
 from .utils import (
     MT535_Miniparser, Password, SubclassesMixin,
@@ -744,7 +744,7 @@ class FinTS3Client:
         return candidate_versions[0]
 
     def simple_sepa_transfer(self, account: SEPAAccount, iban: str, bic: str,
-                             recipient_name: str, amount: Decimal, account_name: str, reason: str,
+                             recipient_name: str, amount: Decimal, account_name: str, reason: str, instant_payment=False,
                              endtoend_id='NOTPROVIDED'):
         """
         Simple SEPA transfer.
@@ -756,6 +756,7 @@ class FinTS3Client:
         :param amount: Amount as a ``Decimal``
         :param account_name: Sender account name
         :param reason: Transfer reason
+        :param instant_payment: Whether to use instant payment (defaults to ``False``)
         :param endtoend_id: End-to-end-Id (defaults to ``NOTPROVIDED``)
         :return: Returns either a NeedRetryResponse or TransactionResponse
         """
@@ -779,11 +780,11 @@ class FinTS3Client:
         }
         sepa.add_payment(payment)
         xml = sepa.export().decode()
-        return self.sepa_transfer(account, xml, pain_descriptor="urn:iso:std:iso:20022:tech:xsd:"+version)
+        return self.sepa_transfer(account, xml, pain_descriptor="urn:iso:std:iso:20022:tech:xsd:"+version, instant_payment=instant_payment)
 
     def sepa_transfer(self, account: SEPAAccount, pain_message: str, multiple=False,
                       control_sum=None, currency='EUR', book_as_single=False,
-                      pain_descriptor='urn:iso:std:iso:20022:tech:xsd:pain.001.001.03'):
+                      pain_descriptor='urn:iso:std:iso:20022:tech:xsd:pain.001.001.03', instant_payment=False):
         """
         Custom SEPA transfer.
 
@@ -794,14 +795,15 @@ class FinTS3Client:
         :param currency: Transfer currency
         :param book_as_single: Kindly ask the bank to put multiple transactions as separate lines on the bank statement (defaults to ``False``)
         :param pain_descriptor: URN of the PAIN message schema used.
+        :param instant_payment: Whether this is an instant transfer (defaults to ``False``)
         :return: Returns either a NeedRetryResponse or TransactionResponse
         """
 
         with self._get_dialog() as dialog:
             if multiple:
-                command_class = HKCCM1
+                command_class = HKIPM1 if instant_payment else HKCCM1
             else:
-                command_class = HKCCS1
+                command_class = HKIPZ1 if instant_payment else HKCCS1
 
             hiccxs, hkccx = self._find_highest_supported_command(
                 command_class,
