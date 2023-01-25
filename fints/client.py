@@ -37,7 +37,7 @@ from .segments.dialog import HIRMG2, HIRMS2, HISYN4, HKSYN3
 from .segments.journal import HKPRO3, HKPRO4
 from .segments.saldo import HKSAL5, HKSAL6, HKSAL7
 from .segments.statement import DKKKU2, HKKAZ5, HKKAZ6, HKKAZ7, HKCAZ1
-from .segments.transfer import HKCCM1, HKCCS1, HKIPZ2, HKIPM2
+from .segments.transfer import HKCCM1, HKCCS1, HKIPZ1, HKIPM1
 from .types import SegmentSequence
 from .utils import (
     MT535_Miniparser, Password, SubclassesMixin,
@@ -801,9 +801,9 @@ class FinTS3Client:
 
         with self._get_dialog() as dialog:
             if multiple:
-                command_class = HKIPM2 if instant_payment else HKCCM1
+                command_class = HKIPM1 if instant_payment else HKCCM1
             else:
-                command_class = HKIPZ2 if instant_payment else HKCCS1
+                command_class = HKIPZ1 if instant_payment else HKCCS1
 
             hiccxs, hkccx = self._find_highest_supported_command(
                 command_class,
@@ -816,8 +816,8 @@ class FinTS3Client:
                 sepa_pain_message=pain_message.encode(),
             )
 
-            if instant_payment:
-                seg.allow_convert_sepa_transfer = True
+            # if instant_payment:
+            #     seg.allow_convert_sepa_transfer = True
 
             if multiple:
                 if hiccxs.parameter.sum_amount_required and control_sum is None:
