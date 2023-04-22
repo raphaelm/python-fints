@@ -18,7 +18,7 @@ setup(
     version=version,
     description='Pure-python FinTS 3.0 (formerly known as HBCI) implementation',
     long_description=long_description,
-    long_description_content_type='text/markdown'
+    long_description_content_type='text/markdown',
     url='https://github.com/raphaelm/python-fints',
     author='Raphael Michel',
     author_email='mail@raphaelmichel.de',
