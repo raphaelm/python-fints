@@ -9,3 +9,7 @@ Release 4.0 of this library was made to introduce a breaking change:
 The library used to have a built-in product ID that was used as a default if you didn't. This was very useful, but
 Deutsche Kreditwirtschaft asked us to stop doing this, since it undermindes the whole point of the product registration.
 The ID included in prior versions of the library will be deactivated at some point and stop working.
+
+You cna find more information as well as the registration form on the `ZKA Website`_ (only available in German).
+
+.. _ZKA Website: https://www.hbci-zka.de/register/prod_register.htm
