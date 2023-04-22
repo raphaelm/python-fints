@@ -1,6 +1,21 @@
 Getting started
 ===============
 
+Register for a product ID
+-------------------------
+
+As of September 14th, 2019, all FinTS client programs need to be registered with the ZKA.
+You need to fill out a PDF form and will be assigned a product ID that you can pass to this library.
+It can take up to two weeks for the product ID to be assigned.
+
+The reason for this requirement is compliance with the European Unions 2nd Payment Services Directive (PSD2)
+which mandates that end-users can transparently see which applications are accessing their bank account.
+
+You cna find more information as well as the registration form on the `ZKA Website`_ (only available in German).
+
+Start coding
+------------
+
 First of all, you need to install the library::
 
     $ pip3 install fints
@@ -21,7 +36,7 @@ of your bank. Logging in with a signature file or chip card is currently not sup
         'myusername',  # Your login name
         getpass.getpass('PIN:'),  # Your banking PIN
         'https://hbci-pintan.gad.de/cgi-bin/hbciservlet',
-        product_id='Your product ID'
+        product_id='Your product ID'  # see above
     )
 
 Since the implementation of PSD2, you will in almost all cases need to be ready to deal with TANs. For a quick start,
@@ -49,18 +64,4 @@ commands using the client instance:
 
 Go on to the next pages to find out what commands are supported!
 
-.. note::
-
-    As of September 14th, 2019, all FinTS programs should be registered with the ZKA or
-    banks will block access. You need to fill out a PDF form and will be assigned a
-    product ID that you can pass above.
-
-    If you set the ``product_id`` to ``None``, the library will fill in the default
-    product ID for python-fints. This works fine for evaluation, but should never be used
-    if you bundle python-fints within a larger project. This might also not be acceptable
-    by some banks.
-
-    Click here to read more about the `registration process`_.
-
-
-.. _registration process: https://www.hbci-zka.de/register/prod_register.htm
+.. _ZKA Website: https://www.hbci-zka.de/register/prod_register.htm

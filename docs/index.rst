@@ -20,6 +20,7 @@ Library user documentation content
    transfers
    debits
    tested
+   upgrading_3_4
    upgrading_2_3
    upgrading_1_2
    trouble

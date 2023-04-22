@@ -171,8 +171,8 @@ class FinTS3Client:
             raise TypeError("bank_identifier must be BankIdentifier or str (BLZ)")
         self.system_id = SYSTEM_ID_UNASSIGNED
         if not product_id:
-            logger.warning('You should register your program with the ZKA and pass your own product_id as a parameter.')
-            product_id = 'DC333D745719C4BD6A6F9DB6A'
+            raise TypeError("The product_id keyword argument is mandatory starting with python-fints version 4. See "
+                            "https://python-fints.readthedocs.io/en/latest/upgrading_3_4.html for more information.")
 
         self.user_id = user_id
         self.customer_id = customer_id or user_id
