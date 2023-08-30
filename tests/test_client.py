@@ -21,7 +21,6 @@ def test_get_sepa_accounts(fints_client):
 
     assert accounts
 
-
 def test_get_information(fints_client):
     with fints_client:
         information = fints_client.get_information()
@@ -226,4 +225,14 @@ def test_get_transactions(fints_client):
         transactions = fints_client.get_transactions(accounts[0])
 
         assert len(transactions) == 3
+        assert transactions[0].data['amount'].amount == Decimal('182.34')
+
+def test_get_filtered_transactions(fints_client):
+    with fints_client:
+        accounts = fints_client.get_sepa_accounts()
+
+        transactions, errors = fints_client.get_filtered_transactions(accounts[0])
+
+        assert len(transactions) == 3
+        assert len(errors) == 0
         assert transactions[0].data['amount'].amount == Decimal('182.34')
