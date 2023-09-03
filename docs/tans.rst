@@ -181,3 +181,48 @@ Reference
    :inherited-members:
    :member-order: bysource
    :exclude-members: is_unset, naive_parse, print_nested
+
+
+.. _tans-full-example:
+
+Full example
+------------
+
+A full example on how to get transactions if a TAN is required. If a TAN is required ``result`` will be an object of type ``NeedTANResponse``. Otherwise it will hold your transactions directly.
+
+.. code-block:: python
+
+    import datetime
+    from fints.utils import minimal_interactive_cli_bootstrap
+    from fints.client import FinTS3PinTanClient, NeedTANResponse
+    from fints.hhd.flicker import terminal_flicker_unix
+
+    from credentials import blz, username, password, hbci_backend
+
+    client = FinTS3PinTanClient(blz,
+                                username,
+                                password,
+                                hbci_backend)
+    minimal_interactive_cli_bootstrap(client)
+    with client:
+        accounts = client.get_sepa_accounts()
+        for account in accounts:
+            print(f"Doing {account.iban}")
+            result = client.get_transactions(account,
+                                             start_date=datetime.datetime.now() - datetime.timedelta(days=100),
+                                             end_date=datetime.datetime.now())
+            if isinstance(result, NeedTANResponse):
+                print("TAN is required")
+                if getattr(result, 'challenge_hhduc', None):
+                    # Smart-TAN with flicker
+                    try:
+                        terminal_flicker_unix(result.challenge_hhduc)
+                    except KeyboardInterrupt:
+                        pass
+                # else: mobile TAN/manual Smart-TAN/... is used
+                print(result.challenge)
+                tan = input('Please enter TAN:')
+                result = client.send_tan(result, tan)
+            else:
+                print("No TAN is required")
+            print(f"Got {len(result)} transactions for {account.iban}")
