@@ -2,6 +2,7 @@ import base64
 import inspect
 import json
 import re
+import threading
 import zlib
 from contextlib import contextmanager
 from datetime import datetime
@@ -329,3 +330,30 @@ def minimal_interactive_cli_bootstrap(client):
                           p=mm))
             choice = input("Choice: ").strip()
             client.set_tan_medium(m[1][int(choice)])
+
+
+class LogConfiguration(threading.local):
+    """Thread-local configuration object to guide log output.
+
+    reduced: Reduce verbosity of logging output by suppressing the encrypting/signature elements and outputting the payload only.
+    """
+    def __init__(self, reduced=False):
+        super().__init__()
+        self.reduced = reduced
+
+    @staticmethod
+    def set(reduced=False):
+        """Permanently change the log configuration for this thread."""
+        log_configuration.reduced = reduced
+
+    @staticmethod
+    @contextmanager
+    def changed(reduced=False):
+        """Temporarily change the log configuration for this thread."""
+        old_reduced = log_configuration.reduced
+        log_configuration.set(reduced=reduced)
+        yield
+        log_configuration.set(reduced=old_reduced)
+
+
+log_configuration = LogConfiguration()
