@@ -11,7 +11,7 @@ It can take up to two weeks for the product ID to be assigned.
 The reason for this requirement is compliance with the European Unions 2nd Payment Services Directive (PSD2)
 which mandates that end-users can transparently see which applications are accessing their bank account.
 
-You cna find more information as well as the registration form on the `ZKA Website`_ (only available in German).
+You can find more information as well as the registration form on the `ZKA Website`_ (only available in German).
 
 Start coding
 ------------
