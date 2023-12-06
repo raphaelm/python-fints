@@ -954,6 +954,16 @@ class GetSEPAAccountParameter1(DataElementGroup):
     structured_purpose_allowed = DataElementField(type='jn', _d="Strukturierter Verwendungszweck erlaubt")
     supported_sepa_formats = DataElementField(type='an', max_length=256, max_count=99, required=False, _d="Unterstützte SEPA-Datenformate")
 
+class GetSEPAAccountParameter3(DataElementGroup):
+    """Parameter SEPA-Kontoverbindung anfordern, version 3
+
+    Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Messages -- Multibankfähige Geschäftsvorfälle """
+    single_account_query_allowed = DataElementField(type='jn', _d="Einzelkontenabruf erlaubt")
+    national_account_allowed = DataElementField(type='jn', _d="Nationale Kontoverbindung erlaubt")
+    structured_purpose_allowed = DataElementField(type='jn', _d="Strukturierter Verwendungszweck erlaubt")
+    max_number_responses_allowed = DataElementField(type='jn', _d="Eingabe Anzahl Einträge erlaubt")
+    cutoff_days = DataElementField(type='num', max_length=2, _d="Anzahl reservierter Verwendungszweckstellen")
+    supported_sepa_formats = DataElementField(type='an', max_length=256, max_count=99, required=False, _d="Unterstützte SEPA-Datenformate")
 
 class SupportedMessageTypes(DataElementGroup):
     """Unterstützte camt-Messages
