@@ -421,6 +421,7 @@ class FinTS3Client:
                 acc['customer_id'] = upd.customer_id
                 acc['type'] = upd.account_type
                 acc['currency'] = upd.account_currency
+                acc['extension'] = upd.extension
                 acc['owner_name'] = []
                 if upd.name_account_owner_1:
                     acc['owner_name'].append(upd.name_account_owner_1)
