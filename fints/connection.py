@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 class FinTSHTTPSConnection:
     def __init__(self, url):
         self.url = url
+        self.session = requests.session()
 
     def send(self, msg: FinTSMessage):
         log_out = io.StringIO()
@@ -22,7 +23,7 @@ class FinTSHTTPSConnection:
             logger.debug("Sending >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n{}\n>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n".format(log_out.getvalue()))
             log_out.truncate(0)
 
-        r = requests.post(
+        r = self.session.post(
             self.url, data=base64.b64encode(msg.render_bytes()),
             headers={
                 'Content-Type': 'text/plain',
