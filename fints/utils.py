@@ -271,27 +271,6 @@ class Password(str):
 
 
 class RepresentableEnum(Enum):
-    def __init__(self, *args, **kwargs):
-        Enum.__init__(self)
-
-        # Hack alert: Try to parse the docstring from the enum source, if available. Fail softly.
-        # FIXME Needs test
-        try:
-            val_1 = val_2 = repr(args[0])
-            if val_1.startswith("'"):
-                val_2 = '"' + val_1[1:-1] + '"'
-            elif val_1.startswith('"'):
-                val_2 = "'" + val_1[1:-1] + "'"
-            regex = re.compile(r"^.*?\S+\s*=\s*(?:(?:{})|(?:{}))\s*#:\s*(\S.*)$".format(
-                        re.escape(val_1), re.escape(val_2)))
-            for line in inspect.getsourcelines(self.__class__)[0]:
-                m = regex.match(line)
-                if m:
-                    self.__doc__ = m.group(1).strip()
-                    break
-        except:
-            raise
-
     def __repr__(self):
         return "{}.{}.{}".format(self.__class__.__module__, self.__class__.__name__, self.name)
 

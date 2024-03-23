@@ -1,5 +1,7 @@
 import re
 
+from enum_tools.documentation import document_enum
+
 from fints.fields import *
 from fints.types import *
 from fints.utils import RepresentableEnum, ShortReprMixin
@@ -24,6 +26,7 @@ class ReferenceMessage(DataElementGroup):
     message_number = NumericField(max_length=4)
 
 
+@document_enum
 class SecurityMethod(RepresentableEnum):
     DDV = 'DDV'
     RAH = 'RAH'
@@ -37,9 +40,10 @@ class SecurityProfile(DataElementGroup):
     security_method_version = DataElementField(type='num', _d="Version des Sicherheitsverfahrens")
 
 
+@document_enum
 class IdentifiedRole(RepresentableEnum):
-    MS = '1' #: Message Sender
-    MR = '2' #: Message Receiver
+    MS = '1'  # doc: Message Sender
+    MR = '2'  # doc: Message Receiver
 
 
 class SecurityIdentificationDetails(DataElementGroup):
@@ -48,9 +52,10 @@ class SecurityIdentificationDetails(DataElementGroup):
     identifier = DataElementField(type='id')
 
 
+@document_enum
 class DateTimeType(RepresentableEnum):
-    STS = '1'  #: Sicherheitszeitstempel
-    CRT = '6'  #: Certificate Revocation Time
+    STS = '1'  # doc: Sicherheitszeitstempel
+    CRT = '6'  # doc: Certificate Revocation Time
 
 
 class SecurityDateTime(DataElementGroup):
@@ -59,31 +64,36 @@ class SecurityDateTime(DataElementGroup):
     time = DataElementField(type='tim', required=False)
 
 
+@document_enum
 class UsageEncryption(RepresentableEnum):
-    OSY = '2'  #: Owner Symmetric
+    OSY = '2'  # doc: Owner Symmetric
 
 
+@document_enum
 class OperationMode(RepresentableEnum):
-    CBC = '2'  #: Cipher Block Chaining
-    ISO_9796_1 = '16'  #: ISO 9796-1 (bei RDH)
-    ISO_9796_2_RANDOM = '17'  #: ISO 9796-2 mit Zufallszahl (bei RDH)
-    PKCS1V15 = '18'  #: RSASSA-PKCS#1 V1.5 (bei RDH); RSAES-PKCS#1 V1.5 (bei RAH, RDH)
-    PSS = '19'  #: RSASSA-PSS (bei RAH, RDH)
-    ZZZ = '999'  #: Gegenseitig vereinbart (DDV: Retail-MAC)
+    CBC = '2'  # doc: Cipher Block Chaining
+    ISO_9796_1 = '16'  # doc: ISO 9796-1 (bei RDH)
+    ISO_9796_2_RANDOM = '17'  # doc: ISO 9796-2 mit Zufallszahl (bei RDH)
+    PKCS1V15 = '18'  # doc: RSASSA-PKCS#1 V1.5 (bei RDH); RSAES-PKCS#1 V1.5 (bei RAH, RDH)
+    PSS = '19'  # doc: RSASSA-PSS (bei RAH, RDH)
+    ZZZ = '999'  # doc: Gegenseitig vereinbart (DDV: Retail-MAC)
 
 
+@document_enum
 class EncryptionAlgorithmCoded(RepresentableEnum):
-    TWOKEY3DES = '13' #: 2-Key-Triple-DES
-    AES256 = '14' #: AES-256
+    TWOKEY3DES = '13' # doc: 2-Key-Triple-DES
+    AES256 = '14' # doc: AES-256
 
 
+@document_enum
 class AlgorithmParameterName(RepresentableEnum):
-    KYE = '5' #: Symmetrischer Schlüssel, verschlüsselt mit symmetrischem Schlüssel
-    KYP = '6' #: Symmetrischer Schlüssel, verschlüsselt mit öffentlichem Schlüssel
+    KYE = '5'  # doc: Symmetrischer Schlüssel, verschlüsselt mit symmetrischem Schlüssel
+    KYP = '6'  # doc: Symmetrischer Schlüssel, verschlüsselt mit öffentlichem Schlüssel
 
 
+@document_enum
 class AlgorithmParameterIVName(RepresentableEnum):
-    IVC = '1' #: Initialization value, clear text
+    IVC = '1'  # doc: Initialization value, clear text
 
 
 class EncryptionAlgorithm(DataElementGroup):
@@ -152,11 +162,12 @@ class BankIdentifier(DataElementGroup):
     bank_code = DataElementField(type='an', max_length=30)
 
 
+@document_enum
 class KeyType(RepresentableEnum):
     """Schlüsselart"""
-    D = 'D'  #: Schlüssel zur Erzeugung digitaler Signaturen
-    S = 'S'  #: Signierschlüssel
-    V = 'V'  #: Chiffrierschlüssel
+    D = 'D'  # doc: Schlüssel zur Erzeugung digitaler Signaturen
+    S = 'S'  # doc: Signierschlüssel
+    V = 'V'  # doc: Chiffrierschlüssel
 
 
 class KeyName(DataElementGroup):
@@ -212,50 +223,58 @@ class AllowedTransaction(DataElementGroup):
     limit_days = DataElementField(type='num', max_length=3, required=False)
 
 
+@document_enum
 class TANTimeDialogAssociation(RepresentableEnum):
-    NOT_ALLOWED = '1'  #: TAN nicht zeitversetzt / dialogübergreifend erlaubt
-    ALLOWED = '2'  #: TAN zeitversetzt / dialogübergreifend erlaubt
-    BOTH = '3'  #: beide Verfahren unterstützt
-    NOT_APPLICABLE = '4'  #: nicht zutreffend
+    NOT_ALLOWED = '1'  # doc: TAN nicht zeitversetzt / dialogübergreifend erlaubt
+    ALLOWED = '2'  # doc: TAN zeitversetzt / dialogübergreifend erlaubt
+    BOTH = '3'  # doc: beide Verfahren unterstützt
+    NOT_APPLICABLE = '4'  # doc: nicht zutreffend
 
 
+@document_enum
 class AllowedFormat(RepresentableEnum):
-    NUMERIC = '1'  #: numerisch
-    ALPHANUMERIC = '2'  #: alfanumerisch
+    NUMERIC = '1'  # doc: numerisch
+    ALPHANUMERIC = '2'  # doc: alfanumerisch
 
 
+@document_enum
 class TANListNumberRequired(RepresentableEnum):
-    NO = '0'  #: Nein
-    YES = '2'  #: Ja
+    NO = '0'  # doc: Nein
+    YES = '2'  # doc: Ja
 
 
+@document_enum
 class InitializationMode(RepresentableEnum):
-    CLEARTEXT_PIN_NO_TAN = '00'  #: Initialisierungsverfahren mit Klartext-PIN und ohne TAN
-    ENCRYPTED_PIN_NO_TAN = '01'  #: Schablone 01: Verschlüsselte PIN und ohne TAN
-    MASK_02 = '02'  #: Schablone 02: Reserviert, bei FinTS zur Zeit nicht verwendet
+    CLEARTEXT_PIN_NO_TAN = '00'  # doc: Initialisierungsverfahren mit Klartext-PIN und ohne TAN
+    ENCRYPTED_PIN_NO_TAN = '01'  # doc: Schablone 01: Verschlüsselte PIN und ohne TAN
+    MASK_02 = '02'  # doc: Schablone 02: Reserviert, bei FinTS zur Zeit nicht verwendet
 
 
+@document_enum
 class DescriptionRequired(RepresentableEnum):
-    MUST_NOT = '0'  #: Bezeichnung des TAN-Mediums darf nicht angegeben werden
-    MAY = '1'  #: Bezeichnung des TAN-Mediums kann angegeben werden
-    MUST = '2'  #: Bezeichnung des TAN-Mediums muss angegeben werden
+    MUST_NOT = '0'  # doc: Bezeichnung des TAN-Mediums darf nicht angegeben werden
+    MAY = '1'  # doc: Bezeichnung des TAN-Mediums kann angegeben werden
+    MUST = '2'  # doc: Bezeichnung des TAN-Mediums muss angegeben werden
 
 
+@document_enum
 class SMSChargeAccountRequired(RepresentableEnum):
-    MUST_NOT = '0'  #: SMS-Abbuchungskonto darf nicht angegeben werden
-    MAY = '1'  #: SMS-Abbuchungskonto kann angegeben werden
-    MUST = '2'  #: SMS-Abbuchungskonto muss angegeben werden
+    MUST_NOT = '0'  # doc: SMS-Abbuchungskonto darf nicht angegeben werden
+    MAY = '1'  # doc: SMS-Abbuchungskonto kann angegeben werden
+    MUST = '2'  # doc: SMS-Abbuchungskonto muss angegeben werden
 
 
+@document_enum
 class PrincipalAccountRequired(RepresentableEnum):
-    MUST_NOT = '0'  #: Auftraggeberkonto darf nicht angegeben werden
-    MUST = '2'  #: Auftraggeberkonto muss angegeben werden, wenn im Geschäftsvorfall enthalten
+    MUST_NOT = '0'  # doc: Auftraggeberkonto darf nicht angegeben werden
+    MUST = '2'  # doc: Auftraggeberkonto muss angegeben werden, wenn im Geschäftsvorfall enthalten
 
 
+@document_enum
 class TaskHashAlgorithm(RepresentableEnum):
-    NONE = '0'  #: Auftrags-Hashwert nicht unterstützt
-    RIPEMD_160 = '1'  #: RIPEMD-160
-    SHA_1 = '2'  #: SHA-1
+    NONE = '0'  # doc: Auftrags-Hashwert nicht unterstützt
+    RIPEMD_160 = '1'  # doc: RIPEMD-160
+    SHA_1 = '2'  # doc: SHA-1
 
 
 class TwoStepParametersCommon(DataElementGroup):
@@ -423,14 +442,15 @@ class ParameterPinTan(DataElementGroup):
     transaction_tans_required = DataElementGroupField(type=TransactionTanRequired, max_count=999, required=False)
 
 
+@document_enum
 class Language2(RepresentableEnum):
     """Dialogsprache
 
     Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Formals"""
-    DEFAULT = '0'  #: Standard
-    DE = '1'  #: Deutsch, 'de', Subset Deutsch, Codeset 1 (Latin 1)
-    EN = '2'  #: Englisch, 'en', Subset Englisch, Codeset 1 (Latin 1)
-    FR = '3'  #: Französisch, 'fr', Subset Französisch, Codeset 1 (Latin 1)
+    DEFAULT = '0'  # doc: Standard
+    DE = '1'  # doc: Deutsch, 'de', Subset Deutsch, Codeset 1 (Latin 1)
+    EN = '2'  # doc: Englisch, 'en', Subset Englisch, Codeset 1 (Latin 1)
+    FR = '3'  # doc: Französisch, 'fr', Subset Französisch, Codeset 1 (Latin 1)
 
 
 class SupportedLanguages2(DataElementGroup):
@@ -530,6 +550,7 @@ class Account3(DataElementGroup):
         )
 
 
+@document_enum
 class SecurityRole(RepresentableEnum):
     """Rolle des Sicherheitslieferanten, kodiert, version 2
 
@@ -537,82 +558,89 @@ class SecurityRole(RepresentableEnum):
     Die Wahl ist von der bankfachlichen Auslegung der Signatur, respektive vom vertraglichen Zustand zwischen Kunde und Kreditinstitut abhängig.
 
     Source: FinTS Financial Transaction Services, Sicherheitsverfahren HBCI"""
-    ISS = '1'  #: Erfasser, Erstsignatur
-    CON = '3'  #: Unterstützer, Zweitsignatur
-    WIT = '4'  #: Zeuge/Übermittler, nicht Erfasser
+    ISS = '1'  # doc: Erfasser, Erstsignatur
+    CON = '3'  # doc: Unterstützer, Zweitsignatur
+    WIT = '4'  # doc: Zeuge/Übermittler, nicht Erfasser
 
 
+@document_enum
 class CompressionFunction(RepresentableEnum):
     """Komprimierungsfunktion, version 2
 
     Source: FinTS Financial Transaction Services, Sicherheitsverfahren HBCI"""
-    NULL = '0'  #: Keine Kompression
-    LZW = '1'  #: Lempel, Ziv, Welch
-    COM = '2'  #: Optimized LZW
-    LZSS = '3'  #: Lempel, Ziv
-    LZHuf = '4'  #: LZ + Huffman Coding
-    ZIP = '5'  #: PKZIP
-    GZIP = '6'  #: deflate (http://www.gzip.org/zlib)
-    BZIP2 = '7'  #: bzip2 (http://sourceware.cygnus.com/bzip2/)
-    ZZZ = '999'  #: Gegenseitig vereinbart
+    NULL = '0'  # doc: Keine Kompression
+    LZW = '1'  # doc: Lempel, Ziv, Welch
+    COM = '2'  # doc: Optimized LZW
+    LZSS = '3'  # doc: Lempel, Ziv
+    LZHuf = '4'  # doc: LZ + Huffman Coding
+    ZIP = '5'  # doc: PKZIP
+    GZIP = '6'  # doc: deflate (http://www.gzip.org/zlib)
+    BZIP2 = '7'  # doc: bzip2 (http://sourceware.cygnus.com/bzip2/)
+    ZZZ = '999'  # doc: Gegenseitig vereinbart
 
 
+@document_enum
 class SecurityApplicationArea(RepresentableEnum):
     """Bereich der Sicherheitsapplikation, kodiert, version 2
 
     Informationen darüber, welche Daten vom kryptographischen Prozess verarbeitet werden.
 
     Source: FinTS Financial Transaction Services, Sicherheitsverfahren HBCI"""
-    SHM = '1'  #: Signaturkopf und HBCI-Nutzdaten
-    SHT = '2'  #: Von Signaturkopf bis Signaturabschluss
+    SHM = '1'  # doc: Signaturkopf und HBCI-Nutzdaten
+    SHT = '2'  # doc: Von Signaturkopf bis Signaturabschluss
 
 
+@document_enum
 class SecurityClass(RepresentableEnum):
     """Sicherheitsklasse, version 1
 
     Die Sicherheitsklasse gibt für jede Signatur den erforderlichen Sicherheitsdienst an.
 
     Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Formals"""
-    NONE = 0  #: Kein Sicherheitsdienst erforderlich
-    AUTH = 1  #: Sicherheitsdienst 'Authentikation'
-    AUTH_ADV = 2  #: Sicherheitsdienst 'Authentikation' mit fortgeschrittener elektronischer Signatur, optionaler Zertifikatsprüfung
-    NON_REPUD = 3  #: Sicherheitsdienst 'Non-Repudiation' mit fortgeschrittener elektronischer Signatur, optionaler Zertifikatsprüfung
-    NON_REPUD_QUAL = 4  #: Sicherheitsdienst 'Non-Repudiation' mit fortgeschrittener bzw. qualifizierter elektronischer Signatur, zwingende Zertifikatsprüfung
+    NONE = 0  # doc: Kein Sicherheitsdienst erforderlich
+    AUTH = 1  # doc: Sicherheitsdienst 'Authentikation'
+    AUTH_ADV = 2  # doc: Sicherheitsdienst 'Authentikation' mit fortgeschrittener elektronischer Signatur, optionaler Zertifikatsprüfung
+    NON_REPUD = 3  # doc: Sicherheitsdienst 'Non-Repudiation' mit fortgeschrittener elektronischer Signatur, optionaler Zertifikatsprüfung
+    NON_REPUD_QUAL = 4  # doc: Sicherheitsdienst 'Non-Repudiation' mit fortgeschrittener bzw. qualifizierter elektronischer Signatur, zwingende Zertifikatsprüfung
 
 
+@document_enum
 class UPDUsage(RepresentableEnum):
     """UPD-Verwendung, version 2
 
     Kennzeichen dafür, wie diejenigen Geschäftsvorfälle zu interpretieren sind, die bei der Beschreibung der Kontoinformationen nicht unter den erlaubten Geschäftsvorfällen aufgeführt sind.
 
     Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Formals"""
-    UPD_CONCLUSIVE = '0'  #: Die nicht aufgeführten Geschäftsvorfälle sind gesperrt
-    UPD_INCONCLUSIVE = '1'  #: Bei nicht aufgeführten Geschäftsvorfällen ist keine Aussage möglich, ob diese erlaubt oder gesperrt sind
+    UPD_CONCLUSIVE = '0'  # doc: Die nicht aufgeführten Geschäftsvorfälle sind gesperrt
+    UPD_INCONCLUSIVE = '1'  # doc: Bei nicht aufgeführten Geschäftsvorfällen ist keine Aussage möglich, ob diese erlaubt oder gesperrt sind
 
 
+@document_enum
 class SystemIDStatus(RepresentableEnum):
     """Kundensystem-Status, version 2
 
     Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Formals"""
-    ID_UNNECESSARY = '0'  #: Kundensystem-ID wird nicht benötigt
-    ID_NECESSARY = '1'  #: Kundensystem-ID wird benötigt
+    ID_UNNECESSARY = '0'  # doc: Kundensystem-ID wird nicht benötigt
+    ID_NECESSARY = '1'  # doc: Kundensystem-ID wird benötigt
 
 
+@document_enum
 class SynchronizationMode(RepresentableEnum):
     """Synchronisierungsmodus, version 2
 
     Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Formals"""
-    NEW_SYSTEM_ID = '0'  #: Neue Kundensystem-ID zurückmelden
-    LAST_MESSAGE = '1'  #: Letzte verarbeitete Nachrichtennummer zurückmelden
-    SIGNATURE_ID = '2'  #: Signatur-ID zurückmelden
+    NEW_SYSTEM_ID = '0'  # doc: Neue Kundensystem-ID zurückmelden
+    LAST_MESSAGE = '1'  # doc: Letzte verarbeitete Nachrichtennummer zurückmelden
+    SIGNATURE_ID = '2'  # doc: Signatur-ID zurückmelden
 
 
+@document_enum
 class CreditDebit2(RepresentableEnum):
     """Soll-Haben-Kennzeichen, version 2
 
     Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Messages -- Multibankfähige Geschäftsvorfälle """
-    CREDIT = 'C'  #: Haben
-    DEBIT = 'D'  #: Soll
+    CREDIT = 'C'  # doc: Haben
+    DEBIT = 'D'  # doc: Soll
 
 
 class Balance1(DataElementGroup):
@@ -662,50 +690,54 @@ class Timestamp1(DataElementGroup):
     time = DataElementField(type='tim', required=False, _d="Uhrzeit")
 
 
+@document_enum
 class TANMediaType2(RepresentableEnum):
     """TAN-Medium-Art
 
     Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Sicherheitsverfahren PIN/TAN"""
 
-    ALL = '0'  #: Alle
-    ACTIVE = '1'  #: Aktiv
-    AVAILABLE = '2'  #: Verfügbar
+    ALL = '0'  # doc: Alle
+    ACTIVE = '1'  # doc: Aktiv
+    AVAILABLE = '2'  # doc: Verfügbar
 
 
+@document_enum
 class TANMediaClass3(RepresentableEnum):
     """TAN-Medium-Klasse, version 3
 
     Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Sicherheitsverfahren PIN/TAN"""
 
-    ALL = 'A'  #: Alle Medien
-    LIST = 'L'  #: Liste
-    GENERATOR = 'G'  #: TAN-Generator
-    MOBILE = 'M'  #: Mobiltelefon mit mobileTAN
-    SECODER = 'S'  #: Secoder
+    ALL = 'A'  # doc: Alle Medien
+    LIST = 'L'  # doc: Liste
+    GENERATOR = 'G'  # doc: TAN-Generator
+    MOBILE = 'M'  # doc: Mobiltelefon mit mobileTAN
+    SECODER = 'S'  # doc: Secoder
 
 
+@document_enum
 class TANMediaClass4(RepresentableEnum):
     """TAN-Medium-Klasse, version 4
 
     Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Sicherheitsverfahren PIN/TAN"""
 
-    ALL = 'A'  #: Alle Medien
-    LIST = 'L'  #: Liste
-    GENERATOR = 'G'  #: TAN-Generator
-    MOBILE = 'M'  #: Mobiltelefon mit mobileTAN
-    SECODER = 'S'  #: Secoder
-    BILATERAL = 'B'  #: Bilateral vereinbart
+    ALL = 'A'  # doc: Alle Medien
+    LIST = 'L'  # doc: Liste
+    GENERATOR = 'G'  # doc: TAN-Generator
+    MOBILE = 'M'  # doc: Mobiltelefon mit mobileTAN
+    SECODER = 'S'  # doc: Secoder
+    BILATERAL = 'B'  # doc: Bilateral vereinbart
 
 
+@document_enum
 class TANMediumStatus(RepresentableEnum):
     """Status
 
     Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Sicherheitsverfahren PIN/TAN"""
 
-    ACTIVE = '1'  #: Aktiv
-    AVAILABLE = '2'  #: Verfügbar
-    ACTIVE_SUCCESSOR = '3'  #: Aktiv Folgekarte
-    AVAILABLE_SUCCESSOR = '4'  #: Verfügbar Folgekarte
+    ACTIVE = '1'  # doc: Aktiv
+    AVAILABLE = '2'  # doc: Verfügbar
+    ACTIVE_SUCCESSOR = '3'  # doc: Aktiv Folgekarte
+    AVAILABLE_SUCCESSOR = '4'  # doc: Verfügbar Folgekarte
 
 
 class TANMedia4(DataElementGroup):
@@ -755,14 +787,15 @@ class TANMedia5(DataElementGroup):
     active_since = DataElementField(type='dat', required=False, _d="Freigeschaltet am")
 
 
+@document_enum
 class TANUsageOption(RepresentableEnum):
     """TAN-Einsatzoption
 
     Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Sicherheitsverfahren PIN/TAN"""
 
-    ALL_ACTIVE = '0'  #: Kunde kann alle "aktiven" Medien parallel nutzen
-    EXACTLY_ONE = '1'  #: Kunde kann genau ein Medium zu einer Zeit nutzen
-    MOBILE_AND_GENERATOR = '2'  #: Kunde kann ein Mobiltelefon und einen TAN-Generator parallel nutzen
+    ALL_ACTIVE = '0'  # doc: Kunde kann alle "aktiven" Medien parallel nutzen
+    EXACTLY_ONE = '1'  # doc: Kunde kann genau ein Medium zu einer Zeit nutzen
+    MOBILE_AND_GENERATOR = '2'  # doc: Kunde kann ein Mobiltelefon und einen TAN-Generator parallel nutzen
 
 
 class ParameterChallengeClass(DataElementGroup):
@@ -800,10 +833,11 @@ class BatchTransferParameter1(DataElementGroup):
     single_booking_allowed = DataElementField(type='jn', _d="Einzelbuchung erlaubt")
 
 
+@document_enum
 class ServiceType2(RepresentableEnum):
-    T_ONLINE = 1  #: T-Online
-    TCP_IP = 2  #: TCP/IP (Protokollstack SLIP/PPP)
-    HTTPS = 3  #: https
+    T_ONLINE = 1  # doc: T-Online
+    TCP_IP = 2  # doc: TCP/IP (Protokollstack SLIP/PPP)
+    HTTPS = 3  # doc: https
 
 
 class CommunicationParameter2(DataElementGroup):
@@ -931,18 +965,20 @@ class QueryCreditCardStatements2(DataElementGroup):
     date_range_allowed = DataElementField(type='jn', _d="Zeitraum möglich")
 
 
+@document_enum
 class SEPACCode1(RepresentableEnum):
-    REVERSAL = '1'  #: Reversal
-    REVOCATION = '2'  #: Revocation
-    DELETION = '3'  #: Delete
+    REVERSAL = '1'  # doc: Reversal
+    REVOCATION = '2'  # doc: Revocation
+    DELETION = '3'  # doc: Delete
 
 
+@document_enum
 class StatusSEPATask1(RepresentableEnum):
-    PENDING = '1'  #: In Terminierung
-    DECLINED = '2'  #: Abgelehnt von erster Inkassostelle
-    IN_PROGRESS = '3'  #: in Bearbeitung
-    PROCESSED = '4'  #: Creditoren-seitig verarbeitet, Buchung veranlasst
-    REVOKED = '5'  #: R-Transaktion wurde veranlasst
+    PENDING = '1'  # doc: In Terminierung
+    DECLINED = '2'  # doc: Abgelehnt von erster Inkassostelle
+    IN_PROGRESS = '3'  # doc: in Bearbeitung
+    PROCESSED = '4'  # doc: Creditoren-seitig verarbeitet, Buchung veranlasst
+    REVOKED = '5'  # doc: R-Transaktion wurde veranlasst
 
 
 class GetSEPAAccountParameter1(DataElementGroup):
