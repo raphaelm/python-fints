@@ -1021,8 +1021,12 @@ class NeedTANResponse(NeedRetryResponse):
     @classmethod
     def _from_data_v1(cls, data):
         if data["version"] == 1:
-            segs = SegmentSequence(data['segments_bin']).segments
-            return cls(segs[0], segs[1], data['resume_method'], data['tan_request_structured'])
+            if "init_tan" in data:
+                segs = SegmentSequence(data['segments_bin']).segments
+                return cls(None, segs[0], data['resume_method'], data['tan_request_structured'])
+            else:
+                segs = SegmentSequence(data['segments_bin']).segments
+                return cls(segs[0], segs[1], data['resume_method'], data['tan_request_structured'])
 
         raise Exception("Wrong blob data version")
 
@@ -1031,13 +1035,23 @@ class NeedTANResponse(NeedRetryResponse):
 
         To restore the object, use :func:`fints.client.NeedRetryResponse.from_data`.
         """
-        data = {
-            "_class_name": self.__class__.__name__,
-            "version": 1,
-            "segments_bin": SegmentSequence([self.command_seg, self.tan_request]).render_bytes(),
-            "resume_method": self.resume_method,
-            "tan_request_structured": self.tan_request_structured,
-        }
+        if self.command_seg:
+            data = {
+                "_class_name": self.__class__.__name__,
+                "version": 1,
+                "segments_bin": SegmentSequence([self.command_seg, self.tan_request]).render_bytes(),
+                "resume_method": self.resume_method,
+                "tan_request_structured": self.tan_request_structured,
+            }
+        else:
+            data = {
+                "_class_name": self.__class__.__name__,
+                "version": 1,
+                "init_tan": True,
+                "segments_bin": SegmentSequence([self.tan_request]).render_bytes(),
+                "resume_method": self.resume_method,
+                "tan_request_structured": self.tan_request_structured,
+            }
         return compress_datablob(DATA_BLOB_MAGIC_RETRY, 1, data)
 
     def _parse_tan_challenge(self):
