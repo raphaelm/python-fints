@@ -55,7 +55,7 @@ Full example
             endtoend_id='NOTPROVIDED',
         )
 
-        if isinstance(res, NeedTANResponse):
+        while isinstance(res, NeedTANResponse):
             print("A TAN is required", res.challenge)
 
             if getattr(res, 'challenge_hhduc', None):
@@ -64,7 +64,10 @@ Full example
                 except KeyboardInterrupt:
                     pass
 
-            tan = input('Please enter TAN:')
+            if result.decoupled:
+                tan = input('Please press enter after confirming the transaction in your app:')
+            else:
+                tan = input('Please enter TAN:')
             res = client.send_tan(res, tan)
 
         print(res.status)
