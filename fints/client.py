@@ -26,7 +26,7 @@ from .security import (
     PinTanTwoStepAuthenticationMechanism,
 )
 from .segments.accounts import HISPA1, HKSPA1
-from .segments.auth import HIPINS1, HKTAB4, HKTAB5, HKTAN2, HKTAN3, HKTAN5, HKTAN6
+from .segments.auth import HIPINS1, HKTAB4, HKTAB5, HKTAN2, HKTAN3, HKTAN5, HKTAN6, HKTAN7
 from .segments.bank import HIBPA3, HIUPA4, HKKOM4
 from .segments.debit import (
     HKDBS1, HKDBS2, HKDMB1, HKDMC1, HKDME1, HKDME2,
@@ -1096,6 +1096,7 @@ IMPLEMENTED_HKTAN_VERSIONS = {
     3: HKTAN3,
     5: HKTAN5,
     6: HKTAN6,
+    7: HKTAN7,
 }
 
 

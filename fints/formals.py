@@ -397,6 +397,32 @@ class TwoStepParameters6(TwoStepParametersCommon):
     supported_media_number = DataElementField(type='num', length=1, required=False, _d="Anzahl unterstützter aktiver TAN-Medien")
 
 
+class TwoStepParameters7(TwoStepParametersCommon):
+    zka_id = DataElementField(type='an', max_length=32, _d="DK TAN-Verfahren")
+    zka_version = DataElementField(type='an', max_length=10, _d="Version DK TAN-Verfahren")
+    name = DataElementField(type='an', max_length=30, _d="Name des Zwei-Schritt-Verfahrens")
+    max_length_input = DataElementField(type='num', max_length=2, _d="Maximale Länge des Eingabewertes im Zwei-Schritt-Verfahren")
+    allowed_format = CodeField(enum=AllowedFormat, length=1, _d="Erlaubtes Format im Zwei-Schritt-Verfahren")
+    text_return_value = DataElementField(type='an', max_length=30, _d="Text zur Belegung des Rückgabewertes im Zwei-Schritt-Verfahren")
+    max_length_return_value = DataElementField(type='num', max_length=4, _d="Maximale Länge des Rückgabewertes im Zwei-Schritt-Verfahren")
+    multiple_tans_allowed = DataElementField(type='jn', _d="Mehrfach-TAN erlaubt")
+    tan_time_dialog_association = CodeField(enum=TANTimeDialogAssociation, length=1, _d="TAN Zeit- und Dialogbezug")
+    cancel_allowed = DataElementField(type='jn', _d="Auftragsstorno erlaubt")
+    sms_charge_account_required = CodeField(enum=SMSChargeAccountRequired, length=1, _d="SMS-Abbuchungskonto erforderlich")
+    principal_account_required = CodeField(enum=PrincipalAccountRequired, length=1, _d="Auftraggeberkonto erforderlich")
+    challenge_class_required = DataElementField(type='jn', _d="Challenge-Klasse erforderlich")
+    challenge_structured = DataElementField(type='jn', _d="Challenge strukturiert")
+    initialization_mode = CodeField(enum=InitializationMode, _d="Initialisierungsmodus")
+    description_required = CodeField(enum=DescriptionRequired, length=1, _d="Bezeichnung des TAN-Medium erforderlich")
+    response_hhd_uc_required = DataElementField(type='jn', _d="Antwort HHD_UC erforderlich")
+    supported_media_number = DataElementField(type='num', length=1, required=False, _d="Anzahl unterstützter aktiver TAN-Medien")
+    decoupled_max_poll_number = DataElementField(type='num', max_length=3, required=False, _d="Maximale Anzahl Statusabfragen Decoupled")
+    wait_before_first_poll = DataElementField(type='num', max_length=3, required=False, _d="Wartezeit vor erster Statusabfrage")
+    wait_before_next_poll = DataElementField(type='num', max_length=3, required=False, _d="Wartezeit vor nächster Statusabfrage")
+    manual_confirmation_allowed = DataElementField(type='jn', required=False, _d="Manuelle Bestätigung möglich")
+    automated_polling_allowed = DataElementField(type='jn', required=False, _d="Automatische Statusabfragen erlaubt")
+
+
 class ParameterTwostepCommon(DataElementGroup):
     onestep_method_allowed = DataElementField(type='jn')
     multiple_tasks_allowed = DataElementField(type='jn')
@@ -426,6 +452,10 @@ class ParameterTwostepTAN5(ParameterTwostepCommon):
 
 class ParameterTwostepTAN6(ParameterTwostepCommon):
     twostep_parameters = DataElementGroupField(type=TwoStepParameters6, min_count=1, max_count=98)
+
+
+class ParameterTwostepTAN7(ParameterTwostepCommon):
+    twostep_parameters = DataElementGroupField(type=TwoStepParameters7, min_count=1, max_count=98)
 
 
 class TransactionTanRequired(DataElementGroup):
