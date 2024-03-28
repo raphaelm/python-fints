@@ -67,7 +67,7 @@ You can easily generate XML using the ``sepaxml`` python library:
             pain_descriptor='urn:iso:std:iso:20022:tech:xsd:pain.008.002.02'
         )
 
-        if isinstance(res, NeedTANResponse):
+        while isinstance(res, NeedTANResponse):
             print("A TAN is required", res.challenge)
 
             if getattr(res, 'challenge_hhduc', None):
@@ -76,7 +76,10 @@ You can easily generate XML using the ``sepaxml`` python library:
                 except KeyboardInterrupt:
                     pass
 
-            tan = input('Please enter TAN:')
+            if result.decoupled:
+                tan = input('Please press enter after confirming the transaction in your app:')
+            else:
+                tan = input('Please enter TAN:')
             res = client.send_tan(res, tan)
 
         print(res.status)

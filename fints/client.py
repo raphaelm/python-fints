@@ -26,7 +26,7 @@ from .security import (
     PinTanTwoStepAuthenticationMechanism,
 )
 from .segments.accounts import HISPA1, HKSPA1
-from .segments.auth import HIPINS1, HKTAB4, HKTAB5, HKTAN2, HKTAN3, HKTAN5, HKTAN6
+from .segments.auth import HIPINS1, HKTAB4, HKTAB5, HKTAN2, HKTAN3, HKTAN5, HKTAN6, HKTAN7
 from .segments.bank import HIBPA3, HIUPA4, HKKOM4
 from .segments.debit import (
     HKDBS1, HKDBS2, HKDMB1, HKDMC1, HKDME1, HKDME2,
@@ -1005,11 +1005,13 @@ class NeedTANResponse(NeedRetryResponse):
     challenge_html = None  #: HTML-safe challenge text, possibly with formatting
     challenge_hhduc = None  #: HHD_UC challenge to be transmitted to the TAN generator
     challenge_matrix = None  #: Matrix code challenge: tuple(mime_type, data)
+    decoupled = None  #: Use decoupled process
 
-    def __init__(self, command_seg, tan_request, resume_method=None, tan_request_structured=False):
+    def __init__(self, command_seg, tan_request, resume_method=None, tan_request_structured=False, decoupled=False):
         self.command_seg = command_seg
         self.tan_request = tan_request
         self.tan_request_structured = tan_request_structured
+        self.decoupled = decoupled
         if hasattr(resume_method, '__func__'):
             self.resume_method = resume_method.__func__.__name__
         else:
@@ -1111,6 +1113,7 @@ IMPLEMENTED_HKTAN_VERSIONS = {
     3: HKTAN3,
     5: HKTAN5,
     6: HKTAN6,
+    7: HKTAN7,
 }
 
 
@@ -1220,10 +1223,10 @@ class FinTS3PinTanClient(FinTS3Client):
         if tan_process == '4' and tan_mechanism.VERSION >= 6:
             seg.segment_type = orig_seg.header.type
 
-        if tan_process in ('2', '3'):
+        if tan_process in ('2', '3', 'S'):
             seg.task_reference = tan_seg.task_reference
 
-        if tan_process in ('1', '2'):
+        if tan_process in ('1', '2', 'S'):
             seg.further_tan_follows = False
 
         return seg
@@ -1250,8 +1253,14 @@ class FinTS3PinTanClient(FinTS3Client):
                 response = dialog.send(command_seg, tan_seg)
 
                 for resp in response.responses(tan_seg):
-                    if resp.code == '0030':
-                        return NeedTANResponse(command_seg, response.find_segment_first('HITAN'), resume_func, self.is_challenge_structured())
+                    if resp.code in ('0030', '3955'):
+                        return NeedTANResponse(
+                            command_seg,
+                            response.find_segment_first('HITAN'),
+                            resume_func,
+                            self.is_challenge_structured(),
+                            resp.code == '3955',
+                        )
                     if resp.code.startswith('9'):
                         raise Exception("Error response: {!r}".format(response))
             else:
@@ -1269,16 +1278,40 @@ class FinTS3PinTanClient(FinTS3Client):
         """
         Sends a TAN to confirm a pending operation.
 
+        If ``NeedTANResponse.decoupled`` is ``True``, the ``tan`` parameter is ignored and can be kept empty.
+        If the operation was not yet confirmed using the decoupled app, this method will again return a
+        ``NeedTANResponse``.
+
         :param challenge: NeedTANResponse to respond to
         :param tan: TAN value
-        :return: Currently no response
+        :return: New response after sending TAN
         """
 
         with self._get_dialog() as dialog:
-            tan_seg = self._get_tan_segment(challenge.command_seg, '2', challenge.tan_request)
-            self._pending_tan = tan
+            if challenge.decoupled:
+                tan_seg = self._get_tan_segment(challenge.command_seg, 'S', challenge.tan_request)
+            else:
+                tan_seg = self._get_tan_segment(challenge.command_seg, '2', challenge.tan_request)
+                self._pending_tan = tan
 
             response = dialog.send(tan_seg)
+
+            if challenge.decoupled:
+                # TAN process = S
+                status_segment = response.find_segment_first('HITAN')
+                if not status_segment:
+                    raise FinTSClientError(
+                        "No TAN status received."
+                    )
+                for resp in response.responses(tan_seg):
+                    if resp.code == '3956':
+                        return NeedTANResponse(
+                            challenge.command_seg,
+                            challenge.tan_request,
+                            challenge.resume_method,
+                            challenge.tan_request_structured,
+                            challenge.decoupled,
+                        )
 
             resume_func = getattr(self, challenge.resume_method)
             return resume_func(challenge.command_seg, response)

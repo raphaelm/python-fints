@@ -5,7 +5,7 @@ from fints.formals import (
     ParameterTwostepTAN2, ParameterTwostepTAN3, ParameterTwostepTAN4,
     ParameterTwostepTAN5, ParameterTwostepTAN6, ResponseHHDUC,
     SystemIDStatus, TANMedia4, TANMedia5, TANMediaClass3,
-    TANMediaClass4, TANMediaType2, TANUsageOption,
+    TANMediaClass4, TANMediaType2, TANUsageOption, ParameterTwostepTAN7,
 )
 
 from .base import FinTS3Segment, ParameterSegment
@@ -97,6 +97,24 @@ class HKTAN6(FinTS3Segment):
     response_hhd_uc = DataElementGroupField(type=ResponseHHDUC, required=False, _d="Antwort HHD_UC")
 
 
+class HKTAN7(FinTS3Segment):
+    """Zwei-Schritt-TAN-Einreichung, version 7
+
+    Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Sicherheitsverfahren PIN/TAN"""
+    tan_process = DataElementField(type='code', length=1, _d="TAN-Prozess")
+    segment_type = DataElementField(type='an', max_length=6, required=False, _d="Segmentkennung")
+    account = DataElementGroupField(type=KTI1, required=False, _d="Kontoverbindung international Auftraggeber")
+    task_hash_value = DataElementField(type='bin', max_length=256, required=False, _d="Auftrags-Hashwert")
+    task_reference = DataElementField(type='an', max_length=35, required=False, _d="Auftragsreferenz")
+    further_tan_follows = DataElementField(type='jn', length=1, required=False, _d="Weitere TAN folgt")
+    cancel_task = DataElementField(type='jn', length=1, required=False, _d="Auftrag stornieren")
+    sms_charge_account = DataElementGroupField(type=KTI1, required=False, _d="SMS-Abbuchungskonto")
+    challenge_class = DataElementField(type='num', max_length=2, required=False, _d="Challenge-Klasse")
+    parameter_challenge_class = DataElementGroupField(type=ParameterChallengeClass, required=False, _d="Parameter Challenge-Klasse")
+    tan_medium_name = DataElementField(type='an', max_length=32, required=False, _d="Bezeichnung des TAN-Mediums")
+    response_hhd_uc = DataElementGroupField(type=ResponseHHDUC, required=False, _d="Antwort HHD_UC")
+
+
 class HITAN2(FinTS3Segment):
     """Zwei-Schritt-TAN-Einreichung Rückmeldung, version 2
 
@@ -141,6 +159,19 @@ class HITAN5(FinTS3Segment):
 
 class HITAN6(FinTS3Segment):
     """Zwei-Schritt-TAN-Einreichung Rückmeldung, version 6
+
+    Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Sicherheitsverfahren PIN/TAN"""
+    tan_process = DataElementField(type='code', length=1, _d="TAN-Prozess")
+    task_hash_value = DataElementField(type='bin', max_length=256, required=False, _d="Auftrags-Hashwert")
+    task_reference = DataElementField(type='an', max_length=35, required=False, _d="Auftragsreferenz")
+    challenge = DataElementField(type='an', max_length=2048, required=False, _d="Challenge")
+    challenge_hhduc = DataElementField(type='bin', required=False, _d="Challenge HHD_UC")
+    challenge_valid_until = DataElementGroupField(type=ChallengeValidUntil, required=False, _d="Gültigkeitsdatum und -uhrzeit für Challenge")
+    tan_medium_name = DataElementField(type='an', max_length=32, required=False, _d="Bezeichnung des TAN-Mediums")
+
+
+class HITAN7(FinTS3Segment):
+    """Zwei-Schritt-TAN-Einreichung Rückmeldung, version 7
 
     Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Sicherheitsverfahren PIN/TAN"""
     tan_process = DataElementField(type='code', length=1, _d="TAN-Prozess")
@@ -214,6 +245,10 @@ class HITANS5(HITANSBase):
 
 class HITANS6(HITANSBase):
     parameter = DataElementGroupField(type=ParameterTwostepTAN6)
+
+
+class HITANS7(HITANSBase):
+    parameter = DataElementGroupField(type=ParameterTwostepTAN7)
 
 
 class HIPINS1(ParameterSegment):

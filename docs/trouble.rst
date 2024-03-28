@@ -44,8 +44,9 @@ the problem.
         getpass.getpass('PIN: '),
         'REPLACEME'  # ENDPOINT
     )
+    product_id = 'REPLACEME'
 
-    f = FinTS3PinTanClient(*client_args)
+    f = FinTS3PinTanClient(*client_args, product_id=product_id)
     minimal_interactive_cli_bootstrap(f)
 
 
@@ -57,19 +58,22 @@ the problem.
                 terminal_flicker_unix(response.challenge_hhduc)
             except KeyboardInterrupt:
                 pass
-        tan = input('Please enter TAN:')
+        if response.decoupled:
+            tan = input('Please press enter after confirming the transaction in your app:')
+        else:
+            tan = input('Please enter TAN:')
         return f.send_tan(response, tan)
 
 
     # Open the actual dialog
     with f:
         # Since PSD2, a TAN might be needed for dialog initialization. Let's check if there is one required
-        if f.init_tan_response:
-            ask_for_tan(f.init_tan_response)
+        while isinstance(f.init_tan_response, NeedTANResponse):
+            f.init_tan_response = ask_for_tan(f.init_tan_response)
 
         # Fetch accounts
         accounts = f.get_sepa_accounts()
-        if isinstance(accounts, NeedTANResponse):
+        while isinstance(accounts, NeedTANResponse):
             accounts = ask_for_tan(accounts)
         if len(accounts) == 1:
             account = accounts[0]
@@ -85,7 +89,7 @@ the problem.
 
     client_data = f.deconstruct(including_private=True)
 
-    f = FinTS3PinTanClient(*client_args, from_data=client_data)
+    f = FinTS3PinTanClient(*client_args, product_id=product_id, from_data=client_data)
     with f.resume_dialog(dialog_data):
         while True:
             operations = [
@@ -167,7 +171,7 @@ the problem.
                         endtoend_id='NOTPROVIDED',
                     )
 
-                    if isinstance(res, NeedTANResponse):
-                        ask_for_tan(res)
+                    while isinstance(res, NeedTANResponse):
+                        res = ask_for_tan(res)
             except FinTSUnsupportedOperation as e:
                 print("This operation is not supported by this bank:", e)
