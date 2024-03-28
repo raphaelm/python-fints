@@ -1,5 +1,5 @@
 from ..fields import DataElementGroupField
-from ..formals import KTZ1, Account3, GetSEPAAccountParameter1
+from ..formals import KTZ1, Account3, GetSEPAAccountParameter1, GetSEPAAccountParameter3
 from .base import FinTS3Segment, ParameterSegment
 
 
@@ -24,3 +24,9 @@ class HISPAS1(ParameterSegment):
 
     Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Messages -- Multibankfähige Geschäftsvorfälle"""
     parameter = DataElementGroupField(type=GetSEPAAccountParameter1, _d="Parameter SEPA-Kontoverbindung anfordern")
+
+class HISPAS3(ParameterSegment):
+    """SEPA-Kontoverbindung anfordern, Parameter, version 3
+
+    Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Messages -- Multibankfähige Geschäftsvorfälle"""
+    parameter = DataElementGroupField(type=GetSEPAAccountParameter3, _d="Parameter SEPA-Kontoverbindung anfordern")
