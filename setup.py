@@ -41,6 +41,7 @@ setup(
         'mt-940',
         'requests',
         'sepaxml~=2.1',
+        'enum-tools~=0.9.0',
     ],
 
     packages=find_packages(include=['fints', 'fints.*']),
