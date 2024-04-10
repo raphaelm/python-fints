@@ -1,12 +1,11 @@
 import base64
-import inspect
 import json
 import re
 import threading
 import zlib
 from contextlib import contextmanager
 from datetime import datetime
-from enum import Enum
+from enum import Enum, EnumType
 
 import mt940
 
@@ -336,3 +335,11 @@ class LogConfiguration(threading.local):
 
 
 log_configuration = LogConfiguration()
+
+try:
+    from enum_tools import document_enum
+
+    doc_enum = document_enum
+except ImportError:
+    def doc_enum(an_enum: EnumType) -> EnumType:
+        return an_enum
