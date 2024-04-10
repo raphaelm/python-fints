@@ -1,10 +1,9 @@
 import re
 
-from enum_tools.documentation import document_enum
 
 from fints.fields import *
 from fints.types import *
-from fints.utils import RepresentableEnum, ShortReprMixin
+from fints.utils import RepresentableEnum, ShortReprMixin, doc_enum
 
 CUSTOMER_ID_ANONYMOUS = '9999999999'
 
@@ -26,7 +25,7 @@ class ReferenceMessage(DataElementGroup):
     message_number = NumericField(max_length=4)
 
 
-@document_enum
+@doc_enum
 class SecurityMethod(RepresentableEnum):
     DDV = 'DDV'
     RAH = 'RAH'
@@ -40,7 +39,7 @@ class SecurityProfile(DataElementGroup):
     security_method_version = DataElementField(type='num', _d="Version des Sicherheitsverfahrens")
 
 
-@document_enum
+@doc_enum
 class IdentifiedRole(RepresentableEnum):
     MS = '1'  # doc: Message Sender
     MR = '2'  # doc: Message Receiver
@@ -52,7 +51,7 @@ class SecurityIdentificationDetails(DataElementGroup):
     identifier = DataElementField(type='id')
 
 
-@document_enum
+@doc_enum
 class DateTimeType(RepresentableEnum):
     STS = '1'  # doc: Sicherheitszeitstempel
     CRT = '6'  # doc: Certificate Revocation Time
@@ -64,12 +63,12 @@ class SecurityDateTime(DataElementGroup):
     time = DataElementField(type='tim', required=False)
 
 
-@document_enum
+@doc_enum
 class UsageEncryption(RepresentableEnum):
     OSY = '2'  # doc: Owner Symmetric
 
 
-@document_enum
+@doc_enum
 class OperationMode(RepresentableEnum):
     CBC = '2'  # doc: Cipher Block Chaining
     ISO_9796_1 = '16'  # doc: ISO 9796-1 (bei RDH)
@@ -79,19 +78,19 @@ class OperationMode(RepresentableEnum):
     ZZZ = '999'  # doc: Gegenseitig vereinbart (DDV: Retail-MAC)
 
 
-@document_enum
+@doc_enum
 class EncryptionAlgorithmCoded(RepresentableEnum):
     TWOKEY3DES = '13' # doc: 2-Key-Triple-DES
     AES256 = '14' # doc: AES-256
 
 
-@document_enum
+@doc_enum
 class AlgorithmParameterName(RepresentableEnum):
     KYE = '5'  # doc: Symmetrischer Schlüssel, verschlüsselt mit symmetrischem Schlüssel
     KYP = '6'  # doc: Symmetrischer Schlüssel, verschlüsselt mit öffentlichem Schlüssel
 
 
-@document_enum
+@doc_enum
 class AlgorithmParameterIVName(RepresentableEnum):
     IVC = '1'  # doc: Initialization value, clear text
 
@@ -162,7 +161,7 @@ class BankIdentifier(DataElementGroup):
     bank_code = DataElementField(type='an', max_length=30)
 
 
-@document_enum
+@doc_enum
 class KeyType(RepresentableEnum):
     """Schlüsselart"""
     D = 'D'  # doc: Schlüssel zur Erzeugung digitaler Signaturen
@@ -223,7 +222,7 @@ class AllowedTransaction(DataElementGroup):
     limit_days = DataElementField(type='num', max_length=3, required=False)
 
 
-@document_enum
+@doc_enum
 class TANTimeDialogAssociation(RepresentableEnum):
     NOT_ALLOWED = '1'  # doc: TAN nicht zeitversetzt / dialogübergreifend erlaubt
     ALLOWED = '2'  # doc: TAN zeitversetzt / dialogübergreifend erlaubt
@@ -231,46 +230,46 @@ class TANTimeDialogAssociation(RepresentableEnum):
     NOT_APPLICABLE = '4'  # doc: nicht zutreffend
 
 
-@document_enum
+@doc_enum
 class AllowedFormat(RepresentableEnum):
     NUMERIC = '1'  # doc: numerisch
     ALPHANUMERIC = '2'  # doc: alfanumerisch
 
 
-@document_enum
+@doc_enum
 class TANListNumberRequired(RepresentableEnum):
     NO = '0'  # doc: Nein
     YES = '2'  # doc: Ja
 
 
-@document_enum
+@doc_enum
 class InitializationMode(RepresentableEnum):
     CLEARTEXT_PIN_NO_TAN = '00'  # doc: Initialisierungsverfahren mit Klartext-PIN und ohne TAN
     ENCRYPTED_PIN_NO_TAN = '01'  # doc: Schablone 01: Verschlüsselte PIN und ohne TAN
     MASK_02 = '02'  # doc: Schablone 02: Reserviert, bei FinTS zur Zeit nicht verwendet
 
 
-@document_enum
+@doc_enum
 class DescriptionRequired(RepresentableEnum):
     MUST_NOT = '0'  # doc: Bezeichnung des TAN-Mediums darf nicht angegeben werden
     MAY = '1'  # doc: Bezeichnung des TAN-Mediums kann angegeben werden
     MUST = '2'  # doc: Bezeichnung des TAN-Mediums muss angegeben werden
 
 
-@document_enum
+@doc_enum
 class SMSChargeAccountRequired(RepresentableEnum):
     MUST_NOT = '0'  # doc: SMS-Abbuchungskonto darf nicht angegeben werden
     MAY = '1'  # doc: SMS-Abbuchungskonto kann angegeben werden
     MUST = '2'  # doc: SMS-Abbuchungskonto muss angegeben werden
 
 
-@document_enum
+@doc_enum
 class PrincipalAccountRequired(RepresentableEnum):
     MUST_NOT = '0'  # doc: Auftraggeberkonto darf nicht angegeben werden
     MUST = '2'  # doc: Auftraggeberkonto muss angegeben werden, wenn im Geschäftsvorfall enthalten
 
 
-@document_enum
+@doc_enum
 class TaskHashAlgorithm(RepresentableEnum):
     NONE = '0'  # doc: Auftrags-Hashwert nicht unterstützt
     RIPEMD_160 = '1'  # doc: RIPEMD-160
@@ -472,7 +471,7 @@ class ParameterPinTan(DataElementGroup):
     transaction_tans_required = DataElementGroupField(type=TransactionTanRequired, max_count=999, required=False)
 
 
-@document_enum
+@doc_enum
 class Language2(RepresentableEnum):
     """Dialogsprache
 
@@ -580,7 +579,7 @@ class Account3(DataElementGroup):
         )
 
 
-@document_enum
+@doc_enum
 class SecurityRole(RepresentableEnum):
     """Rolle des Sicherheitslieferanten, kodiert, version 2
 
@@ -593,7 +592,7 @@ class SecurityRole(RepresentableEnum):
     WIT = '4'  # doc: Zeuge/Übermittler, nicht Erfasser
 
 
-@document_enum
+@doc_enum
 class CompressionFunction(RepresentableEnum):
     """Komprimierungsfunktion, version 2
 
@@ -609,7 +608,7 @@ class CompressionFunction(RepresentableEnum):
     ZZZ = '999'  # doc: Gegenseitig vereinbart
 
 
-@document_enum
+@doc_enum
 class SecurityApplicationArea(RepresentableEnum):
     """Bereich der Sicherheitsapplikation, kodiert, version 2
 
@@ -620,7 +619,7 @@ class SecurityApplicationArea(RepresentableEnum):
     SHT = '2'  # doc: Von Signaturkopf bis Signaturabschluss
 
 
-@document_enum
+@doc_enum
 class SecurityClass(RepresentableEnum):
     """Sicherheitsklasse, version 1
 
@@ -634,7 +633,7 @@ class SecurityClass(RepresentableEnum):
     NON_REPUD_QUAL = 4  # doc: Sicherheitsdienst 'Non-Repudiation' mit fortgeschrittener bzw. qualifizierter elektronischer Signatur, zwingende Zertifikatsprüfung
 
 
-@document_enum
+@doc_enum
 class UPDUsage(RepresentableEnum):
     """UPD-Verwendung, version 2
 
@@ -645,7 +644,7 @@ class UPDUsage(RepresentableEnum):
     UPD_INCONCLUSIVE = '1'  # doc: Bei nicht aufgeführten Geschäftsvorfällen ist keine Aussage möglich, ob diese erlaubt oder gesperrt sind
 
 
-@document_enum
+@doc_enum
 class SystemIDStatus(RepresentableEnum):
     """Kundensystem-Status, version 2
 
@@ -654,7 +653,7 @@ class SystemIDStatus(RepresentableEnum):
     ID_NECESSARY = '1'  # doc: Kundensystem-ID wird benötigt
 
 
-@document_enum
+@doc_enum
 class SynchronizationMode(RepresentableEnum):
     """Synchronisierungsmodus, version 2
 
@@ -664,7 +663,7 @@ class SynchronizationMode(RepresentableEnum):
     SIGNATURE_ID = '2'  # doc: Signatur-ID zurückmelden
 
 
-@document_enum
+@doc_enum
 class CreditDebit2(RepresentableEnum):
     """Soll-Haben-Kennzeichen, version 2
 
@@ -720,7 +719,7 @@ class Timestamp1(DataElementGroup):
     time = DataElementField(type='tim', required=False, _d="Uhrzeit")
 
 
-@document_enum
+@doc_enum
 class TANMediaType2(RepresentableEnum):
     """TAN-Medium-Art
 
@@ -731,7 +730,7 @@ class TANMediaType2(RepresentableEnum):
     AVAILABLE = '2'  # doc: Verfügbar
 
 
-@document_enum
+@doc_enum
 class TANMediaClass3(RepresentableEnum):
     """TAN-Medium-Klasse, version 3
 
@@ -744,7 +743,7 @@ class TANMediaClass3(RepresentableEnum):
     SECODER = 'S'  # doc: Secoder
 
 
-@document_enum
+@doc_enum
 class TANMediaClass4(RepresentableEnum):
     """TAN-Medium-Klasse, version 4
 
@@ -758,7 +757,7 @@ class TANMediaClass4(RepresentableEnum):
     BILATERAL = 'B'  # doc: Bilateral vereinbart
 
 
-@document_enum
+@doc_enum
 class TANMediumStatus(RepresentableEnum):
     """Status
 
@@ -817,7 +816,7 @@ class TANMedia5(DataElementGroup):
     active_since = DataElementField(type='dat', required=False, _d="Freigeschaltet am")
 
 
-@document_enum
+@doc_enum
 class TANUsageOption(RepresentableEnum):
     """TAN-Einsatzoption
 
@@ -863,7 +862,7 @@ class BatchTransferParameter1(DataElementGroup):
     single_booking_allowed = DataElementField(type='jn', _d="Einzelbuchung erlaubt")
 
 
-@document_enum
+@doc_enum
 class ServiceType2(RepresentableEnum):
     T_ONLINE = 1  # doc: T-Online
     TCP_IP = 2  # doc: TCP/IP (Protokollstack SLIP/PPP)
@@ -995,14 +994,14 @@ class QueryCreditCardStatements2(DataElementGroup):
     date_range_allowed = DataElementField(type='jn', _d="Zeitraum möglich")
 
 
-@document_enum
+@doc_enum
 class SEPACCode1(RepresentableEnum):
     REVERSAL = '1'  # doc: Reversal
     REVOCATION = '2'  # doc: Revocation
     DELETION = '3'  # doc: Delete
 
 
-@document_enum
+@doc_enum
 class StatusSEPATask1(RepresentableEnum):
     PENDING = '1'  # doc: In Terminierung
     DECLINED = '2'  # doc: Abgelehnt von erster Inkassostelle
