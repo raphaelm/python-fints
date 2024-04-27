@@ -17,7 +17,7 @@ from .exceptions import *
 from .formals import (
     CUSTOMER_ID_ANONYMOUS, KTI1, BankIdentifier, DescriptionRequired,
     SynchronizationMode, TANMediaClass4, TANMediaType2,
-    SupportedMessageTypes)
+    SupportedMessageTypes, StatementFormat)
 from .message import FinTSInstituteMessage
 from .models import SEPAAccount
 from .parser import FinTS3Serializer
@@ -36,7 +36,7 @@ from .segments.depot import HKWPD5, HKWPD6
 from .segments.dialog import HIRMG2, HIRMS2, HISYN4, HKSYN3
 from .segments.journal import HKPRO3, HKPRO4
 from .segments.saldo import HKSAL5, HKSAL6, HKSAL7
-from .segments.statement import DKKKU2, HKKAZ5, HKKAZ6, HKKAZ7, HKCAZ1
+from .segments.statement import DKKKU2, HKKAZ5, HKKAZ6, HKKAZ7, HKCAZ1, HKKAU2, HKKAU1, HKEKA3, HKEKA4, HKEKA5
 from .segments.transfer import HKCCM1, HKCCS1, HKIPZ1, HKIPM1
 from .types import SegmentSequence
 from .utils import (
@@ -726,6 +726,55 @@ class FinTS3Client:
             )
 
         return responses
+
+    def get_statements(self, account: SEPAAccount):
+        """
+        Retrieve list of statements of an account.
+
+        :param account: SEPAAccount to retrieve statements for.
+        :return: List of HIKAU objects
+        """
+        with self._get_dialog() as dialog:
+            hkkau = self._find_highest_supported_command(HKKAU1, HKKAU2)
+
+            responses = self._fetch_with_touchdowns(
+                dialog,
+                lambda touchdown: hkkau(
+                    account=hkkau._fields['account'].type.from_sepa_account(account),
+                    touchdown_point=touchdown,
+                ),
+                lambda response: response,
+                'HIKAU'
+            )
+
+            return responses
+
+    def _get_statement(self, command_seg, response):
+        for resp in response.response_segments(command_seg, 'HIEKA'):
+            return resp
+
+    def get_statement(self, account: SEPAAccount, number: int, year: int, format: StatementFormat = None):
+        """
+        Retrieve a given statement of an account.
+
+        :param account: SEPAAccount to retrieve statement for.
+        :param number: Number of the statement to retrieve.
+        :param year: Year of the statement to retrieve.
+        :param format: Format to retrieve the statement in.
+        :return: HIEKA object
+        """
+        with self._get_dialog() as dialog:
+            hkeka = self._find_highest_supported_command(HKEKA3, HKEKA4, HKEKA5)
+
+            seg = hkeka(
+                account=hkeka._fields['account'].type.from_sepa_account(account),
+                statement_format=format,
+                statement_number=number,
+                statement_year=year
+            )
+
+            response = self._send_with_possible_retry(dialog, seg, self._get_statement)
+            return response
 
     def _find_supported_sepa_version(self, candidate_versions):
         hispas = self.bpd.find_segment_first('HISPAS')
