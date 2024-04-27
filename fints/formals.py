@@ -1043,3 +1043,31 @@ class BookedCamtStatements1(DataElementGroup):
 
     Source:  Messages - Multibankfähige Geschäftsvorfälle (SEPA)"""
     camt_statements = DataElementField(type='bin', min_count=1, required=True, _d="camt-Umsätze gebucht")
+
+
+@document_enum
+class StatementFormat(RepresentableEnum):
+    """Kontoauszugsformat
+
+    Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Messages -- Multibankfähige Geschäftsvorfälle"""
+    MT_940 = '1'  # doc: S.W.I.F.T. MT940
+    ISO_8583 = '2'  # doc: ISO 8583
+    PDF = '3'  # doc: printable format (e.g., PDF)
+
+
+@document_enum
+class Confirmation(RepresentableEnum):
+    """Quittierung
+
+    Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Messages -- Multibankfähige Geschäftsvorfälle"""
+    NOT_REQUIRED = '0'  # doc: Nicht Notwendig
+    CONFIRMED = '1'  # doc: Quittiert
+    AWAITING_CONFIRMATION = '2'  # doc: Quittierung offen
+
+
+class ReportPeriod2(DataElementGroup):
+    """Berichtszeitraum, version 2
+
+    Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Messages -- Multibankfähige Geschäftsvorfälle"""
+    start_date = DataElementField(type='dat', _d="Startdatum")
+    end_date = DataElementField(type='dat', required=False, _d="Enddatum")
