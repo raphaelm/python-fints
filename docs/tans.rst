@@ -65,7 +65,7 @@ Flicker-Code / optiTAN
 ----------------------
 
 If you want to use chipTAN with an optical TAN device, we provide utilities to print the flicker code on
-a unix terminal. Just pass the ``challenge_hhd_uc`` value to this method:
+a unix terminal. Just pass the ``challenge_hhduc`` value to this method:
 
 .. autofunction:: fints.hhd.flicker.terminal_flicker_unix
 
