@@ -1388,6 +1388,8 @@ class FinTS3PinTanClient(FinTS3Client):
         return self.selected_security_function
 
     def set_tan_mechanism(self, security_function):
+        if self.selected_security_function == security_function:
+            return
         if self._standing_dialog:
             raise Exception("Cannot change TAN mechanism with a standing dialog")
         self.selected_security_function = security_function
