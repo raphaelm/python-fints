@@ -737,11 +737,19 @@ class TANMediaClass3(RepresentableEnum):
 
     Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Sicherheitsverfahren PIN/TAN"""
 
-    ALL = 'A'  # doc: Alle Medien
-    LIST = 'L'  # doc: Liste
-    GENERATOR = 'G'  # doc: TAN-Generator
-    MOBILE = 'M'  # doc: Mobiltelefon mit mobileTAN
-    SECODER = 'S'  # doc: Secoder
+    def __new__(cls, value: str, docstr: str):
+        member = object.__new__(cls)
+
+        member._value_ = value
+        member.__doc__ = docstr.strip() 
+
+        return member
+
+    ALL = 'A', "Alle Medien"
+    LIST = 'L', "Liste"
+    GENERATOR = 'G',"TAN-Generator"
+    MOBILE = 'M',"Mobiltelefon mit mobileTAN"
+    SECODER = 'S',"Secoder"
 
 
 @document_enum
@@ -749,25 +757,40 @@ class TANMediaClass4(RepresentableEnum):
     """TAN-Medium-Klasse, version 4
 
     Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Sicherheitsverfahren PIN/TAN"""
+    
+    def __new__(cls, value: str, docstr: str):
+        member = object.__new__(cls)
 
-    ALL = 'A'  # doc: Alle Medien
-    LIST = 'L'  # doc: Liste
-    GENERATOR = 'G'  # doc: TAN-Generator
-    MOBILE = 'M'  # doc: Mobiltelefon mit mobileTAN
-    SECODER = 'S'  # doc: Secoder
-    BILATERAL = 'B'  # doc: Bilateral vereinbart
+        member._value_ = value
+        member.__doc__ = docstr.strip()  
 
+        return member
+
+    ALL = 'A', "Alle Medien"
+    LIST = 'L', "Liste"
+    GENERATOR = 'G',"TAN-Generator"
+    MOBILE = 'M',"Mobiltelefon mit mobileTAN"
+    SECODER = 'S',"Secoder"
+    BILATERAL = 'B',"Bilateral vereinbart"
 
 @document_enum
 class TANMediumStatus(RepresentableEnum):
     """Status
 
     Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Sicherheitsverfahren PIN/TAN"""
+    
+    def __new__(cls, value: str, docstr: str):
+        member = object.__new__(cls)
 
-    ACTIVE = '1'  # doc: Aktiv
-    AVAILABLE = '2'  # doc: Verfügbar
-    ACTIVE_SUCCESSOR = '3'  # doc: Aktiv Folgekarte
-    AVAILABLE_SUCCESSOR = '4'  # doc: Verfügbar Folgekarte
+        member._value_ = value
+        member.__doc__ = docstr.strip()  
+
+        return member
+
+    ACTIVE = '1', "Aktiv"
+    AVAILABLE = '2', """Verfügbar"""
+    ACTIVE_SUCCESSOR = '3', """Aktiv Folgekarte"""
+    AVAILABLE_SUCCESSOR = '4', """Verfügbar Folgekarte"""
 
 
 class TANMedia4(DataElementGroup):
