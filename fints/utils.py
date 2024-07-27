@@ -8,6 +8,7 @@ from contextlib import contextmanager
 from datetime import datetime
 from enum import Enum
 
+from .models import StatementOfHoldings
 import mt940
 
 from .models import Holding
@@ -139,17 +140,18 @@ class ShortReprMixin:
             + "{!r}{}{}\n".format(self, trailer, first_line_suffix)
         )
 
-
 class MT535_Miniparser:
     re_identification = re.compile(r"^:35B:ISIN\s(.*)\|(.*)\|(.*)$")
     re_marketprice = re.compile(r"^:90B::MRKT\/\/ACTU\/([A-Z]{3})(\d*),{1}(\d*)$")
     re_pricedate = re.compile(r"^:98A::PRIC\/\/(\d*)$")
+    re_pricedate_time = re.compile(r"^:98C::PRIC\/\/(\d*)$")
     re_pieces = re.compile(r"^:93B::AGGR\/\/UNIT\/(\d*),(\d*)$")
     re_totalvalue = re.compile(r"^:19A::HOLD\/\/([A-Z]{3})(\d*),{1}(\d*)$")
+    re_depot_totalvalue = re.compile(r"^:19A::HOLP\/\/([A-Z]{3})(\d*),{1}(\d*)$")
     re_acquisitionprice = re.compile(r"^:70E::HOLD\/\/\d*STK\|2(\d*?),{1}(\d*?)\+([A-Z]{3})$")
 
     def parse(self, lines):
-        retval = []
+        retval = StatementOfHoldings()
         # First: Collapse multiline clauses into one clause
         clauses = self.collapse_multilines(lines)
         # Second: Scan sequence of clauses for financial instrument
@@ -175,7 +177,12 @@ class MT535_Miniparser:
                 # e.g. ':98A::PRIC//20170428'
                 m = self.re_pricedate.match(clause)
                 if m:
-                    price_date = datetime.strptime(m.group(1), "%Y%m%d").date()
+                    price_date = datetime.strptime(m.group(1), "%Y%m%d")
+                
+                m = self.re_pricedate_time.match(clause)
+                if m:
+                    price_date = datetime.strptime(m.group(1), "%Y%m%d%H%M%S")
+                    
                 # number of pieces
                 # e.g. ':93B::AGGR//UNIT/16,8211'
                 m = self.re_pieces.match(clause)
@@ -193,12 +200,20 @@ class MT535_Miniparser:
                     acquisitionprice = float(m.group(1) + '.' + m.group(2))
 
             # processed all clauses
-            retval.append(
+            retval.holdings.append(
                 Holding(
                     ISIN=isin, name=name, market_value=market_price,
                     value_symbol=price_symbol, valuation_date=price_date,
                     pieces=pieces, total_value=total_value,
                     acquisitionprice=acquisitionprice))
+            
+        add_info_segments = self.grab_additional_info_segments(clauses)
+        
+        for add_info_seg in add_info_segments:
+            m = self.re_depot_totalvalue.match(add_info_seg)
+            if m:
+                retval.total_value = float(m.group(2) + "." + m.group(3))
+            
         return retval
 
     def collapse_multilines(self, lines):
@@ -234,6 +249,20 @@ class MT535_Miniparser:
             else:
                 if within_financial_instrument:
                     stack.append(clause)
+        return retval
+    
+    def grab_additional_info_segments(self, clauses):
+        retval = []
+        
+        within_additional_info = False
+        for clause in clauses:
+            if clause.startswith(":16R:ADDINFO"):                
+                within_additional_info = True
+            elif clause.startswith(":16S:ADDINFO"):
+                return retval
+            else:
+                if within_additional_info:
+                    retval.append(clause)
         return retval
 
 

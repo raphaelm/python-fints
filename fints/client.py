@@ -17,9 +17,9 @@ from .exceptions import *
 from .formals import (
     CUSTOMER_ID_ANONYMOUS, KTI1, BankIdentifier, DescriptionRequired,
     SynchronizationMode, TANMediaClass4, TANMediaType2,
-    SupportedMessageTypes)
+    SupportedMessageTypes, )
 from .message import FinTSInstituteMessage
-from .models import SEPAAccount
+from .models import SEPAAccount, StatementOfHoldings
 from .parser import FinTS3Serializer
 from .security import (
     PinTanDummyEncryptionMechanism, PinTanOneStepAuthenticationMechanism,
@@ -633,7 +633,7 @@ class FinTS3Client:
             response = self._send_with_possible_retry(dialog, seg, self._get_balance)
             return response
 
-    def get_holdings(self, account: SEPAAccount):
+    def get_statement_of_holdings(self, account: SEPAAccount):
         """
         Retrieve holdings of an account.
 
@@ -657,7 +657,7 @@ class FinTS3Client:
         if isinstance(responses, NeedTANResponse):
             return responses
 
-        holdings = []
+        statement = StatementOfHoldings()
         for resp in responses:
             if type(resp.holdings) == bytes:
                 holding_str = resp.holdings.decode()
@@ -668,11 +668,12 @@ class FinTS3Client:
             # The first line is empty - drop it.
             del mt535_lines[0]
             mt535 = MT535_Miniparser()
-            holdings.extend(mt535.parse(mt535_lines))
-
-        if not holdings:
-            logger.debug('No HIWPD response segment found - maybe account has no holdings?')
-        return holdings
+            statement_part = mt535.parse(mt535_lines)
+            
+            statement.holdings.extend(statement_part.holdings)
+            statement.total_value += statement_part.total_value
+        
+        return statement
 
     def get_scheduled_debits(self, account: SEPAAccount, multiple=False):
         with self._get_dialog() as dialog:
@@ -1119,7 +1120,7 @@ IMPLEMENTED_HKTAN_VERSIONS = {
 
 class FinTS3PinTanClient(FinTS3Client):
 
-    def __init__(self, bank_identifier, user_id, pin, server, customer_id=None, *args, **kwargs):
+    def __init__(self, bank_identifier, user_id, pin, server, customer_id=None, tan_request_handler=None,*args, **kwargs):
         self.pin = Password(pin) if pin is not None else pin
         self._pending_tan = None
         self.connection = FinTSHTTPSConnection(server)
@@ -1127,6 +1128,7 @@ class FinTS3PinTanClient(FinTS3Client):
         self.selected_security_function = None
         self.selected_tan_medium = None
         self._bootstrap_mode = True
+        self.tan_request_handler = None
         super().__init__(bank_identifier=bank_identifier, user_id=user_id, customer_id=customer_id, *args, **kwargs)
 
     def _new_dialog(self, lazy_init=False):
@@ -1150,6 +1152,13 @@ class FinTS3PinTanClient(FinTS3Client):
             enc_mechanism=enc,
             auth_mechanisms=auth,
         )
+
+    def process_tan_request(self, tan_request: NeedTANResponse):
+        if self.tan_request_handler:
+            return self.tan_request_handler(self, tan_request)
+        else:
+            return tan_request
+
 
     def fetch_tan_mechanisms(self):
         self.set_tan_mechanism('999')
@@ -1254,13 +1263,14 @@ class FinTS3PinTanClient(FinTS3Client):
 
                 for resp in response.responses(tan_seg):
                     if resp.code in ('0030', '3955'):
-                        return NeedTANResponse(
+                        tan_request = NeedTANResponse(
                             command_seg,
                             response.find_segment_first('HITAN'),
                             resume_func,
                             self.is_challenge_structured(),
                             resp.code == '3955',
                         )
+                        return self.process_tan_request(tan_request)
                     if resp.code.startswith('9'):
                         raise Exception("Error response: {!r}".format(response))
             else:

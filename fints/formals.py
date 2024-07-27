@@ -506,7 +506,7 @@ class KTZ1(DataElementGroup):
         from fints.models import SEPAAccount
         if not self.is_sepa:
             return None
-        return SEPAAccount(self.iban, self.bic, self.account_number, self.subaccount_number, self.bank_identifier.bank_code)
+        return SEPAAccount(self.iban, self.bic, self.account_number, self.subaccount_number, self.bank_identifier.bank_code, self.bank_identifier.country_identifier)
 
     @classmethod
     def from_sepa_account(cls, acc):
@@ -552,10 +552,15 @@ class Account2(DataElementGroup):
 
     @classmethod
     def from_sepa_account(cls, acc):
+        if acc.country_id:
+            country_id = acc.country_id
+        if acc.bic:
+            country_id = BankIdentifier.COUNTRY_ALPHA_TO_NUMERIC[acc.bic[4:6]]   
+        
         return cls(
             account_number=acc.accountnumber,
             subaccount_number=acc.subaccount,
-            country_identifier=BankIdentifier.COUNTRY_ALPHA_TO_NUMERIC[acc.bic[4:6]],
+            country_identifier=country_id,
             bank_code=acc.blz,
         )
 
