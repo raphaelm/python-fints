@@ -15,10 +15,20 @@ from .models import Holding
 
 
 def mt940_to_array(data):
-    data = data.replace("@@", "\r\n")
-    data = data.replace("-0000", "+0000")
-    transactions = mt940.models.Transactions()
-    return transactions.parse(data)
+    # The data string might contain multiple MT940 strings separated by a new line character and "-"
+    # Split this string and parse each MT940 individually   
+    mt940_split = re.split(r'(?<=\r\n-)(?=\r\n)', data)
+    result = []
+    for mt940_string in mt940_split:   
+        if mt940_string == '':
+            break     
+        mt940_string = mt940_string.replace("@@", "\r\n")
+        mt940_string = mt940_string.replace("-0000", "+0000")        
+        transactions = mt940.models.Transactions()
+        transactions.parse(mt940_string)
+        result.append(transactions)
+        
+    return result
 
 
 def classproperty(f):

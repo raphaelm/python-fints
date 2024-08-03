@@ -448,7 +448,6 @@ class FinTS3Client:
 
         :return: List of SEPAAccount objects.
         """
-
         seg = HKSPA1()
         with self._get_dialog() as dialog:
             return self._send_with_possible_retry(dialog, seg, self._get_sepa_accounts)
@@ -521,6 +520,8 @@ class FinTS3Client:
         :param end_date: Last day to fetch
         :return: A list of mt940.models.Transaction objects
         """
+        
+        self._check_operation(account, FinTSOperations.GET_TRANSACTIONS)
 
         with self._get_dialog() as dialog:
             hkkaz = self._find_highest_supported_command(HKKAZ5, HKKAZ6, HKKAZ7)
@@ -568,6 +569,8 @@ class FinTS3Client:
         :return: Two lists of bytestrings containing XML documents, possibly empty: first one for booked transactions,
             second for pending transactions
         """
+        
+        self._check_operation(account, FinTSOperations.GET_TRANSACTIONS_XML)
 
         with self._get_dialog() as dialog:
             hkcaz = self._find_highest_supported_command(HKCAZ1)
@@ -591,6 +594,8 @@ class FinTS3Client:
         return responses
 
     def get_credit_card_transactions(self, account: SEPAAccount, credit_card_number: str, start_date: datetime.date = None, end_date: datetime.date = None):
+        
+        self._check_operation(account, FinTSOperations.GET_CREDIT_CARD_TRANSACTIONS)
         # FIXME Reverse engineered, probably wrong
         with self._get_dialog() as dialog:
             dkkku = self._find_highest_supported_command(DKKKU2)
@@ -621,6 +626,8 @@ class FinTS3Client:
         :param account: SEPA account to fetch the balance
         :return: A mt940.models.Balance object
         """
+        
+        self._check_operation(account, FinTSOperations.GET_BALANCE)
 
         with self._get_dialog() as dialog:
             hksal = self._find_highest_supported_command(HKSAL5, HKSAL6, HKSAL7)
@@ -640,6 +647,8 @@ class FinTS3Client:
         :param account: SEPAAccount to retrieve holdings for.
         :return: List of Holding objects
         """
+        self._check_operation(account, FinTSOperations.GET_HOLDINGS)
+        
         # init dialog
         with self._get_dialog() as dialog:
             hkwpd = self._find_highest_supported_command(HKWPD5, HKWPD6)
@@ -676,6 +685,11 @@ class FinTS3Client:
         return statement
 
     def get_scheduled_debits(self, account: SEPAAccount, multiple=False):
+        if multiple:
+            self._check_operation(account, FinTSOperations.GET_SCHEDULED_DEBITS_MULTIPLE)
+        else:
+            self._check_operation(account, FinTSOperations.GET_SCHEDULED_DEBITS_SINGLE)
+            
         with self._get_dialog() as dialog:
             if multiple:
                 command_classes = (HKDMB1, )
@@ -998,6 +1012,17 @@ class FinTS3Client:
         with self._standing_dialog:
             yield self
         self._standing_dialog = None
+    
+    def _check_operation(self, account: SEPAAccount, operation: FinTSOperations):
+        bank_info = self.get_information()
+        
+        account_info = next((acc for acc in bank_info["accounts"] if acc["iban"] == account.iban and acc["account_number"] == account.accountnumber), None)
+        if not account_info:
+            raise FinTSUnsupportedOperation(f"Operation {operation} for account {account} not allowed")
+        
+        supported_operations = account_info["supported_operations"]
+        if not supported_operations[operation]:
+            raise FinTSUnsupportedOperation(f"Operation {operation} for account {account} not allowed")
 
 
 class NeedTANResponse(NeedRetryResponse):
@@ -1128,7 +1153,7 @@ class FinTS3PinTanClient(FinTS3Client):
         self.selected_security_function = None
         self.selected_tan_medium = None
         self._bootstrap_mode = True
-        self.tan_request_handler = None
+        self.tan_request_handler = tan_request_handler
         super().__init__(bank_identifier=bank_identifier, user_id=user_id, customer_id=customer_id, *args, **kwargs)
 
     def _new_dialog(self, lazy_init=False):
