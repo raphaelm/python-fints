@@ -86,8 +86,8 @@ class DIKKU2(FinTS3Segment):
     account_number = DataElementField(type='an', max_length=30, _d='Kontonummer')
     unknown1 = DataElementField(type='an', max_length=30, _d="Unbekannt 1")
     balance = DataElementGroupField(type=Balance1, _d="Gebuchter Saldo")
-    unknown2 = DataElementField(type='an', max_length=30, _d="Unbekannt 2")
-    unknown3 = DataElementField(type='an', max_length=30, _d='Unbekannt 3')
+    unknown2 = DataElementField(type='an', max_length=30, _d="Unbekannt 2", required=False)
+    unknown3 = DataElementField(type='an', max_length=30, _d='Unbekannt 3', required=False)
     transactions = DataElementGroupField(type=CreditCardTransaction1, max_count=999, required=False, _d="Umsätze")
     
 
