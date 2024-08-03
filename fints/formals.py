@@ -1072,3 +1072,26 @@ class BookedCamtStatements1(DataElementGroup):
 
     Source:  Messages - Multibankfähige Geschäftsvorfälle (SEPA)"""
     camt_statements = DataElementField(type='bin', min_count=1, required=True, _d="camt-Umsätze gebucht")
+
+class CreditCardTransaction1(DataElementGroup):
+    
+    account_number = DataElementField(type='an', max_length=30, _d='Kontonummer')
+    posting_date = DataElementField(type='dat', required=False, _d="Umsatztag")
+    value_date = DataElementField(type='dat', required=False, _d="Buchungsdatum")
+    unknown1 = DataElementField(type='an', max_length=0, _d="Unbekannt 1")
+    posting_amount = DataElementGroupField(type=Amount1, _d='Buchungsbetrag') 
+    debitmark_posting_amount = DataElementField(type='an', min_length=1, max_length=1, _d="Soll-/Haben Kennzeichen")
+    currency_rate = DataElementField(type='wrt', _d="Wechselkurs")
+    value_amount = DataElementGroupField(type=Amount1, _d='Wertstellungsbetrag') 
+    debitmark = DataElementField(type='an', min_length=1, max_length=1, _d="Debitmark")
+    purpose1 = DataElementField(type='an', max_length=50, _d="Verwendungszweck")
+    purpose2 = DataElementField(type='an', max_length=50, _d="Verwendungszweck")
+    purpose3 = DataElementField(type='an', max_length=50, _d="Verwendungszweck")
+    purpose4 = DataElementField(type='an', max_length=50, _d="Verwendungszweck")
+    purpose5 = DataElementField(type='an', max_length=50, _d="Verwendungszweck")
+    purpose6 = DataElementField(type='an', max_length=50, _d="Verwendungszweck")
+    purpose7 = DataElementField(type='an', max_length=50, _d="Verwendungszweck")
+    purpose8 = DataElementField(type='an', max_length=50, _d="Verwendungszweck")
+    purpose9 = DataElementField(type='an', max_length=50, _d="Verwendungszweck")
+    unkown_flag = DataElementField(type='an', max_length=1, _d="Unbekanntes Flag")
+    reference = DataElementField(type='an', max_length=16, _d="Referenz")

@@ -1,5 +1,5 @@
 from fints.fields import DataElementField, DataElementGroupField
-from fints.formals import KTI1, Account2, Account3, QueryCreditCardStatements2, SupportedMessageTypes, \
+from fints.formals import KTI1, Account2, Account3, Balance1, CreditCardTransaction1, QueryCreditCardStatements2, SupportedMessageTypes, \
     BookedCamtStatements1
 
 from .base import FinTS3Segment, ParameterSegment
@@ -71,6 +71,7 @@ class DKKKU2(FinTS3Segment):
     Source: Reverse engineered"""
     account = DataElementGroupField(type=Account2, _d="Kontoverbindung Auftraggeber")
     credit_card_number = DataElementField(type='an', _d="Kreditkartennummer")
+    
     subaccount = DataElementField(type='an', required=False, _d="Subaccount?")
     date_start = DataElementField(type='dat', required=False, _d="Von Datum")
     date_end = DataElementField(type='dat', required=False, _d="Bis Datum")
@@ -82,6 +83,13 @@ class DIKKU2(FinTS3Segment):
     """Kreditkartenumsätze rückmelden, version 2
 
     Source: Reverse engineered"""
+    account_number = DataElementField(type='an', max_length=30, _d='Kontonummer')
+    unknown1 = DataElementField(type='an', max_length=30, _d="Unbekannt 1")
+    balance = DataElementGroupField(type=Balance1, _d="Gebuchter Saldo")
+    unknown2 = DataElementField(type='an', max_length=30, _d="Unbekannt 2")
+    unknown3 = DataElementField(type='an', max_length=30, _d='Unbekannt 3')
+    transactions = DataElementGroupField(type=CreditCardTransaction1, max_count=999, required=False, _d="Umsätze")
+    
 
 class DIKKUS2(ParameterSegment):
     """Kreditkartenumsätze anfordern Parameter, version 2
