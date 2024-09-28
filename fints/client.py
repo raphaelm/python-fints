@@ -1215,10 +1215,10 @@ class FinTS3PinTanClient(FinTS3Client):
             raise NotImplementedError("TAN-Process 1 not implemented")
 
         if tan_process in ('1', '3', '4') and self.is_tan_media_required():
-            if self.selected_tan_medium:
+            if self.selected_tan_medium is not None:
                 seg.tan_medium_name = self.selected_tan_medium
             else:
-                seg.tan_medium_name = 'DUMMY'
+                seg.tan_medium_name = ''
 
         if tan_process == '4' and tan_mechanism.VERSION >= 6:
             seg.segment_type = orig_seg.header.type
