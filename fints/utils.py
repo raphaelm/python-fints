@@ -296,7 +296,7 @@ def minimal_interactive_cli_bootstrap(client):
             choice = input("Choice: ").strip()
             client.set_tan_mechanism(mechanisms[int(choice)][0])
 
-    if client.is_tan_media_required() and client.selected_tan_medium is None:
+    if client.selected_tan_medium is None and client.is_tan_media_required():
         print("We need the name of the TAN medium, let's fetch them from the bank")
         m = client.get_tan_media()
         if len(m[1]) == 1:
