@@ -28,11 +28,10 @@ setup(
         'Intended Audience :: Developers',
         'Intended Audience :: Other Audience',
         'License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)',
-        'Programming Language :: Python :: 3.6',
-        'Programming Language :: Python :: 3.7',
-        'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
         'Programming Language :: Python :: 3.10',
+        'Programming Language :: Python :: 3.11',
+        'Programming Language :: Python :: 3.12',
     ],
 
     keywords='hbci banking fints',
@@ -41,7 +40,7 @@ setup(
         'mt-940',
         'requests',
         'sepaxml~=2.1',
-        'enum-tools~=0.9.0',
+        'enum-tools~=0.12.0',
     ],
 
     packages=find_packages(include=['fints', 'fints.*']),
