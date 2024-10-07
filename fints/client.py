@@ -160,7 +160,7 @@ class FinTSClientMode(Enum):
 class FinTS3Client:
     def __init__(self,
                  bank_identifier, user_id, customer_id=None,
-                 from_data: bytes=None,
+                 from_data: bytes=None, system_id=None,
                  product_id=None, product_version=version[:5],
                  mode=FinTSClientMode.INTERACTIVE):
         self.accounts = []
@@ -170,7 +170,7 @@ class FinTS3Client:
             self.bank_identifier = BankIdentifier(BankIdentifier.COUNTRY_ALPHA_TO_NUMERIC['DE'], bank_identifier)
         else:
             raise TypeError("bank_identifier must be BankIdentifier or str (BLZ)")
-        self.system_id = SYSTEM_ID_UNASSIGNED
+        self.system_id = system_id or SYSTEM_ID_UNASSIGNED
         if not product_id:
             raise TypeError("The product_id keyword argument is mandatory starting with python-fints version 4. See "
                             "https://python-fints.readthedocs.io/en/latest/upgrading_3_4.html for more information.")
