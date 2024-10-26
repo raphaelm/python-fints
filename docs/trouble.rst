@@ -103,7 +103,8 @@ the problem.
                 "Fetch holdings",
                 "Fetch scheduled debits",
                 "Fetch status protocol",
-                "Make a simple transfer"
+                "Make a simple transfer",
+                "Fetch statements as PDF",
             ]
 
             print("Choose an operation")
@@ -173,5 +174,19 @@ the problem.
 
                     while isinstance(res, NeedTANResponse):
                         res = ask_for_tan(res)
+                elif choice == 11:
+                    print("Select statement")
+                    statements = f.get_statements(account)
+                    for i, statement in enumerate(statements):
+                        print(i, f"Statement {statement.statement_number}/{statement.year}")
+                    choice = int(input("Choice: ").strip())
+                    statement = statements[choice]
+                    output_pdf = 'statement.pdf'
+                    res = f.get_statement(account, statement.statement_number, statement.year, StatementFormat.PDF)
+                    while isinstance(res, NeedTANResponse):
+                        res = ask_for_tan(res)
+                    with open(output_pdf, 'wb') as file:
+                        file.write(res.data)
+                    print("Written to", output_pdf)
             except FinTSUnsupportedOperation as e:
                 print("This operation is not supported by this bank:", e)

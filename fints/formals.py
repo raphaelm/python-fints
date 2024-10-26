@@ -1045,7 +1045,7 @@ class BookedCamtStatements1(DataElementGroup):
     camt_statements = DataElementField(type='bin', min_count=1, required=True, _d="camt-Umsätze gebucht")
 
 
-@document_enum
+@doc_enum
 class StatementFormat(RepresentableEnum):
     """Kontoauszugsformat
 
@@ -1055,7 +1055,7 @@ class StatementFormat(RepresentableEnum):
     PDF = '3'  # doc: printable format (e.g., PDF)
 
 
-@document_enum
+@doc_enum
 class Confirmation(RepresentableEnum):
     """Quittierung
 
