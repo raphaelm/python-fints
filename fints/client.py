@@ -17,7 +17,8 @@ from .exceptions import *
 from .formals import (
     CUSTOMER_ID_ANONYMOUS, KTI1, BankIdentifier, DescriptionRequired,
     SynchronizationMode, TANMediaClass4, TANMediaType2,
-    SupportedMessageTypes)
+    SupportedMessageTypes, TANUsageOption
+)
 from .message import FinTSInstituteMessage
 from .models import SEPAAccount
 from .parser import FinTS3Serializer
@@ -1414,8 +1415,13 @@ class FinTS3PinTanClient(FinTS3Client):
             context = self._get_dialog()
             method = lambda dialog: dialog.send
 
-
         with context as dialog:
+            if isinstance(self.init_tan_response, NeedTANResponse):
+                # This is a workaround for when the dialog already contains return code 3955.
+                # This occurs with e.g. Sparkasse Heidelberg, which apparently does not require us to choose a
+                # medium for pushTAN but is totally fine with keeping "" as a TAN medium.
+                return TANUsageOption.ALL_ACTIVE, []
+
             hktab = self._find_highest_supported_command(HKTAB4, HKTAB5)
 
             seg = hktab(

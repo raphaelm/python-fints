@@ -300,6 +300,11 @@ def minimal_interactive_cli_bootstrap(client):
         m = client.get_tan_media()
         if len(m[1]) == 1:
             client.set_tan_medium(m[1][0])
+        elif len(m[1]) == 0:
+            # This is a workaround for when the dialog already contains return code 3955.
+            # This occurs with e.g. Sparkasse Heidelberg, which apparently does not require us to choose a
+            # medium for pushTAN but is totally fine with keeping "" as a TAN medium.
+            client.selected_tan_medium = ""
         else:
             print("Multiple tan media available. Which one do you prefer?")
             for i, mm in enumerate(m[1]):
