@@ -5,7 +5,10 @@ import threading
 import zlib
 from contextlib import contextmanager
 from datetime import datetime
-from enum import Enum, EnumType
+try:
+    from enum import Enum, EnumType
+except ImportError:
+    from enum import Enum, EnumMeta as EnumType
 
 import mt940
 
