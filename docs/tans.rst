@@ -65,7 +65,7 @@ Flicker-Code / optiTAN
 ----------------------
 
 If you want to use chipTAN with an optical TAN device, we provide utilities to print the flicker code on
-a unix terminal. Just pass the ``challenge_hhd_uc`` value to this method:
+a unix terminal. Just pass the ``challenge_hhduc`` value to this method:
 
 .. autofunction:: fints.hhd.flicker.terminal_flicker_unix
 
@@ -154,6 +154,13 @@ You SHOULD use this facility together with the client and dialog state restorati
     print(response.status)
     print(response.responses)
 
+System IDs
+----------
+
+During your first connection, the bank will assign your client application a "system ID" accessible
+as ``client.system_id``. Some banks require you to pass the same system ID with your next connection
+with ``FinTS3PinTanClient(..., system_id=stored_system_id)`` to avoid a TAN requirement on every login.
+(This happens automatically when using ``from_data``).
 
 Reference
 ---------
