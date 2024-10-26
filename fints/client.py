@@ -512,13 +512,15 @@ class FinTS3Client:
         else:
             return version_map.get(max_version.header.version)
 
-    def get_transactions(self, account: SEPAAccount, start_date: datetime.date = None, end_date: datetime.date = None):
+    def get_transactions(self, account: SEPAAccount, start_date: datetime.date = None, end_date: datetime.date = None,
+                         include_pending = False):
         """
         Fetches the list of transactions of a bank account in a certain timeframe.
 
         :param account: SEPA
         :param start_date: First day to fetch
         :param end_date: Last day to fetch
+        :param include_pending: Include pending transactions (might lack some data like booking day)
         :return: A list of mt940.models.Transaction objects
         """
 
@@ -535,7 +537,10 @@ class FinTS3Client:
                     date_end=end_date,
                     touchdown_point=touchdown,
                 ),
-                lambda responses: mt940_to_array(''.join([seg.statement_booked.decode('iso-8859-1') for seg in responses])),
+                lambda responses: mt940_to_array(''.join(
+                    [seg.statement_booked.decode('iso-8859-1') for seg in responses] +
+                    ([seg.statement_pending.decode('iso-8859-1') for seg in responses] if include_pending else [])
+            )),
                 'HIKAZ',
                 # Note 1: Some banks send the HIKAZ data in arbitrary splits.
                 # So better concatenate them before MT940 parsing.
