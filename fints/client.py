@@ -1125,13 +1125,13 @@ IMPLEMENTED_HKTAN_VERSIONS = {
 
 class FinTS3PinTanClient(FinTS3Client):
 
-    def __init__(self, bank_identifier, user_id, pin, server, customer_id=None, *args, **kwargs):
+    def __init__(self, bank_identifier, user_id, pin, server, customer_id=None, tan_medium=None, *args, **kwargs):
         self.pin = Password(pin) if pin is not None else pin
         self._pending_tan = None
         self.connection = FinTSHTTPSConnection(server)
         self.allowed_security_functions = []
         self.selected_security_function = None
-        self.selected_tan_medium = None
+        self.selected_tan_medium = tan_medium
         self._bootstrap_mode = True
         super().__init__(bank_identifier=bank_identifier, user_id=user_id, customer_id=customer_id, *args, **kwargs)
 
