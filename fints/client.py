@@ -17,7 +17,8 @@ from .exceptions import *
 from .formals import (
     CUSTOMER_ID_ANONYMOUS, KTI1, BankIdentifier, DescriptionRequired,
     SynchronizationMode, TANMediaClass4, TANMediaType2,
-    SupportedMessageTypes, )
+    SupportedMessageTypes, StatementFormat, TANUsageOption
+)
 from .message import FinTSInstituteMessage
 from .models import SEPAAccount, StatementOfHoldings
 from .parser import FinTS3Serializer
@@ -36,7 +37,7 @@ from .segments.depot import HKWPD5, HKWPD6
 from .segments.dialog import HIRMG2, HIRMS2, HISYN4, HKSYN3
 from .segments.journal import HKPRO3, HKPRO4
 from .segments.saldo import HKSAL5, HKSAL6, HKSAL7
-from .segments.statement import DKKKU2, HKKAZ5, HKKAZ6, HKKAZ7, HKCAZ1
+from .segments.statement import DKKKU2, HKKAZ5, HKKAZ6, HKKAZ7, HKCAZ1, HKKAU2, HKKAU1, HKEKA3, HKEKA4, HKEKA5
 from .segments.transfer import HKCCM1, HKCCS1, HKIPZ1, HKIPM1
 from .types import SegmentSequence
 from .utils import (
@@ -159,7 +160,7 @@ class FinTSClientMode(Enum):
 class FinTS3Client:
     def __init__(self,
                  bank_identifier, user_id, customer_id=None,
-                 from_data: bytes=None,
+                 from_data: bytes=None, system_id=None,
                  product_id=None, product_version=version[:5],
                  mode=FinTSClientMode.INTERACTIVE):
         self.accounts = []
@@ -169,7 +170,7 @@ class FinTS3Client:
             self.bank_identifier = BankIdentifier(BankIdentifier.COUNTRY_ALPHA_TO_NUMERIC['DE'], bank_identifier)
         else:
             raise TypeError("bank_identifier must be BankIdentifier or str (BLZ)")
-        self.system_id = SYSTEM_ID_UNASSIGNED
+        self.system_id = system_id or SYSTEM_ID_UNASSIGNED
         if not product_id:
             raise TypeError("The product_id keyword argument is mandatory starting with python-fints version 4. See "
                             "https://python-fints.readthedocs.io/en/latest/upgrading_3_4.html for more information.")
@@ -511,13 +512,15 @@ class FinTS3Client:
         else:
             return version_map.get(max_version.header.version)
 
-    def get_transactions(self, account: SEPAAccount, start_date: datetime.date = None, end_date: datetime.date = None):
+    def get_transactions(self, account: SEPAAccount, start_date: datetime.date = None, end_date: datetime.date = None,
+                         include_pending = False):
         """
         Fetches the list of transactions of a bank account in a certain timeframe.
 
         :param account: SEPA
         :param start_date: First day to fetch
         :param end_date: Last day to fetch
+        :param include_pending: Include pending transactions (might lack some data like booking day)
         :return: A list of mt940.models.Transaction objects
         """
         
@@ -536,7 +539,10 @@ class FinTS3Client:
                     date_end=end_date,
                     touchdown_point=touchdown,
                 ),
-                lambda responses: mt940_to_array(''.join([seg.statement_booked.decode('iso-8859-1') for seg in responses])),
+                lambda responses: mt940_to_array(''.join(
+                    [seg.statement_booked.decode('iso-8859-1') for seg in responses] +
+                    ([seg.statement_pending.decode('iso-8859-1') for seg in responses] if include_pending else [])
+            )),
                 'HIKAZ',
                 # Note 1: Some banks send the HIKAZ data in arbitrary splits.
                 # So better concatenate them before MT940 parsing.
@@ -741,6 +747,55 @@ class FinTS3Client:
             )
 
         return responses
+
+    def get_statements(self, account: SEPAAccount):
+        """
+        Retrieve list of statements of an account.
+
+        :param account: SEPAAccount to retrieve statements for.
+        :return: List of HIKAU objects
+        """
+        with self._get_dialog() as dialog:
+            hkkau = self._find_highest_supported_command(HKKAU1, HKKAU2)
+
+            responses = self._fetch_with_touchdowns(
+                dialog,
+                lambda touchdown: hkkau(
+                    account=hkkau._fields['account'].type.from_sepa_account(account),
+                    touchdown_point=touchdown,
+                ),
+                lambda response: response,
+                'HIKAU'
+            )
+
+            return responses
+
+    def _get_statement(self, command_seg, response):
+        for resp in response.response_segments(command_seg, 'HIEKA'):
+            return resp
+
+    def get_statement(self, account: SEPAAccount, number: int, year: int, format: StatementFormat = None):
+        """
+        Retrieve a given statement of an account.
+
+        :param account: SEPAAccount to retrieve statement for.
+        :param number: Number of the statement to retrieve.
+        :param year: Year of the statement to retrieve.
+        :param format: Format to retrieve the statement in.
+        :return: HIEKA object
+        """
+        with self._get_dialog() as dialog:
+            hkeka = self._find_highest_supported_command(HKEKA3, HKEKA4, HKEKA5)
+
+            seg = hkeka(
+                account=hkeka._fields['account'].type.from_sepa_account(account),
+                statement_format=format,
+                statement_number=number,
+                statement_year=year
+            )
+
+            response = self._send_with_possible_retry(dialog, seg, self._get_statement)
+            return response
 
     def _find_supported_sepa_version(self, candidate_versions):
         hispas = self.bpd.find_segment_first('HISPAS')
@@ -1145,13 +1200,14 @@ IMPLEMENTED_HKTAN_VERSIONS = {
 
 class FinTS3PinTanClient(FinTS3Client):
 
-    def __init__(self, bank_identifier, user_id, pin, server, customer_id=None, tan_request_handler=None,*args, **kwargs):
+
+    def __init__(self, bank_identifier, user_id, pin, server, customer_id=None, tan_medium=None, tan_request_handler=None,*args, **kwargs):
         self.pin = Password(pin) if pin is not None else pin
         self._pending_tan = None
         self.connection = FinTSHTTPSConnection(server)
         self.allowed_security_functions = []
         self.selected_security_function = None
-        self.selected_tan_medium = None
+        self.selected_tan_medium = tan_medium
         self._bootstrap_mode = True
         self.tan_request_handler = tan_request_handler
         super().__init__(bank_identifier=bank_identifier, user_id=user_id, customer_id=customer_id, *args, **kwargs)
@@ -1186,8 +1242,15 @@ class FinTS3PinTanClient(FinTS3Client):
 
 
     def fetch_tan_mechanisms(self):
-        self.set_tan_mechanism('999')
-        self._ensure_system_id()
+        if self.system_id and not self.get_current_tan_mechanism():
+            # system_id was persisted and given to the client, but nothing else
+            self.set_tan_mechanism('999')
+            with self._get_dialog(lazy_init=True) as dialog:
+                response = dialog.init()
+                self.process_response_message(dialog, response, internal_send=True)
+        else:
+            self.set_tan_mechanism('999')
+            self._ensure_system_id()
         if self.get_current_tan_mechanism():
             # We already got a reply through _ensure_system_id
             return self.get_current_tan_mechanism()
@@ -1249,10 +1312,10 @@ class FinTS3PinTanClient(FinTS3Client):
             raise NotImplementedError("TAN-Process 1 not implemented")
 
         if tan_process in ('1', '3', '4') and self.is_tan_media_required():
-            if self.selected_tan_medium:
+            if self.selected_tan_medium is not None:
                 seg.tan_medium_name = self.selected_tan_medium
             else:
-                seg.tan_medium_name = 'DUMMY'
+                seg.tan_medium_name = ''
 
         if tan_process == '4' and tan_mechanism.VERSION >= 6:
             seg.segment_type = orig_seg.header.type
@@ -1446,8 +1509,13 @@ class FinTS3PinTanClient(FinTS3Client):
             context = self._get_dialog()
             method = lambda dialog: dialog.send
 
-
         with context as dialog:
+            if isinstance(self.init_tan_response, NeedTANResponse):
+                # This is a workaround for when the dialog already contains return code 3955.
+                # This occurs with e.g. Sparkasse Heidelberg, which apparently does not require us to choose a
+                # medium for pushTAN but is totally fine with keeping "" as a TAN medium.
+                return TANUsageOption.ALL_ACTIVE, []
+
             hktab = self._find_highest_supported_command(HKTAB4, HKTAB5)
 
             seg = hktab(

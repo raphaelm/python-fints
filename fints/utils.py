@@ -1,12 +1,14 @@
 import base64
-import inspect
 import json
 import re
 import threading
 import zlib
 from contextlib import contextmanager
 from datetime import datetime
-from enum import Enum
+try:
+    from enum import Enum, EnumType
+except ImportError:
+    from enum import Enum, EnumMeta as EnumType
 
 from .models import StatementOfHoldings
 import mt940
@@ -335,11 +337,16 @@ def minimal_interactive_cli_bootstrap(client):
             choice = input("Choice: ").strip()
             client.set_tan_mechanism(mechanisms[int(choice)][0])
 
-    if client.is_tan_media_required() and not client.selected_tan_medium:
+    if client.selected_tan_medium is None and client.is_tan_media_required():
         print("We need the name of the TAN medium, let's fetch them from the bank")
         m = client.get_tan_media()
         if len(m[1]) == 1:
             client.set_tan_medium(m[1][0])
+        elif len(m[1]) == 0:
+            # This is a workaround for when the dialog already contains return code 3955.
+            # This occurs with e.g. Sparkasse Heidelberg, which apparently does not require us to choose a
+            # medium for pushTAN but is totally fine with keeping "" as a TAN medium.
+            client.selected_tan_medium = ""
         else:
             print("Multiple tan media available. Which one do you prefer?")
             for i, mm in enumerate(m[1]):
@@ -375,3 +382,11 @@ class LogConfiguration(threading.local):
 
 
 log_configuration = LogConfiguration()
+
+try:
+    from enum_tools import document_enum
+
+    doc_enum = document_enum
+except ImportError:
+    def doc_enum(an_enum: EnumType) -> EnumType:
+        return an_enum
