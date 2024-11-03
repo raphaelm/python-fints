@@ -1207,7 +1207,7 @@ class FinTS3PinTanClient(FinTS3Client):
         )
 
     def fetch_tan_mechanisms(self):
-        if self.system_id and not self.get_current_tan_mechanism():
+        if (self.system_id and self.system_id != SYSTEM_ID_UNASSIGNED) and not self.get_current_tan_mechanism():
             # system_id was persisted and given to the client, but nothing else
             self.set_tan_mechanism('999')
             with self._get_dialog(lazy_init=True) as dialog:
