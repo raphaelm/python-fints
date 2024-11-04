@@ -540,7 +540,7 @@ class FinTS3Client:
                 ),
                 lambda responses: mt940_to_array(''.join(
                     [seg.statement_booked.decode('iso-8859-1') for seg in responses] +
-                    ([seg.statement_pending.decode('iso-8859-1') for seg in responses] if include_pending and seg.statement_pending else [])
+                    ([seg.statement_pending.decode('iso-8859-1') for seg in responses if seg.statement_pending] if include_pending else [])
             )),
                 'HIKAZ',
                 # Note 1: Some banks send the HIKAZ data in arbitrary splits.
