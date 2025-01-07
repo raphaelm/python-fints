@@ -92,8 +92,12 @@ class FinTSDialog:
                                 retval.find_segment_first('HITAN'),
                                 '_continue_dialog_initialization',
                                 self.client.is_challenge_structured(),
-                                resp.code == '3955',
+                                False,
                             )
+                            if resp.code == '3955':
+                                self.client.init_tan_response.decoupled = True
+                                break
+
                 self.need_init = False
                 return retval
             except Exception as e:
