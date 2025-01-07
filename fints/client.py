@@ -51,6 +51,10 @@ SYSTEM_ID_UNASSIGNED = '0'
 DATA_BLOB_MAGIC = b'python-fints_DATABLOB'
 DATA_BLOB_MAGIC_RETRY = b'python-fints_RETRY_DATABLOB'
 
+# workaround for ING not offering PSD2 conform two step authentication
+# ING only accepts one step authentication and only allows reading operations
+ING_BANK_IDENTIFIER = BankIdentifier(country_identifier='280', bank_code='50010517')
+
 
 class FinTSOperations(Enum):
     """This enum is used as keys in the 'supported_operations' member of the get_information() response.
@@ -1257,6 +1261,8 @@ class FinTS3PinTanClient(FinTS3Client):
         return data
 
     def is_tan_media_required(self):
+        if self.bank_identifier == ING_BANK_IDENTIFIER:
+            return False
         tan_mechanism = self.get_tan_mechanisms()[self.get_current_tan_mechanism()]
         return getattr(tan_mechanism, 'supported_media_number', None) is not None and \
                 tan_mechanism.supported_media_number > 1 and \
@@ -1379,7 +1385,7 @@ class FinTS3PinTanClient(FinTS3Client):
             return resume_func(challenge.command_seg, response)
 
     def _process_response(self, dialog, segment, response):
-        if response.code == '3920':
+        if response.code == '3920' and not self.bank_identifier == ING_BANK_IDENTIFIER:
             self.allowed_security_functions = list(response.parameters)
             if self.selected_security_function is None or not self.selected_security_function in self.allowed_security_functions:
                 # Select the first available twostep security_function that we support

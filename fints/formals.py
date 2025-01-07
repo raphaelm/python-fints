@@ -160,6 +160,12 @@ class BankIdentifier(DataElementGroup):
     country_identifier = DataElementField(type='ctr')
     bank_code = DataElementField(type='an', max_length=30)
 
+    def __eq__(self, other):
+        if not isinstance(other, BankIdentifier):
+            return NotImplemented
+
+        return self.country_identifier == other.country_identifier and self.bank_code == other.bank_code
+
 
 @doc_enum
 class KeyType(RepresentableEnum):
