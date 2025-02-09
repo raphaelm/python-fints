@@ -208,6 +208,20 @@ A full example on how to get transactions if a TAN is required. If a TAN is requ
 
     product_id = "CHANGE_ME"
 
+    def ask_for_tan(f, response):
+        print("A TAN is required")
+        print(response.challenge)
+        if getattr(response, 'challenge_hhduc', None):
+            try:
+                terminal_flicker_unix(response.challenge_hhduc)
+            except KeyboardInterrupt:
+                pass
+        if response.decoupled:
+            tan = input('Please press enter after confirming the transaction in your app:')
+        else:
+            tan = input('Please enter TAN:')
+        return f.send_tan(response, tan)
+
     client = FinTS3PinTanClient(blz,
                                 username,
                                 password,
@@ -215,6 +229,9 @@ A full example on how to get transactions if a TAN is required. If a TAN is requ
                                 product_id=product_id)
     minimal_interactive_cli_bootstrap(client)
     with client:
+        while isinstance(client.init_tan_response, NeedTANResponse):
+            client.init_tan_response = ask_for_tan(client, client.init_tan_response)
+
         accounts = client.get_sepa_accounts()
         for account in accounts:
             print(f"Doing {account.iban}")
@@ -222,17 +239,7 @@ A full example on how to get transactions if a TAN is required. If a TAN is requ
                                              start_date=datetime.datetime.now() - datetime.timedelta(days=100),
                                              end_date=datetime.datetime.now())
             if isinstance(result, NeedTANResponse):
-                print("TAN is required")
-                if getattr(result, 'challenge_hhduc', None):
-                    # Smart-TAN with flicker
-                    try:
-                        terminal_flicker_unix(result.challenge_hhduc)
-                    except KeyboardInterrupt:
-                        pass
-                # else: mobile TAN/manual Smart-TAN/... is used
-                print(result.challenge)
-                tan = input('Please enter TAN:')
-                result = client.send_tan(result, tan)
+                result = ask_for_tan(client, result)
             else:
                 print("No TAN is required")
             print(f"Got {len(result)} transactions for {account.iban}")
