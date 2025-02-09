@@ -206,10 +206,13 @@ A full example on how to get transactions if a TAN is required. If a TAN is requ
 
     from credentials import blz, username, password, hbci_backend
 
+    product_id = "CHANGE_ME"
+
     client = FinTS3PinTanClient(blz,
                                 username,
                                 password,
-                                hbci_backend)
+                                hbci_backend,
+                                product_id=product_id)
     minimal_interactive_cli_bootstrap(client)
     with client:
         accounts = client.get_sepa_accounts()
