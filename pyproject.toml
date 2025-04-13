@@ -1,0 +1,43 @@
+[build-system]
+build-backend = "setuptools.build_meta"
+requires = ["setuptools>=77.0"]
+
+[project]
+name = "fints"
+license = "LGPL-3.0-or-later"
+license-files = ["LICENSE.txt"]
+description = "Pure-python FinTS 3.0 (formerly known as HBCI) implementation"
+readme = "README.md"
+authors = [{ name = "Raphael Michel", email = "mail@raphaelmichel.de" }]
+keywords = [
+  "hbci",
+  "banking",
+  "fints",
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+  "Intended Audience :: Other Audience",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+]
+requires-python = ">=3.9"
+dependencies = [
+  "bleach",
+  "mt-940",
+  "requests",
+  "sepaxml~=2.1",
+  "enum-tools~=0.12.0",
+]
+dynamic = ["version"]
+
+[project.urls]
+"Homepage" = "https://github.com/raphaelm/python-fints"
+
+[tool.setuptools.dynamic]
+version = { attr = "fints.version" }
+
+[tool.setuptools.packages.find]
+include = ["fints*"]

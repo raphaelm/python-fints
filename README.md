@@ -32,4 +32,4 @@ and features major contributions by Henryk Plötz.
 Further thanks for improving this library go out to:
 Daniel Nowak, Patrick Braune, Mathias Dalheimer, Christopher Grebs, Markus Schindler, and many more.
 
-License: LGPL
+License: LGPL-3.0-or-later
