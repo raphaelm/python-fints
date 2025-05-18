@@ -827,7 +827,13 @@ class FinTS3Client:
             "batch": False,
             "currency": "EUR",
         }
-        version = self._find_supported_sepa_version(['pain.001.001.03', 'pain.001.003.03'])
+        
+        version = self._find_supported_sepa_version([
+            'pain.001.003.03',
+            'pain.001.001.09',
+            'pain.001.001.03'
+        ])
+
         sepa = SepaTransfer(config, version)
         payment = {
             "name": recipient_name,
