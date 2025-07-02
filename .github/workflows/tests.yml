@@ -24,7 +24,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install Dependencies
-        run: python -m pip install -U pip wheel coverage codecov
+        run: python -m pip install -U pip coverage codecov
       - name: Install Dependencies
         run: python -m pip install -Ur requirements.txt pytest pytest-mock
       - name: Run tests
