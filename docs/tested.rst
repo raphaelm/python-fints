@@ -10,7 +10,7 @@ Bank                                     Transactions Holdings Transfer Debits
 Postbank                                 Yes
 BBBank eG                                Yes                   Yes
 Sparkasse Heidelberg                     Yes
-comdirect                                Yes
+comdirect                                Yes                   Yes
 ======================================== ============ ======== ======== ======
 
 Tested security functions
