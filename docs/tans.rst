@@ -91,6 +91,21 @@ a file:
        writer.write(result.challenge_matrix[1])
        writer.close()
 
+Some banks, like Comdirect, may provide the challenge within the ``challenge_hhduc`` attribute. We provide a helper function to decode the challenge. Pass the ``challenge_hhduc`` value to this method:
+
+.. autofunction:: fints.hhd.utils.decode_phototan_image
+
+This returns a dictionary with a ``mime_type`` and an ``image`` field. The ``image`` field contains the binary data
+of the image itself and can e.g. be written to a file
+
+.. code-block:: python
+    from fints.utils import decode_phototan_image
+
+    data = decode_phototan_image(challenge_hhduc)
+    writer = open("tan.png", "wb")
+    writer.write(data["image"])
+    writer.close()
+
 Sending the TAN
 ---------------
 
