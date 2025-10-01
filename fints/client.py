@@ -569,7 +569,7 @@ class FinTS3Client:
     def get_transactions_xml(self, account: SEPAAccount, start_date: datetime.date = None,
                              end_date: datetime.date = None) -> list:
         """
-        Fetches the list of transactions of a bank account in a certain timeframe as camt.052.001.02 XML files.
+        Fetches the list of transactions of a bank account in a certain timeframe as camt.052.001.08 or camt.052.001.02 XML files.
         Returns both booked and pending transactions.
 
         :param account: SEPA
@@ -591,7 +591,10 @@ class FinTS3Client:
                     date_start=start_date,
                     date_end=end_date,
                     touchdown_point=touchdown,
-                    supported_camt_messages=SupportedMessageTypes(['urn:iso:std:iso:20022:tech:xsd:camt.052.001.02']),
+                    supported_camt_messages=SupportedMessageTypes([
+                        'urn:iso:std:iso:20022:tech:xsd:camt.052.001.08',
+                        'urn:iso:std:iso:20022:tech:xsd:camt.052.001.02'
+                    ]),
                 ),
                 FinTS3Client._response_handler_get_transactions_xml,
                 'HICAZ'
