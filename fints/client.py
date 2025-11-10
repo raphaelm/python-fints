@@ -793,6 +793,7 @@ class FinTS3Client:
             return candidate_versions[0]
 
         bank_supported = list(hispas.parameter.supported_sepa_formats)
+        print(hispas)
 
         for candidate in candidate_versions:
             if "urn:iso:std:iso:20022:tech:xsd:{}".format(candidate) in bank_supported:
@@ -827,7 +828,7 @@ class FinTS3Client:
             "batch": False,
             "currency": "EUR",
         }
-        version = self._find_supported_sepa_version(['pain.001.001.03', 'pain.001.003.03'])
+        version = self._find_supported_sepa_version(['pain.001.001.03'])
         sepa = SepaTransfer(config, version)
         payment = {
             "name": recipient_name,

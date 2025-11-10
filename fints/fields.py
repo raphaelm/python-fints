@@ -291,6 +291,19 @@ class TimeField(FixedLengthMixin, DigitsField):
         return super()._render_value(val)
 
 
+# FIXME: stub
+class TimestampField(DataElementField):
+    type = 'tsp'
+    _DOC_TYPE = bytes
+
+    def _render_value(self, value):
+        retval = bytes(value)
+        self._check_value_length(retval)
+
+        return retval
+
+    def _parse_value(self, value): return bytes(value)
+
 class PasswordField(AlphanumericField):
     type = ''
     _DOC_TYPE = Password
