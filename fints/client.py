@@ -1357,11 +1357,43 @@ class FinTS3PinTanClient(FinTS3Client):
             return resume_func(command_seg, response)
         
     def _send_pay_with_possible_retry(self, dialog, command_seg, resume_func):
+        """This adds VoP under the assumption that TAN will be sent,
+        There is no VoP flow without sending any authentication that I could distinguish.
+        
+        There are really 2 VoP flows: with a full match and otherwise. All of them return the HIVPP response in NeedTANResponse.
+        
+        On a full match, it's only needed to copy the vop_id alongside the TAN response.
+        
+        In all other cases, the application should ask the user for confirmation based on HIVPP data in resp.vop_result.
+        
+        The kind of response is in resp.vop_result.single_vop_result.result:
+        - 'RCVC' - full match
+        - 'RVMC' - partial match, extra info in single_vop_result.close_match_name and .other_identification.
+        - 'RVNM' - no match, no extra info seen
+        - 'RVNA' - check not available, reason in single_vop_result.na_reason
+        - 'PDNG' - pending, seems related to something not implemented right now.
+        
+        Simple untested example.
+        
+        ```
+        def process_tan(client, challenge, prompt):
+            if challenge.vop_result and not challenge.vop_result.vop_single_result.result == 'RCVC':
+                input("WARNING!!! Recipient name don't match:", challenge.vop_result.single_vop_result.close_match_name)
+            print("A TAN is required:", challenge.challenge)
+            hitan6 = challenge.tan_request
+            ... get TAN from user
+            return client.send_tan(challenge, tan)
+        ```
+        
+        This gives the user a chance to slam ctrl+C before adding TAN.
+        
+        Internally, the library always sends a positive confirmation of transaction because the user only really acknowledges it by sending the TAN.
+        Even if the legal liability moves on receiving the accepting message, there's no liability to be had before TAN goes through. Amirite?
+        """
         vop_seg = []
         vop_standard = self._find_vop_format_for_segment(command_seg)
         if vop_standard:
             from .segments.auth import HKVPP1
-            print(self.vpps)
             vop_seg = [HKVPP1(supported_reports=PSRD1(psrd=[vop_standard]))]
         with dialog:
             if self._need_twostep_tan_for_segment(command_seg):
@@ -1377,7 +1409,6 @@ class FinTS3PinTanClient(FinTS3Client):
                 vop_result = hivpp.vop_single_result
                 print(hivpp)
                 if vop_result.result == 'RVNA':
-                    # TODO: let the user decide if they want to proceed by displaying a warning with TAN
                     print(vop_result.na_reason)
                     vop_seg = [HKVPA1(vop_id=hivpp.vop_id)]
                     segments = vop_seg + [command_seg, tan_seg]
@@ -1386,12 +1417,10 @@ class FinTS3PinTanClient(FinTS3Client):
                     vop_seg = [HKVPA1(vop_id=hivpp.vop_id)]
                     segments = vop_seg + [command_seg, tan_seg]
                     response = dialog.send(*segments)
-                    print("WARNING! Recipient name does not match.")
                 elif vop_result.result == 'RVMC':
                     vop_seg = [HKVPA1(vop_id=hivpp.vop_id)]
                     segments = vop_seg + [command_seg, tan_seg]
                     response = dialog.send(*segments)
-                    print("WARNING! Recipient name differs:", vop_result.close_match_name)
                 print(vop_result.result)
                 for resp in response.responses(tan_seg):
                     if resp.code in ('0030', '3955'):
