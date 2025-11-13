@@ -1070,12 +1070,14 @@ class NeedTANResponse(NeedRetryResponse):
     challenge_hhduc = None  #: HHD_UC challenge to be transmitted to the TAN generator
     challenge_matrix = None  #: Matrix code challenge: tuple(mime_type, data)
     decoupled = None  #: Use decoupled process
+    vop_result = None # VoC result to either send an accept reply with TAN (on full match) or display a warning (otherwise; reply already sent)
 
-    def __init__(self, command_seg, tan_request, resume_method=None, tan_request_structured=False, decoupled=False):
+    def __init__(self, command_seg, tan_request, resume_method=None, tan_request_structured=False, decoupled=False, vop_result=None):
         self.command_seg = command_seg
         self.tan_request = tan_request
         self.tan_request_structured = tan_request_structured
         self.decoupled = decoupled
+        self.vop_result = vop_result
         if hasattr(resume_method, '__func__'):
             self.resume_method = resume_method.__func__.__name__
         else:
@@ -1390,7 +1392,6 @@ class FinTS3PinTanClient(FinTS3Client):
                     segments = vop_seg + [command_seg, tan_seg]
                     response = dialog.send(*segments)
                     print("WARNING! Recipient name differs:", vop_result.close_match_name)
-
                 print(vop_result.result)
                 for resp in response.responses(tan_seg):
                     if resp.code in ('0030', '3955'):
@@ -1400,6 +1401,7 @@ class FinTS3PinTanClient(FinTS3Client):
                             resume_func,
                             self.is_challenge_structured(),
                             resp.code == '3955',
+                            hivpp,
                         )
                     if resp.code.startswith('9'):
                         raise Exception("Error response: {!r}".format(response))
@@ -1434,7 +1436,12 @@ class FinTS3PinTanClient(FinTS3Client):
                 tan_seg = self._get_tan_segment(challenge.command_seg, '2', challenge.tan_request)
                 self._pending_tan = tan
 
-            response = dialog.send(tan_seg)
+            vop_seg = []
+            print(challenge.vop_result)
+            if challenge.vop_result and challenge.vop_result.vop_single_result.result == 'RCVC':
+                vop_seg = [HKVPA1(vop_id=challenge.vop_result.vop_id)]
+            segments = vop_seg + [tan_seg]
+            response = dialog.send(*segments)
 
             if challenge.decoupled:
                 # TAN process = S
