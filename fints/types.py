@@ -214,7 +214,7 @@ class SegmentSequence:
         if isinstance(segments, bytes):
             from .parser import FinTS3Parser
             parser = FinTS3Parser()
-            data = parser.explode_segments(segments)
+            data = list(parser.explode_segments(segments))
             segments = [parser.parse_segment(segment) for segment in data]
         self.segments = list(segments) if segments else []
 

@@ -27,7 +27,7 @@ from .security import (
     PinTanTwoStepAuthenticationMechanism,
 )
 from .segments.accounts import HISPA1, HKSPA1
-from .segments.auth import HIPINS1, HKTAB4, HKTAB5, HKTAN2, HKTAN3, HKTAN5, HKTAN6, HKTAN7
+from .segments.auth import HIPINS1, HKTAB4, HKTAB5, HKTAN2, HKTAN3, HKTAN5, HKTAN6, HKTAN7, HIVPPS1, HIVPP1, PSRD1, HKVPA1
 from .segments.bank import HIBPA3, HIUPA4, HKKOM4
 from .segments.debit import (
     HKDBS1, HKDBS2, HKDMB1, HKDMC1, HKDME1, HKDME2,
@@ -224,6 +224,10 @@ class FinTS3Client:
             self.upd = SegmentSequence(
                 message.find_segments('HIUPD')
             )
+
+        vpps = message.find_segment_first(HIVPPS1)
+        if vpps:
+            self.vpps = vpps
 
         for seg in message.find_segments(HIRMG2):
             for response in seg.responses:
@@ -828,7 +832,7 @@ class FinTS3Client:
             "batch": False,
             "currency": "EUR",
         }
-        version = self._find_supported_sepa_version(['pain.001.001.03'])
+        version = self._find_supported_sepa_version(['pain.001.001.03', 'pain.001.003.03'])
         sepa = SepaTransfer(config, version)
         payment = {
             "name": recipient_name,
@@ -893,7 +897,7 @@ class FinTS3Client:
                 if book_as_single:
                     seg.request_single_booking = True
 
-            return self._send_with_possible_retry(dialog, seg, self._continue_sepa_transfer)
+            return self._send_pay_with_possible_retry(dialog, seg, self._continue_sepa_transfer)
 
     def _continue_sepa_transfer(self, command_seg, response):
         retval = TransactionResponse(response)
@@ -1300,6 +1304,19 @@ class FinTS3PinTanClient(FinTS3Client):
 
         return seg
 
+    def _find_vop_format_for_segment(self, seg):
+        needed = str(seg.header.type) in list(self.vpps.parameter.payment_order_segment)
+        
+        if not needed:
+            return
+
+        bank_supported = str(self.vpps.parameter.supported_report_formats)
+
+        if "sepade.pain.002.001.10.xsd" != bank_supported:
+            logger.warning("No common supported SEPA version. Defaulting to what bank supports and hoping for the best: %s.", bank_supported)
+        
+        return bank_supported
+
     def _need_twostep_tan_for_segment(self, seg):
         if not self.selected_security_function or self.selected_security_function == '999':
             return False
@@ -1321,6 +1338,60 @@ class FinTS3PinTanClient(FinTS3Client):
 
                 response = dialog.send(command_seg, tan_seg)
 
+                for resp in response.responses(tan_seg):
+                    if resp.code in ('0030', '3955'):
+                        return NeedTANResponse(
+                            command_seg,
+                            response.find_segment_first('HITAN'),
+                            resume_func,
+                            self.is_challenge_structured(),
+                            resp.code == '3955',
+                        )
+                    if resp.code.startswith('9'):
+                        raise Exception("Error response: {!r}".format(response))
+            else:
+                response = dialog.send(command_seg)
+
+            return resume_func(command_seg, response)
+        
+    def _send_pay_with_possible_retry(self, dialog, command_seg, resume_func):
+        vop_seg = []
+        vop_standard = self._find_vop_format_for_segment(command_seg)
+        if vop_standard:
+            from .segments.auth import HKVPP1
+            print(self.vpps)
+            vop_seg = [HKVPP1(supported_reports=PSRD1(psrd=[vop_standard]))]
+        with dialog:
+            if self._need_twostep_tan_for_segment(command_seg):
+                tan_seg = self._get_tan_segment(command_seg, '4')
+                segments = vop_seg + [command_seg, tan_seg]
+
+                response = dialog.send(*segments)
+
+                hivpp = response.find_segment_first(HIVPP1)
+
+                if not hivpp:
+                    raise Exception("Mising VoP reponse")
+                vop_result = hivpp.vop_single_result
+                print(hivpp)
+                if vop_result.result == 'RVNA':
+                    # TODO: let the user decide if they want to proceed by displaying a warning with TAN
+                    print(vop_result.na_reason)
+                    vop_seg = [HKVPA1(vop_id=hivpp.vop_id)]
+                    segments = vop_seg + [command_seg, tan_seg]
+                    response = dialog.send(*segments)
+                elif vop_result.result == 'RVNM':
+                    vop_seg = [HKVPA1(vop_id=hivpp.vop_id)]
+                    segments = vop_seg + [command_seg, tan_seg]
+                    response = dialog.send(*segments)
+                    print("WARNING! Recipient name does not match.")
+                elif vop_result.result == 'RVMC':
+                    vop_seg = [HKVPA1(vop_id=hivpp.vop_id)]
+                    segments = vop_seg + [command_seg, tan_seg]
+                    response = dialog.send(*segments)
+                    print("WARNING! Recipient name differs:", vop_result.close_match_name)
+
+                print(vop_result.result)
                 for resp in response.responses(tan_seg):
                     if resp.code in ('0030', '3955'):
                         return NeedTANResponse(

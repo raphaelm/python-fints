@@ -1,5 +1,6 @@
 from fints.fields import CodeField, DataElementField, DataElementGroupField
 from fints.formals import (
+    DataElementGroup,
     KTI1, BankIdentifier, ChallengeValidUntil, Language2,
     ParameterChallengeClass, ParameterPinTan, ParameterTwostepTAN1,
     ParameterTwostepTAN2, ParameterTwostepTAN3, ParameterTwostepTAN4,
@@ -104,14 +105,17 @@ class PSRD1(DataElementGroup):
     psrd = DataElementField(type='an', max_length=256, required=True, _d="Payment Status Report Descriptor", max_count=99)
     # urn:iso:std:iso:20022:tech:xsd:pain.002.001.14
 
-class HKVPP(FinTS3Segment):
+class HKVPP1(FinTS3Segment):
     """Namensabgleich Prüfauftrag, version 1
     Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Verification of Payee"""
-    supported_reports = DataElementField(type=PSRD1, required=True, _d="Unterstützte Payment Status Reports")
+    supported_reports = DataElementGroupField(type=PSRD1, required=True, _d="Unterstützte Payment Status Reports")
     polling_id = DataElementField(type='bin', required=False, _d="Polling-ID")
     max_queries = DataElementField(type='num', max_length=4, required=False, _d="Maximale Anzahl Einträge")
     aufsetzpunkt = DataElementField(type='an', max_length=35, required=False, _d="Aufsetzpunkt")
 
+
+a = HKVPP1(polling_id=b"fdf")
+HKVPP1(polling_id=a.polling_id, aufsetzpunkt="sas")
 
 class EVPE(DataElementGroup):
     """Ergebnis VOP-Prüfung Einzeltransaktion
@@ -126,16 +130,16 @@ class EVPE(DataElementGroup):
     na_reason = DataElementField(type='an', max_length=256, required=False, _d="Grund RVNA")
 
 
-class HIVPP(FinTS3Segment):
+class HIVPP1(FinTS3Segment):
     """Namensabgleich Namensabgleich Prüfergebnis, version 1
     Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Verification of Payee"""
     vop_id = DataElementField(type='bin', required=False, _d="VOP-ID")
-    vop_id_valid_until = DataElementField(type='tsp', required=False, _d="VOP-ID gültig bis")
+    vop_id_valid_until = DataElementGroupField(type=ChallengeValidUntil, required=False, _d="VOP-ID gültig bis")
     polling_id = DataElementField(type='bin', required=False, _d="Polling-ID")
     payment_status_report_descriptor = DataElementField(type='an', max_length=256, required=False, _d="Payment Status Report Descriptor")
     payment_status_report = DataElementField(type='bin', required=False, _d="Payment Status Report")
     # Only for a single transaction. Mutually exclusive with payment status report.
-    vop_single_result = DataElementField(type=EVPE, required=False, _d="Ergebnis VOP-Prüfung Einzeltransaktion")
+    vop_single_result = DataElementGroupField(type=EVPE, required=False, _d="Ergebnis VOP-Prüfung Einzeltransaktion")
     manual_authorization_notice = DataElementField(type='an', max_length=65535, required=False, _d="Aufklärungstext Autorisierung trotz Abweichung")
     wait_for_seconds = DataElementField(type='num', length=1, required=False, _d="Wartezeit vor nächster Abfrage")
 
@@ -144,19 +148,23 @@ class ParameterVoP(DataElementGroup):
     notice_is_structured = DataElementField(type='jn', required=False, _d="Aufklärungstext strukturiert")
     # complete: V, piecemeal: S
     report_complete = DataElementField(type='code', length=1, required=False, _d="Art der Lieferung Payment Status Report")
-    batch_payment-allowed = DataElementField(type='jn', required=False, _d="Sammelzahlungen mit einem Auftrag erlaubt")
+    batch_payment_allowed = DataElementField(type='jn', required=False, _d="Sammelzahlungen mit einem Auftrag erlaubt")
     multiple_allowed = DataElementField(type='jn', required=False, _d="Eingabe Anzahl Einträge erlaubt")
     supported_report_formats = DataElementField(type='an', max_length=1024, required=False, _d="Unterstützte Payment Status Report Daten-formate")
-    # FIXME: count is "n"
-    payment_order_segment = DataElementField(type='an', max_length=6, required=False, _d="VOP-pflichtiger Zahlungsverkehrsauftrag")
+    payment_order_segment = DataElementField(type='an', min_count=1, max_length=6, required=False, _d="VOP-pflichtiger Zahlungsverkehrsauftrag")
     
 
-class HIVPPS(ParameterSegment):
+class HIVPPS1(ParameterSegment):
     """Namensabgleich Prüfauftrag Parameter, version 1
 
     Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Verification of Payee"""
     parameter = DataElementGroupField(type=ParameterVoP, _d="Parameter Namensabgleich Prüfauftrag") 
 
+
+class HKVPA1(FinTS3Segment):
+    """Namensabgleich Namensabgleich Ausführungsauftrag, version 1
+    Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Verification of Payee"""
+    vop_id = DataElementField(type='bin', required=False, _d="VOP-ID")
 
 
 class HKTAN7(FinTS3Segment):
@@ -251,7 +259,6 @@ class HKTAB4(FinTS3Segment):
 
     tan_media_type = CodeField(enum=TANMediaType2, _d="TAN-Medium-Art")
     tan_media_class = CodeField(enum=TANMediaClass3, _d="TAN-Medium-Klasse")
-
 
 class HITAB4(FinTS3Segment):
     """TAN-Generator/Liste anzeigen Bestand Rückmeldung, version 4
