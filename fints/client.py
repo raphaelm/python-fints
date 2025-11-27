@@ -811,7 +811,7 @@ class FinTS3Client:
 
         :param account: SEPAAccount to start the transfer from.
         :param iban: Recipient's IBAN
-        :param bic: Recipient's BIC
+        :param bic: Recipient's BIC (Can be None if domestic)
         :param recipient_name: Recipient name
         :param amount: Amount as a ``Decimal``
         :param account_name: Sender account name
@@ -827,17 +827,23 @@ class FinTS3Client:
             "batch": False,
             "currency": "EUR",
         }
-        version = self._find_supported_sepa_version(['pain.001.001.03', 'pain.001.003.03'])
+        
+        version = self._find_supported_sepa_version([
+            'pain.001.001.09',
+            'pain.001.001.03'
+        ])
+
         sepa = SepaTransfer(config, version)
         payment = {
             "name": recipient_name,
             "IBAN": iban,
-            "BIC": bic,
             "amount": round(Decimal(amount) * 100),  # in cents
             "execution_date": datetime.date(1999, 1, 1),
             "description": reason,
             "endtoend_id": endtoend_id,
         }
+        if bic:
+            payment["BIC"] = bic
         sepa.add_payment(payment)
         xml = sepa.export().decode()
         return self.sepa_transfer(account, xml, pain_descriptor="urn:iso:std:iso:20022:tech:xsd:"+version, instant_payment=instant_payment)
