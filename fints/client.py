@@ -829,7 +829,6 @@ class FinTS3Client:
         }
         
         version = self._find_supported_sepa_version([
-            'pain.001.003.03',
             'pain.001.001.09',
             'pain.001.001.03'
         ])
