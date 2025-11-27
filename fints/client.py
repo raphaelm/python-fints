@@ -567,17 +567,27 @@ class FinTS3Client:
         return booked_streams, pending_streams
 
     def get_transactions_xml(self, account: SEPAAccount, start_date: datetime.date = None,
-                             end_date: datetime.date = None) -> list:
+                             end_date: datetime.date = None, supported_camt_messages = None) -> list:
         """
-        Fetches the list of transactions of a bank account in a certain timeframe as camt.052.001.02 XML files.
+        Fetches the list of transactions of a bank account in a certain timeframe as camt XML files.
         Returns both booked and pending transactions.
 
         :param account: SEPA
         :param start_date: First day to fetch
         :param end_date: Last day to fetch
+        :param supported_camt_messages: Names of accepted camt formats. If `None`, we'll accept whatever the bank offers.
         :return: Two lists of bytestrings containing XML documents, possibly empty: first one for booked transactions,
             second for pending transactions
         """
+        hicazs = self.bpd.find_segment_first('HICAZS')
+        if hicazs:
+            bank_supported_camt_messages = list(hicazs.parameter.supported_camt_formats)
+        else:
+            bank_supported_camt_messages = []
+        if supported_camt_messages is None:
+            supported_camt_messages = bank_supported_camt_messages
+        else:
+            supported_camt_messages = [m for m in supported_camt_messages if m in bank_supported_camt_messages]
 
         with self._get_dialog() as dialog:
             hkcaz = self._find_highest_supported_command(HKCAZ1)
@@ -591,7 +601,7 @@ class FinTS3Client:
                     date_start=start_date,
                     date_end=end_date,
                     touchdown_point=touchdown,
-                    supported_camt_messages=SupportedMessageTypes(['urn:iso:std:iso:20022:tech:xsd:camt.052.001.02']),
+                    supported_camt_messages=SupportedMessageTypes(supported_camt_messages),
                 ),
                 FinTS3Client._response_handler_get_transactions_xml,
                 'HICAZ'
