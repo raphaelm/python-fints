@@ -30,6 +30,7 @@ dependencies = [
   "requests",
   "sepaxml~=2.7",
   "enum-tools~=0.12.0",
+  "lxml~=6.0.2",
 ]
 dynamic = ["version"]
 

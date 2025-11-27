@@ -10,7 +10,7 @@ try:
 except ImportError:
     from enum import Enum, EnumMeta as EnumType
 
-import mt940
+import mt940.models
 
 from .models import Holding
 

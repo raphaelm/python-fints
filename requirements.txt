@@ -3,3 +3,4 @@ mt-940
 sepaxml==2.7.*
 enum-tools~=0.12.0
 bleach
+lxml~=6.0.2

@@ -11,6 +11,7 @@ import bleach
 from sepaxml import SepaTransfer
 
 from . import version
+from .camt_parser import camt053_to_dict
 from .connection import FinTSHTTPSConnection
 from .dialog import FinTSDialog
 from .exceptions import *
@@ -20,7 +21,7 @@ from .formals import (
     SupportedMessageTypes, StatementFormat, TANUsageOption
 )
 from .message import FinTSInstituteMessage
-from .models import SEPAAccount
+from .models import SEPAAccount, Transaction
 from .parser import FinTS3Serializer
 from .security import (
     PinTanDummyEncryptionMechanism, PinTanOneStepAuthenticationMechanism,
@@ -520,41 +521,56 @@ class FinTS3Client:
     def get_transactions(self, account: SEPAAccount, start_date: datetime.date = None, end_date: datetime.date = None,
                          include_pending = False):
         """
-        Fetches the list of transactions of a bank account in a certain timeframe.
+        Fetches the list of transactions of a bank account in a certain timeframe. This prefers using the mt940-based
+        files from the bank for historical reasons. However, if they are not available, it falls back to use
+        get_transactions_xml and parses the data in a similar way.
 
         :param account: SEPA
         :param start_date: First day to fetch
         :param end_date: Last day to fetch
         :param include_pending: Include pending transactions (might lack some data like booking day)
-        :return: A list of mt940.models.Transaction objects
+        :return: A list of mt940.models.Transaction or fints.models.Transaction objects
         """
 
         with self._get_dialog() as dialog:
-            hkkaz = self._find_highest_supported_command(HKKAZ5, HKKAZ6, HKKAZ7)
+            try:
+                hkkaz = self._find_highest_supported_command(HKKAZ5, HKKAZ6, HKKAZ7)
+                return self._get_transactions_mt940(dialog, hkkaz, account, start_date, end_date, include_pending)
+            except FinTSUnsupportedOperation:
+                hkcaz = self._find_highest_supported_command(HKCAZ1)
+                booked_streams, pending_streams = self._get_transactions_xml(dialog, hkcaz, account, start_date, end_date)
+                transactions = []
+                for s in booked_streams:
+                    transactions += [Transaction(t) for t in camt053_to_dict(s)]
+                if include_pending:
+                    for s in pending_streams:
+                        transactions += [Transaction(t) for t in camt053_to_dict(s)]
+                return transactions
 
-            logger.info('Start fetching from {} to {}'.format(start_date, end_date))
-            response = self._fetch_with_touchdowns(
-                dialog,
-                lambda touchdown: hkkaz(
-                    account=hkkaz._fields['account'].type.from_sepa_account(account),
-                    all_accounts=False,
-                    date_start=start_date,
-                    date_end=end_date,
-                    touchdown_point=touchdown,
-                ),
-                lambda responses: mt940_to_array(''.join(
-                    [seg.statement_booked.decode('iso-8859-1') for seg in responses] +
-                    ([seg.statement_pending.decode('iso-8859-1') for seg in responses if seg.statement_pending] if include_pending else [])
-            )),
-                'HIKAZ',
-                # Note 1: Some banks send the HIKAZ data in arbitrary splits.
-                # So better concatenate them before MT940 parsing.
-                # Note 2: MT940 messages are encoded in the S.W.I.F.T character set,
-                # which is a subset of ISO 8859. There are no character in it that
-                # differ between ISO 8859 variants, so we'll arbitrarily chose 8859-1.
-            )
-            logger.info('Fetching done.')
 
+    def _get_transactions_mt940(self, dialog, hkkaz, account: SEPAAccount, start_date, end_date, include_pending):
+        logger.info('Start fetching from {} to {}'.format(start_date, end_date))
+        response = self._fetch_with_touchdowns(
+            dialog,
+            lambda touchdown: hkkaz(
+                account=hkkaz._fields['account'].type.from_sepa_account(account),
+                all_accounts=False,
+                date_start=start_date,
+                date_end=end_date,
+                touchdown_point=touchdown,
+            ),
+            lambda responses: mt940_to_array(''.join(
+                [seg.statement_booked.decode('iso-8859-1') for seg in responses] +
+                ([seg.statement_pending.decode('iso-8859-1') for seg in responses if seg.statement_pending] if include_pending else [])
+        )),
+            'HIKAZ',
+            # Note 1: Some banks send the HIKAZ data in arbitrary splits.
+            # So better concatenate them before MT940 parsing.
+            # Note 2: MT940 messages are encoded in the S.W.I.F.T character set,
+            # which is a subset of ISO 8859. There are no character in it that
+            # differ between ISO 8859 variants, so we'll arbitrarily chose 8859-1.
+        )
+        logger.info('Fetching done.')
         return response
 
     @staticmethod
@@ -565,6 +581,33 @@ class FinTS3Client:
             booked_streams.extend(seg.statement_booked.camt_statements)
             pending_streams.append(seg.statement_pending)
         return booked_streams, pending_streams
+
+    def _get_transactions_xml(self, dialog, hkcaz, account, start_date, end_date, supported_camt_messages=None):
+        hicazs = self.bpd.find_segment_first('HICAZS')
+        if hicazs:
+            bank_supported_camt_messages = list(hicazs.parameter.supported_camt_formats)
+        else:
+            bank_supported_camt_messages = []
+        if supported_camt_messages is None:
+            supported_camt_messages = bank_supported_camt_messages
+        else:
+            supported_camt_messages = [m for m in supported_camt_messages if m in bank_supported_camt_messages]
+        logger.info('Start fetching from {} to {}'.format(start_date, end_date))
+        responses = self._fetch_with_touchdowns(
+            dialog,
+            lambda touchdown: hkcaz(
+                account=hkcaz._fields['account'].type.from_sepa_account(account),
+                all_accounts=False,
+                date_start=start_date,
+                date_end=end_date,
+                touchdown_point=touchdown,
+                supported_camt_messages=SupportedMessageTypes(supported_camt_messages)
+            ),
+            FinTS3Client._response_handler_get_transactions_xml,
+            'HICAZ'
+        )
+        logger.info('Fetching done.')
+        return responses
 
     def get_transactions_xml(self, account: SEPAAccount, start_date: datetime.date = None,
                              end_date: datetime.date = None, supported_camt_messages = None) -> list:
@@ -579,36 +622,9 @@ class FinTS3Client:
         :return: Two lists of bytestrings containing XML documents, possibly empty: first one for booked transactions,
             second for pending transactions
         """
-        hicazs = self.bpd.find_segment_first('HICAZS')
-        if hicazs:
-            bank_supported_camt_messages = list(hicazs.parameter.supported_camt_formats)
-        else:
-            bank_supported_camt_messages = []
-        if supported_camt_messages is None:
-            supported_camt_messages = bank_supported_camt_messages
-        else:
-            supported_camt_messages = [m for m in supported_camt_messages if m in bank_supported_camt_messages]
-
         with self._get_dialog() as dialog:
             hkcaz = self._find_highest_supported_command(HKCAZ1)
-
-            logger.info('Start fetching from {} to {}'.format(start_date, end_date))
-            responses = self._fetch_with_touchdowns(
-                dialog,
-                lambda touchdown: hkcaz(
-                    account=hkcaz._fields['account'].type.from_sepa_account(account),
-                    all_accounts=False,
-                    date_start=start_date,
-                    date_end=end_date,
-                    touchdown_point=touchdown,
-                    supported_camt_messages=SupportedMessageTypes(supported_camt_messages),
-                ),
-                FinTS3Client._response_handler_get_transactions_xml,
-                'HICAZ'
-            )
-            logger.info('Fetching done.')
-
-        return responses
+            return self._get_transactions_xml(dialog, hkcaz, account, start_date, end_date, supported_camt_messages)
 
     def get_credit_card_transactions(self, account: SEPAAccount, credit_card_number: str, start_date: datetime.date = None, end_date: datetime.date = None):
         # FIXME Reverse engineered, probably wrong
