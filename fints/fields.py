@@ -291,6 +291,21 @@ class TimeField(FixedLengthMixin, DigitsField):
         return super()._render_value(val)
 
 
+class TimestampField(DataElementField):
+    # Defined in the VoP standard, but missing in the Formals document. We just treat it as
+    # opaque bytes.
+    type = 'tsp'
+    _DOC_TYPE = bytes
+
+    def _render_value(self, value):
+        retval = bytes(value)
+        self._check_value_length(retval)
+        return retval
+
+    def _parse_value(self, value):
+        return bytes(value)
+
+
 class PasswordField(AlphanumericField):
     type = ''
     _DOC_TYPE = Password
