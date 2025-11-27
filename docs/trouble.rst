@@ -65,6 +65,24 @@ the problem.
         return f.send_tan(response, tan)
 
 
+    def ask_for_vop(response: NeedVOPResponse):
+        if response.vop_result.vop_single_result.result == "RVMC":
+            print("Payee name is a close match")
+            print("Name retrieved by bank:", response.vop_result.vop_single_result.close_match_name)
+            if response.vop_result.vop_single_result.other_identification:
+                print("Other info retrieved by bank:", response.vop_result.vop_single_result.other_identification)
+        elif response.vop_result.vop_single_result.result == "RVNM":
+            print("Payee name does not match match")
+        elif response.vop_result.vop_single_result.result == "RVNA":
+            print("Payee name could not be verified")
+            print("Reason:", response.vop_result.vop_single_result.na_reason)
+        elif response.vop_result.vop_single_result.result == "PDNG":
+            print("Payee name could not be verified (pending state, can't be handled by this library)")
+        print("Do you want to continue? Your bank will not be liable if the money ends up in the wrong place.")
+        input('Please press enter to confirm or Ctrl+C to cancel')
+        return f.approve_vop_response(response)
+
+
     # Open the actual dialog
     with f:
         # Since PSD2, a TAN might be needed for dialog initialization. Let's check if there is one required
@@ -172,8 +190,11 @@ the problem.
                         endtoend_id='NOTPROVIDED',
                     )
 
-                    while isinstance(res, NeedTANResponse):
-                        res = ask_for_tan(res)
+                    while isinstance(res, NeedTANResponse | NeedVOPResponse):
+                        if isinstance(res, NeedTANResponse):
+                            res = ask_for_tan(res)
+                        elif isinstance(res, NeedVOPResponse):
+                            res = ask_for_vop(res)
                 elif choice == 11:
                     print("Select statement")
                     statements = f.get_statements(account)

@@ -105,17 +105,16 @@ class PSRD1(DataElementGroup):
     psrd = DataElementField(type='an', max_length=256, required=True, _d="Payment Status Report Descriptor", max_count=99)
     # urn:iso:std:iso:20022:tech:xsd:pain.002.001.14
 
+
 class HKVPP1(FinTS3Segment):
     """Namensabgleich Prüfauftrag, version 1
+
     Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Verification of Payee"""
     supported_reports = DataElementGroupField(type=PSRD1, required=True, _d="Unterstützte Payment Status Reports")
     polling_id = DataElementField(type='bin', required=False, _d="Polling-ID")
     max_queries = DataElementField(type='num', max_length=4, required=False, _d="Maximale Anzahl Einträge")
     aufsetzpunkt = DataElementField(type='an', max_length=35, required=False, _d="Aufsetzpunkt")
 
-
-a = HKVPP1(polling_id=b"fdf")
-HKVPP1(polling_id=a.polling_id, aufsetzpunkt="sas")
 
 class EVPE(DataElementGroup):
     """Ergebnis VOP-Prüfung Einzeltransaktion
@@ -143,6 +142,7 @@ class HIVPP1(FinTS3Segment):
     manual_authorization_notice = DataElementField(type='an', max_length=65535, required=False, _d="Aufklärungstext Autorisierung trotz Abweichung")
     wait_for_seconds = DataElementField(type='num', length=1, required=False, _d="Wartezeit vor nächster Abfrage")
 
+
 class ParameterVoP(DataElementGroup):
     max_trans = DataElementField(type='num', max_length=7, required=False, _d="Maximale Anzahl CreditTransferTransactionInformation OptIn")
     notice_is_structured = DataElementField(type='jn', required=False, _d="Aufklärungstext strukturiert")
@@ -152,7 +152,7 @@ class ParameterVoP(DataElementGroup):
     multiple_allowed = DataElementField(type='jn', required=False, _d="Eingabe Anzahl Einträge erlaubt")
     supported_report_formats = DataElementField(type='an', max_length=1024, required=False, _d="Unterstützte Payment Status Report Daten-formate")
     payment_order_segment = DataElementField(type='an', min_count=1, max_length=6, required=False, _d="VOP-pflichtiger Zahlungsverkehrsauftrag")
-    
+
 
 class HIVPPS1(ParameterSegment):
     """Namensabgleich Prüfauftrag Parameter, version 1
@@ -183,6 +183,7 @@ class HKTAN7(FinTS3Segment):
     parameter_challenge_class = DataElementGroupField(type=ParameterChallengeClass, required=False, _d="Parameter Challenge-Klasse")
     tan_medium_name = DataElementField(type='an', max_length=32, required=False, _d="Bezeichnung des TAN-Mediums")
     response_hhd_uc = DataElementGroupField(type=ResponseHHDUC, required=False, _d="Antwort HHD_UC")
+
 
 class HITAN2(FinTS3Segment):
     """Zwei-Schritt-TAN-Einreichung Rückmeldung, version 2
