@@ -1429,6 +1429,8 @@ class FinTS3PinTanClient(FinTS3Client):
                             command_seg=command_seg,
                             resume_method=resume_func,
                         )
+                else:
+                    hivpp = None
 
                 for resp in response.responses(tan_seg):
                     if resp.code in ('0030', '3955'):
