@@ -919,6 +919,16 @@ class ScheduledBatchDebitParameter1(DataElementGroup):
     single_booking_allowed = DataElementField(type='jn', _d="Einzelbuchung erlaubt")
 
 
+class TransactionsTimeParameter1(DataElementGroup):
+    """Parameter Kontoumsätze/Zeitraum camt, version 1
+
+    Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Messages -- Multibankfähige Geschäftsvorfälle """
+    storage_duration = DataElementField(type='num', max_length=4, _d="Speicherzeitraum")
+    entry_number_entries_allowed = DataElementField(type='jn', _d="Eingabe Anzahl Einträge erlaubt")
+    all_accounts_allowed = DataElementField(type='jn', _d="Alle Konten erlaubt")
+    supported_camt_formats = DataElementField(type='an', max_length=256, max_count=99, required=False, _d="Unterstützte camt-Datenformate")
+
+
 class ScheduledBatchDebitParameter2(DataElementGroup):
     """Parameter terminierte SEPA-Sammellastschrift einreichen, version 2
 

@@ -1,6 +1,6 @@
 from fints.fields import DataElementField, DataElementGroupField, CodeField
 from fints.formals import KTI1, Account2, Account3, QueryCreditCardStatements2, SupportedMessageTypes, \
-    BookedCamtStatements1, StatementFormat, Confirmation, ReportPeriod2
+    BookedCamtStatements1, StatementFormat, Confirmation, ReportPeriod2, TransactionsTimeParameter1
 
 from .base import FinTS3Segment, ParameterSegment
 
@@ -88,6 +88,13 @@ class DIKKUS2(ParameterSegment):
 
     Source: Reverse engineered"""
     parameter = DataElementGroupField(type=QueryCreditCardStatements2, _d="Parameter Kreditkartenumsätze anfordern")
+
+
+class HICAZS1(ParameterSegment):
+    """Kontoumsätze/Zeitraum camt Parameter, version 1
+
+    Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Messages -- Multibankfähige Geschäftsvorfälle """
+    parameter = DataElementGroupField(type=TransactionsTimeParameter1, _d="Parameter Kontoumsätze/Zeitraum camt")
 
 
 class HKCAZ1(FinTS3Segment):
