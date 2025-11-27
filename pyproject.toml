@@ -28,7 +28,7 @@ dependencies = [
   "bleach",
   "mt-940",
   "requests",
-  "sepaxml~=2.1",
+  "sepaxml~=2.7",
   "enum-tools~=0.12.0",
 ]
 dynamic = ["version"]
