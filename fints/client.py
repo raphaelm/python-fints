@@ -1455,7 +1455,8 @@ class FinTS3PinTanClient(FinTS3Client):
                     hivpp = response.find_segment_first(HIVPP1, throw=True)
 
                     vop_result = hivpp.vop_single_result
-                    if vop_result.result in ('RVNA', 'RVNM', 'RVMC'):  # Not Applicable, No Match, Close Match
+                     # Not Applicable, No Match, Close Match, or exact match but still requires confirmation
+                    if vop_result.result in ('RVNA', 'RVNM', 'RVMC')  or (vop_result.result == 'RCVC' and '3945' in [res.code for res in response.responses(tan_seg)]): 
                         return NeedVOPResponse(
                             vop_result=hivpp,
                             command_seg=command_seg,
