@@ -83,7 +83,7 @@ Full example
                     print("Payee name is an exact match")
                     if res.vop_result.vop_single_result.other_identification:
                         print("Other info retrieved by bank:", res.vop_result.vop_single_result.other_identification)
-                if res.vop_result.vop_single_result.result == "RVMC":
+                elif res.vop_result.vop_single_result.result == "RVMC":
                     print("Payee name is a close match")
                     print("Name retrieved by bank:", res.vop_result.vop_single_result.close_match_name)
                     if res.vop_result.vop_single_result.other_identification:
