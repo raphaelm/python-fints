@@ -538,7 +538,13 @@ class FinTS3Client:
                 return self._get_transactions_mt940(dialog, hkkaz, account, start_date, end_date, include_pending)
             except FinTSUnsupportedOperation:
                 hkcaz = self._find_highest_supported_command(HKCAZ1)
-                booked_streams, pending_streams = self._get_transactions_xml(dialog, hkcaz, account, start_date, end_date)
+                response = self._get_transactions_xml(dialog, hkcaz, account, start_date, end_date)
+
+                # If a TAN is required, exit early
+                if isinstance(response, NeedTANResponse):
+                    return response
+
+                booked_streams, pending_streams = response
                 transactions = []
                 for s in booked_streams:
                     transactions += [Transaction(t) for t in camt053_to_dict(s)]
