@@ -79,7 +79,11 @@ Full example
                     tan = input('Please enter TAN:')
                 res = client.send_tan(res, tan)
             elif isinstance(res, NeedVOPResponse):
-                if res.vop_result.vop_single_result.result == "RVMC":
+                if res.vop_result.vop_single_result.result == "RCVC":
+                    print("Payee name is an exact match")
+                    if res.vop_result.vop_single_result.other_identification:
+                        print("Other info retrieved by bank:", res.vop_result.vop_single_result.other_identification)
+                elif res.vop_result.vop_single_result.result == "RVMC":
                     print("Payee name is a close match")
                     print("Name retrieved by bank:", res.vop_result.vop_single_result.close_match_name)
                     if res.vop_result.vop_single_result.other_identification:
