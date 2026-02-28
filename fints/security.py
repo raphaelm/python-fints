@@ -104,8 +104,15 @@ class PinTanAuthenticationMechanism(AuthenticationMechanism):
         _now = datetime.datetime.now()
         rand = random.SystemRandom()
 
+        # Per ZKA FinTS spec, two-step TAN methods (security_function != '999')
+        # require security_method_version=2 in the SecurityProfile.
+        if self.security_function and self.security_function != '999':
+            security_method_version = 2
+        else:
+            security_method_version = 1
+
         self.pending_signature = HNSHK4(
-            security_profile=SecurityProfile(SecurityMethod.PIN, 1),
+            security_profile=SecurityProfile(SecurityMethod.PIN, security_method_version),
             security_function=self.security_function,
             security_reference=rand.randint(1000000, 9999999),
             security_application_area=SecurityApplicationArea.SHM,

@@ -1253,13 +1253,15 @@ IMPLEMENTED_HKTAN_VERSIONS = {
 
 class FinTS3PinTanClient(FinTS3Client):
 
-    def __init__(self, bank_identifier, user_id, pin, server, customer_id=None, tan_medium=None, *args, **kwargs):
+    def __init__(self, bank_identifier, user_id, pin, server, customer_id=None, tan_medium=None,
+                 force_twostep_tan=None, *args, **kwargs):
         self.pin = Password(pin) if pin is not None else pin
         self._pending_tan = None
         self.connection = FinTSHTTPSConnection(server)
         self.allowed_security_functions = []
         self.selected_security_function = None
         self.selected_tan_medium = tan_medium
+        self.force_twostep_tan = set(force_twostep_tan) if force_twostep_tan else set()
         self._bootstrap_mode = True
         super().__init__(bank_identifier=bank_identifier, user_id=user_id, customer_id=customer_id, *args, **kwargs)
 
@@ -1394,14 +1396,16 @@ class FinTS3PinTanClient(FinTS3Client):
     def _need_twostep_tan_for_segment(self, seg):
         if not self.selected_security_function or self.selected_security_function == '999':
             return False
-        else:
-            hipins = self.bpd.find_segment_first(HIPINS1)
-            if not hipins:
-                return False
-            else:
-                for requirement in hipins.parameter.transaction_tans_required:
-                    if seg.header.type == requirement.transaction:
-                        return requirement.tan_required
+
+        if seg.header.type in self.force_twostep_tan:
+            return True
+
+        hipins = self.bpd.find_segment_first(HIPINS1)
+        if not hipins:
+            return False
+        for requirement in hipins.parameter.transaction_tans_required:
+            if seg.header.type == requirement.transaction:
+                return requirement.tan_required
 
         return False
 
