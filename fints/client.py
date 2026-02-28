@@ -1487,6 +1487,20 @@ class FinTS3PinTanClient(FinTS3Client):
                         )
                     if resp.code.startswith('9'):
                         raise Exception("Error response: {!r}".format(response))
+
+                # Some banks (e.g. Consorsbank) attach the 0030 TAN-required
+                # response to the command segment (HKCCS) rather than the
+                # HKTAN segment.  Check command_seg responses as fallback.
+                for resp in response.responses(command_seg):
+                    if resp.code in ('0030', '3955'):
+                        return NeedTANResponse(
+                            command_seg,
+                            response.find_segment_first('HITAN'),
+                            resume_func,
+                            self.is_challenge_structured(),
+                            resp.code == '3955',
+                            hivpp,
+                        )
             else:
                 response = dialog.send(command_seg)
 
