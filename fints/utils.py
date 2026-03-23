@@ -43,6 +43,9 @@ def compress_datablob(magic: bytes, version: int, data: dict):
 
 
 def decompress_datablob(magic: bytes, blob: bytes, obj: object = None):
+    """
+    `blob` **MUST NOT** be from an untrusted source.
+    """
     if not blob.startswith(magic):
         raise ValueError("Incorrect data blob")
     s = blob.split(b';', 3)

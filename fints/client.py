@@ -102,6 +102,7 @@ class NeedRetryResponse(SubclassesMixin, metaclass=ABCMeta):
     @classmethod
     def from_data(cls, blob):
         """Restore an object instance from a compressed datablob.
+        `blob` **MUST NOT** be from an untrusted source.
 
         Returns an instance of a concrete subclass."""
         version, data = decompress_datablob(DATA_BLOB_MAGIC_RETRY, blob)
@@ -334,6 +335,7 @@ class FinTS3Client:
 
     def set_data(self, blob: bytes):
         """Restore a datablob created with deconstruct().
+        `blob` **MUST NOT** be from an untrusted source.
 
         You should only call this method once, and only immediately after constructing
         the object and before calling any other method or functionality (e.g. __enter__()).
@@ -1080,6 +1082,9 @@ class FinTS3Client:
                 client.send_tan(...)
 
                 # Exiting the context here ends the dialog, unless frozen with pause_dialog() again.
+
+            **Warning:** `dialog_data` **MUST NOT** be stored in a place where an untrusted user could
+            modify it or you will have a major security issue.
         """
         if not self._standing_dialog:
             raise Exception("Cannot pause dialog, no standing dialog exists")
@@ -1087,7 +1092,12 @@ class FinTS3Client:
 
     @contextmanager
     def resume_dialog(self, dialog_data):
-        # FIXME document, test,    NOTE NO UNTRUSTED SOURCES
+        """
+        Create a dialog based on the data of a previous dialog.
+
+        **Warning:** `dialog_data` **MUST NOT** be from an untrusted source such as user-controlled
+        or client-side state or you will have a major security issue.
+        """
         if self._standing_dialog:
             raise Exception("Cannot resume dialog, existing standing dialog")
         self._standing_dialog = FinTSDialog.create_resume(self, dialog_data)

@@ -227,6 +227,9 @@ class FinTSDialog:
 
     @classmethod
     def create_resume(cls, client, blob):
+        """
+        `blob` **MUST NOT** be from an untrusted source.
+        """
         retval = cls(client=client)
         decompress_datablob(DATA_BLOB_MAGIC, blob, retval)
         return retval
