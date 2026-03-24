@@ -37,6 +37,12 @@ user or context.
 You SHOULD NOT call any other methods on the :class:`~fints.client.FinTS3Client` object
 after calling :func:`~fints.client.FinTS3Client.deconstruct`.
 
+.. warning::
+
+   The data bassed to :func:`~fints.client.FinTS3Client.set_data` **MUST NOT** be from an untrusted source.
+   Even if stored in a trusted location, we recommend using a HMAC or a similar mechanism to prevent unexpected
+   tampering.
+
 
 Keeping the dialog open
 -----------------------
