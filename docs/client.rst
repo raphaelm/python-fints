@@ -39,7 +39,7 @@ after calling :func:`~fints.client.FinTS3Client.deconstruct`.
 
 .. warning::
 
-   The data bassed to :func:`~fints.client.FinTS3Client.set_data` **MUST NOT** be from an untrusted source.
+   The data passed to :func:`~fints.client.FinTS3Client.set_data` **MUST NOT** be from an untrusted source.
    Even if stored in a trusted location, we recommend using a HMAC or a similar mechanism to prevent unexpected
    tampering.
 
