@@ -37,12 +37,15 @@ class FinTSHTTPSConnection:
             logger.debug("Sending {}>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n{}\n>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n".format("(abbrv.)" if log_configuration.reduced else "", log_out.getvalue()))
             log_out.truncate(0)
 
-        r = self.session.post(
-            self.url, data=base64.b64encode(msg.render_bytes()),
-            headers={
-                'Content-Type': 'text/plain',
-            },
-        )
+        try:
+            r = self.session.post(
+                self.url, data=base64.b64encode(msg.render_bytes()),
+                headers={
+                    'Content-Type': 'text/plain',
+                },
+            )
+        except (requests.RequestException, OSError) as e:
+            raise FinTSConnectionError("Could not connect to FinTS endpoint: {}".format(e)) from e
 
         if r.status_code < 200 or r.status_code > 299:
             raise FinTSConnectionError('Bad status code {}'.format(r.status_code))
