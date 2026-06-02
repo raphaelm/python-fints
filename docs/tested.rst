@@ -11,11 +11,13 @@ Postbank                                 Yes
 BBBank eG                                Yes                   Yes
 Sparkasse Heidelberg                     Yes
 comdirect                                Yes                   Yes
+Consorsbank                              Yes                   Yes
 ======================================== ============ ======== ======== ======
 
 Tested security functions
 -------------------------
 
+* ``900`` "photoTAN" / "Secure Plus" (QR code)
 * ``902`` "photoTAN"
 * ``921`` "pushTAN"
 * ``930`` "mobile TAN"
