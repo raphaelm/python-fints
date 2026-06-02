@@ -543,6 +543,12 @@ class KTI1(DataElementGroup):
         return cls(
             iban=acc.iban,
             bic=acc.bic,
+            account_number=acc.accountnumber,
+            subaccount_number=acc.subaccount,
+            bank_identifier=BankIdentifier(
+                country_identifier=BankIdentifier.COUNTRY_ALPHA_TO_NUMERIC[acc.bic[4:6]],
+                bank_code=acc.blz
+            ) if acc.blz else None,
         )
 
 

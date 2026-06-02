@@ -67,13 +67,22 @@ Full example
             if isinstance(res, NeedTANResponse):
                 print("A TAN is required", res.challenge)
 
+                # photoTAN / QR code: save and display the image
+                if getattr(res, 'challenge_matrix', None):
+                    mime_type, image_data = res.challenge_matrix
+                    with open('tan_challenge.png', 'wb') as f:
+                        f.write(image_data)
+                    print(f"QR code saved to tan_challenge.png ({len(image_data)} bytes)")
+                    # Optionally open the image automatically:
+                    # import subprocess; subprocess.Popen(['open', 'tan_challenge.png'])
+
                 if getattr(res, 'challenge_hhduc', None):
                     try:
                         terminal_flicker_unix(res.challenge_hhduc)
                     except KeyboardInterrupt:
                         pass
 
-                if result.decoupled:
+                if res.decoupled:
                     tan = input('Please press enter after confirming the transaction in your app:')
                 else:
                     tan = input('Please enter TAN:')
