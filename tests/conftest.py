@@ -182,6 +182,20 @@ def fints_server():
 
                 datadict['pending'].pop(ref, None)
 
+            hkcse = re.search(rb"'HKCSE:(\d+):1.*@\d+@(.*)/Document>'", message)
+            if hkcse:
+                segno = hkcse.group(1).decode('us-ascii')
+                pain = hkcse.group(2).decode('utf-8')
+
+                memomatch = re.search(r"<RmtInf[^>]*>\s*<Ustrd[^>]*>\s*([^<]+)\s*</Ustrd", pain)
+                recvrmatch = re.search(r"<CdtrAcct[^>]*>\s*<Id[^>]*>\s*<IBAN[^>]*>\s*([^<]+)\s*</IBAN", pain)
+                amountmatch = re.search(r"<Amt[^>]*><InstdAmt[^>]*>\s*([^<]+)\s*</InstdAmt", pain)
+                datematch = re.search(r"<ReqdExctnDt[^>]*>(?:\s*<Dt[^>]*>)?\s*([^<]+)\s*(?:</Dt>)?</ReqdExctnDt", pain)
+
+                if memomatch and recvrmatch and amountmatch and datematch:
+                    result.append("HIRMS::2:{}+0010::Scheduled {} on {}'".format(segno, amountmatch.group(1), datematch.group(1)).encode('iso-8859-1'))
+                    result.append("HICSE::1:{}+ORDER-{}'".format(segno, segno).encode('us-ascii'))
+
             return b"".join(result)
 
         def process_message(self, message):

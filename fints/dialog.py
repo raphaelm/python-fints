@@ -85,8 +85,14 @@ class FinTSDialog:
                 retval = self.send(*segments, internal_send=True)
 
                 if tan_seg:
-                    for resp in retval.responses(tan_seg):
-                        if resp.code in ('0030', '3955'):
+                    # Some banks (e.g. Consorsbank) attach the login-SCA
+                    # 0030/3955 response to the HKIDN segment instead of the
+                    # HKTAN segment, so check both references.
+                    for ref in (tan_seg, segments[0]):
+                        if self.client.init_tan_response is not None:
+                            break
+                        ref_responses = list(retval.responses(ref))
+                        if any(resp.code in ('0030', '3955') for resp in ref_responses):
                             self.client.init_tan_response = NeedTANResponse(
                                 None,
                                 retval.find_segment_first('HITAN'),
@@ -94,9 +100,12 @@ class FinTSDialog:
                                 self.client.is_challenge_structured(),
                                 False,
                             )
-                            if resp.code == '3955':
+                            # 3955 ("Sicherheitsfreigabe erfolgt über anderen
+                            # Kanal") flags decoupled app approval; it may appear
+                            # alongside 0030, so check all responses, not just
+                            # the first matching code.
+                            if any(resp.code == '3955' for resp in ref_responses):
                                 self.client.init_tan_response.decoupled = True
-                                break
 
                 self.need_init = False
                 return retval

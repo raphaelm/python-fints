@@ -28,7 +28,7 @@ from .security import (
     PinTanTwoStepAuthenticationMechanism,
 )
 from .segments.accounts import HISPA1, HKSPA1
-from .segments.auth import HIPINS1, HKTAB4, HKTAB5, HKTAN2, HKTAN3, HKTAN5, HKTAN6, HKTAN7, HIVPPS1, HIVPP1, PSRD1, HKVPA1
+from .segments.auth import HIPINS1, HKTAB4, HKTAB5, HKTAN2, HKTAN3, HKTAN5, HKTAN6, HKTAN7, HIVPPS1, HIVPP1, HKVPP1, PSRD1, HKVPA1
 from .segments.bank import HIBPA3, HIUPA4, HKKOM4
 from .segments.debit import (
     HKDBS1, HKDBS2, HKDMB1, HKDMC1, HKDME1, HKDME2,
@@ -39,7 +39,7 @@ from .segments.dialog import HIRMG2, HIRMS2, HISYN4, HKSYN3
 from .segments.journal import HKPRO3, HKPRO4
 from .segments.saldo import HKSAL5, HKSAL6, HKSAL7
 from .segments.statement import DKKKU2, HKKAZ5, HKKAZ6, HKKAZ7, HKCAZ1, HKKAU2, HKKAU1, HKEKA3, HKEKA4, HKEKA5
-from .segments.transfer import HKCCM1, HKCCS1, HKIPZ1, HKIPM1
+from .segments.transfer import HKCCM1, HKCCS1, HKCSE1, HICSE1, HKIPZ1, HKIPM1
 from .types import SegmentSequence
 from .utils import (
     MT535_Miniparser, Password, SubclassesMixin,
@@ -75,6 +75,7 @@ class FinTSOperations(Enum):
     GET_SCHEDULED_DEBITS_MULTIPLE = ("HKDMB", )
     GET_STATUS_PROTOCOL = ("HKPRO", )
     SEPA_TRANSFER_SINGLE = ("HKCCS", )
+    SEPA_TRANSFER_SINGLE_SCHEDULED = ("HKCSE", )
     SEPA_TRANSFER_MULTIPLE = ("HKCCM", )
     SEPA_DEBIT_SINGLE = ("HKDSE", )
     SEPA_DEBIT_MULTIPLE = ("HKDME", )
@@ -882,6 +883,51 @@ class FinTS3Client:
         xml = sepa.export().decode()
         return self.sepa_transfer(account, xml, pain_descriptor="urn:iso:std:iso:20022:tech:xsd:"+version, instant_payment=instant_payment)
 
+    def simple_scheduled_sepa_transfer(self, account: SEPAAccount, iban: str, bic: str,
+                                       recipient_name: str, amount: Decimal, account_name: str, reason: str,
+                                       execution_date: datetime.date, endtoend_id='NOTPROVIDED'):
+        """
+        Simple scheduled SEPA transfer.
+
+        :param account: SEPAAccount to start the transfer from.
+        :param iban: Recipient's IBAN
+        :param bic: Recipient's BIC (Can be None if domestic)
+        :param recipient_name: Recipient name
+        :param amount: Amount as a ``Decimal``
+        :param account_name: Sender account name
+        :param reason: Transfer reason
+        :param execution_date: Future execution date requested from the bank
+        :param endtoend_id: End-to-end-Id (defaults to ``NOTPROVIDED``)
+        :return: Returns either a NeedRetryResponse or NeedVOPResponse or TransactionResponse
+        """
+        config = {
+            "name": account_name,
+            "IBAN": account.iban,
+            "BIC": account.bic,
+            "batch": False,
+            "currency": "EUR",
+        }
+
+        version = self._find_supported_sepa_version([
+            'pain.001.001.09',
+            'pain.001.001.03'
+        ])
+
+        sepa = SepaTransfer(config, version)
+        payment = {
+            "name": recipient_name,
+            "IBAN": iban,
+            "amount": round(Decimal(amount) * 100),  # in cents
+            "execution_date": execution_date,
+            "description": reason,
+            "endtoend_id": endtoend_id,
+        }
+        if bic:
+            payment["BIC"] = bic
+        sepa.add_payment(payment)
+        xml = sepa.export().decode()
+        return self.scheduled_sepa_transfer(account, xml, pain_descriptor="urn:iso:std:iso:20022:tech:xsd:"+version)
+
     def sepa_transfer(self, account: SEPAAccount, pain_message: str, multiple=False,
                       control_sum=None, currency='EUR', book_as_single=False,
                       pain_descriptor='urn:iso:std:iso:20022:tech:xsd:pain.001.001.03', instant_payment=False):
@@ -934,8 +980,37 @@ class FinTS3Client:
 
             return self._send_pay_with_possible_retry(dialog, seg, self._continue_sepa_transfer)
 
+    def scheduled_sepa_transfer(self, account: SEPAAccount, pain_message: str,
+                                pain_descriptor='urn:iso:std:iso:20022:tech:xsd:pain.001.001.03'):
+        """
+        Custom scheduled SEPA transfer.
+
+        :param account: SEPAAccount to send the transfer from.
+        :param pain_message: SEPA PAIN message containing the transfer details with a future execution date.
+        :param pain_descriptor: URN of the PAIN message schema used.
+        :return: Returns either a NeedRetryResponse or TransactionResponse (with data['order_id'] set if returned by bank)
+        """
+
+        with self._get_dialog() as dialog:
+            self._find_highest_supported_command(
+                HKCSE1,
+                return_parameter_segment=True
+            )
+
+            seg = HKCSE1(
+                account=HKCSE1._fields['account'].type.from_sepa_account(account),
+                sepa_descriptor=pain_descriptor,
+                sepa_pain_message=pain_message.encode(),
+            )
+
+            return self._send_pay_with_possible_retry(dialog, seg, self._continue_sepa_transfer)
+
     def _continue_sepa_transfer(self, command_seg, response):
         retval = TransactionResponse(response)
+
+        for seg in response.find_segments(HICSE1):
+            if seg.order_id:
+                retval.data['order_id'] = seg.order_id
 
         for seg in response.find_segments(HIRMS2):
             for resp in seg.responses:
@@ -1263,15 +1338,23 @@ IMPLEMENTED_HKTAN_VERSIONS = {
 
 class FinTS3PinTanClient(FinTS3Client):
 
-    def __init__(self, bank_identifier, user_id, pin, server, customer_id=None, tan_medium=None, *args, **kwargs):
+    def __init__(self, bank_identifier, user_id, pin, server, customer_id=None, tan_medium=None,
+                 force_twostep_tan=None, *args, **kwargs):
         self.pin = Password(pin) if pin is not None else pin
         self._pending_tan = None
         self.connection = FinTSHTTPSConnection(server)
         self.allowed_security_functions = []
         self.selected_security_function = None
         self.selected_tan_medium = tan_medium
+        self.force_twostep_tan = set(force_twostep_tan) if force_twostep_tan else self._default_force_twostep_tan(bank_identifier)
         self._bootstrap_mode = True
         super().__init__(bank_identifier=bank_identifier, user_id=user_id, customer_id=customer_id, *args, **kwargs)
+
+    @staticmethod
+    def _default_force_twostep_tan(bank_identifier):
+        if str(bank_identifier) == '76030080':
+            return {'HKCCS', 'HKKAZ', 'HKSAL'}
+        return set()
 
     def _new_dialog(self, lazy_init=False):
         if self.pin is None:
@@ -1404,14 +1487,16 @@ class FinTS3PinTanClient(FinTS3Client):
     def _need_twostep_tan_for_segment(self, seg):
         if not self.selected_security_function or self.selected_security_function == '999':
             return False
-        else:
-            hipins = self.bpd.find_segment_first(HIPINS1)
-            if not hipins:
-                return False
-            else:
-                for requirement in hipins.parameter.transaction_tans_required:
-                    if seg.header.type == requirement.transaction:
-                        return requirement.tan_required
+
+        if seg.header.type in self.force_twostep_tan:
+            return True
+
+        hipins = self.bpd.find_segment_first(HIPINS1)
+        if not hipins:
+            return False
+        for requirement in hipins.parameter.transaction_tans_required:
+            if seg.header.type == requirement.transaction:
+                return requirement.tan_required
 
         return False
 
@@ -1424,12 +1509,13 @@ class FinTS3PinTanClient(FinTS3Client):
 
                 for resp in response.responses(tan_seg):
                     if resp.code in ('0030', '3955'):
+                        decoupled = any(r.code == '3955' for r in response.responses(tan_seg))
                         return NeedTANResponse(
                             command_seg,
                             response.find_segment_first('HITAN'),
                             resume_func,
                             self.is_challenge_structured(),
-                            resp.code == '3955',
+                            decoupled,
                         )
                     if resp.code.startswith('9'):
                         raise Exception("Error response: {!r}".format(response))
@@ -1453,11 +1539,16 @@ class FinTS3PinTanClient(FinTS3Client):
         - 'RVNM' - no match, no extra info seen
         - 'RVNA' - check not available, reason in single_vop_result.na_reason
         - 'PDNG' - pending, seems related to something not implemented right now.
+
+        VoP polling flow (FinTS spec E.8.3.1):
+        Some banks return HIVPP with no vop_id but a polling_id and code 3040:aufsetzpunkt.
+        The client must poll by re-sending HKVPP with polling_id + aufsetzpunkt (without
+        HKCCS/HKTAN) until the bank returns HIVPP with a vop_id and the actual VoP result.
+        After that, the client sends HKVPA + HKCCS + HKTAN to authorize.
         """
         vop_seg = []
         vop_standard = self._find_vop_format_for_segment(command_seg)
         if vop_standard:
-            from .segments.auth import HKVPP1
             vop_seg = [HKVPP1(supported_reports=PSRD1(psrd=[vop_standard]))]
 
         with dialog:
@@ -1470,9 +1561,52 @@ class FinTS3PinTanClient(FinTS3Client):
                 if vop_standard:
                     hivpp = response.find_segment_first(HIVPP1, throw=True)
 
+                    # Check if VOP polling is required: HIVPP has no vop_id but has polling_id
+                    if not hivpp.vop_id and hivpp.polling_id:
+                        # Extract aufsetzpunkt from HIRMS 3040 response
+                        aufsetzpunkt = None
+                        for hirms_seg in response.find_segments(HIRMS2):
+                            for resp in hirms_seg.responses:
+                                if resp.code == '3040' and resp.parameters:
+                                    aufsetzpunkt = resp.parameters[0]
+
+                        wait_seconds = int(hivpp.wait_for_seconds) if hivpp.wait_for_seconds else 2
+                        logger.info("VoP polling required (polling_id=%r, aufsetzpunkt=%r, wait=%ds)",
+                                    hivpp.polling_id, aufsetzpunkt, wait_seconds)
+
+                        import time
+                        time.sleep(wait_seconds)
+
+                        # Poll: send HKVPP with polling_id + aufsetzpunkt (no HKCCS, no HKTAN)
+                        poll_seg = HKVPP1(
+                            supported_reports=PSRD1(psrd=[vop_standard]),
+                            polling_id=hivpp.polling_id,
+                            aufsetzpunkt=aufsetzpunkt,
+                        )
+                        poll_response = dialog.send(poll_seg)
+                        hivpp = poll_response.find_segment_first(HIVPP1, throw=True)
+                        logger.info("VoP poll result: vop_id=%r", hivpp.vop_id)
+
                     vop_result = hivpp.vop_single_result
-                     # Not Applicable, No Match, Close Match, or exact match but still requires confirmation
-                    if vop_result.result in ('RVNA', 'RVNM', 'RVMC')  or (vop_result.result == 'RCVC' and '3945' in [res.code for res in response.responses(tan_seg)]): 
+                    # Not Applicable, No Match, Close Match, or exact match but still requires confirmation
+                    tan_codes = [res.code for res in response.responses(tan_seg)]
+                    command_codes = [res.code for res in response.responses(command_seg)]
+                    all_codes = []
+                    for seg in response.find_segments((HIRMG2, HIRMS2)):
+                        all_codes.extend(r.code for r in seg.responses)
+
+                    # If we have a vop_id (from initial or polling), return NeedVOPResponse
+                    # so the caller can inspect the result and then call approve_vop_response
+                    if hivpp.vop_id:
+                        return NeedVOPResponse(
+                            vop_result=hivpp,
+                            command_seg=command_seg,
+                            resume_method=resume_func,
+                        )
+
+                    if vop_result and (vop_result.result in ('RVNA', 'RVNM', 'RVMC') or (
+                        vop_result.result == 'RCVC' and '3945' in all_codes
+                    )):
                         return NeedVOPResponse(
                             vop_result=hivpp,
                             command_seg=command_seg,
@@ -1483,16 +1617,37 @@ class FinTS3PinTanClient(FinTS3Client):
 
                 for resp in response.responses(tan_seg):
                     if resp.code in ('0030', '3955'):
+                        # Consorsbank returns 0030 together with 3955
+                        # ("Sicherheitsfreigabe erfolgt über anderen Kanal")
+                        # for decoupled app approval. Treat the operation as
+                        # decoupled whenever 3955 is present, regardless of the
+                        # order in which the codes appear.
+                        decoupled = any(r.code == '3955' for r in response.responses(tan_seg))
                         return NeedTANResponse(
                             command_seg,
                             response.find_segment_first('HITAN'),
                             resume_func,
                             self.is_challenge_structured(),
-                            resp.code == '3955',
+                            decoupled,
                             hivpp,
                         )
                     if resp.code.startswith('9'):
                         raise Exception("Error response: {!r}".format(response))
+
+                # Some banks (e.g. Consorsbank) attach the 0030 TAN-required
+                # response to the command segment (HKCCS) rather than the
+                # HKTAN segment.  Check command_seg responses as fallback.
+                for resp in response.responses(command_seg):
+                    if resp.code in ('0030', '3955'):
+                        decoupled = any(r.code == '3955' for r in response.responses(command_seg))
+                        return NeedTANResponse(
+                            command_seg,
+                            response.find_segment_first('HITAN'),
+                            resume_func,
+                            self.is_challenge_structured(),
+                            decoupled,
+                            hivpp,
+                        )
             else:
                 response = dialog.send(command_seg)
 
@@ -1519,6 +1674,30 @@ class FinTS3PinTanClient(FinTS3Client):
 
             for resp in response.responses(tan_seg):
                 if resp.code in ('0030', '3955'):
+                    return NeedTANResponse(
+                        challenge.command_seg,
+                        response.find_segment_first('HITAN'),
+                        challenge.resume_method,
+                        self.is_challenge_structured(),
+                        resp.code == '3955',
+                        challenge.vop_result,
+                    )
+
+            for resp in response.responses(challenge.command_seg):
+                if resp.code in ('0030', '3955'):
+                    return NeedTANResponse(
+                        challenge.command_seg,
+                        response.find_segment_first('HITAN'),
+                        challenge.resume_method,
+                        self.is_challenge_structured(),
+                        resp.code == '3955',
+                        challenge.vop_result,
+                    )
+
+            for seg in response.find_segments((HIRMG2, HIRMS2)):
+                for resp in seg.responses:
+                    if resp.code not in ('0030', '3955'):
+                        continue
                     return NeedTANResponse(
                         challenge.command_seg,
                         response.find_segment_first('HITAN'),
@@ -1564,7 +1743,7 @@ class FinTS3PinTanClient(FinTS3Client):
                         "No TAN status received."
                     )
                 for resp in response.responses(tan_seg):
-                    if resp.code == '3956':
+                    if resp.code == '3956' or self._is_decoupled_signature_pending(resp):
                         return NeedTANResponse(
                             challenge.command_seg,
                             challenge.tan_request,
@@ -1575,6 +1754,14 @@ class FinTS3PinTanClient(FinTS3Client):
 
             resume_func = getattr(self, challenge.resume_method)
             return resume_func(challenge.command_seg, response)
+
+    @staticmethod
+    def _is_decoupled_signature_pending(response):
+        return (
+            response.code == '9010'
+            and 'Unterschriften' in str(getattr(response, 'text', ''))
+            and 'nicht ausreichend' in str(getattr(response, 'text', ''))
+        )
 
     def _process_response(self, dialog, segment, response):
         if response.code == '3920' and not self.bank_identifier == ING_BANK_IDENTIFIER:
@@ -1597,7 +1784,7 @@ class FinTS3PinTanClient(FinTS3Client):
                     # Fall back to onestep
                     self.set_tan_mechanism('999')
 
-        if response.code == '9010':
+        if response.code == '9010' and not dialog.open:
             raise FinTSClientError("Error during dialog initialization, could not fetch BPD. Please check that you "
                                    "passed the correct bank identifier to the HBCI URL of the correct bank.")
 

@@ -1,6 +1,7 @@
-from fints.client import FinTS3PinTanClient, TransactionResponse, NeedTANResponse, ResponseStatus, NeedRetryResponse
+from fints.client import FinTS3PinTanClient, TransactionResponse, NeedTANResponse, ResponseStatus, NeedRetryResponse, FinTSOperations
 from fints.exceptions import FinTSClientPINError, FinTSClientTemporaryAuthError
 from decimal import Decimal
+import datetime
 import pytest
 
 
@@ -27,6 +28,8 @@ def test_get_information(fints_client):
         information = fints_client.get_information()
 
     assert information["bank"]["name"] == 'Test Bank'
+    assert information["bank"]["supported_operations"][FinTSOperations.SEPA_TRANSFER_SINGLE]
+    assert information["bank"]["supported_operations"][FinTSOperations.SEPA_TRANSFER_SINGLE_SCHEDULED]
 
 
 def test_pin_wrong(fints_server):
@@ -116,6 +119,28 @@ def test_transfer_1step(fints_client):
 
         assert a.responses[0].code == '0010'
         assert a.responses[0].text == "Transfer 1.23 to DE111234567800000002 re 'Test transfer 1step'"
+
+
+def test_scheduled_transfer_1step(fints_client):
+    with fints_client:
+        accounts = fints_client.get_sepa_accounts()
+        a = fints_client.simple_scheduled_sepa_transfer(
+            accounts[0],
+            'DE111234567800000002',
+            'GENODE23X42',
+            'Test Receiver',
+            Decimal('20.00'),
+            'Test Sender',
+            'Test scheduled transfer 1step',
+            datetime.date(2026, 6, 19),
+        )
+
+        assert isinstance(a, TransactionResponse)
+        assert a.status == ResponseStatus.SUCCESS
+
+        assert a.data["order_id"].startswith("ORDER-")
+        assert a.responses[0].code == '0010'
+        assert a.responses[0].text == "Scheduled 20.00 on 2026-06-19"
 
 
 def test_transfer_1step_regression(fints_client):
