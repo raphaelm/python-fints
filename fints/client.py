@@ -1,5 +1,6 @@
 import datetime
 import logging
+import time
 from abc import ABCMeta, abstractmethod
 from base64 import b64decode
 from collections import OrderedDict
@@ -1438,6 +1439,85 @@ class FinTS3PinTanClient(FinTS3Client):
 
             return resume_func(command_seg, response)
         
+    def _find_vop_aufsetzpunkt(self, response):
+        """Extract the touchdown point (Aufsetzpunkt) from a HIRMS 3040 response.
+
+        Banks return it as the first parameter of response code 3040
+        ("Es liegen weitere Informationen vor").
+        """
+        for hirms_seg in response.find_segments(HIRMS2):
+            for resp in hirms_seg.responses:
+                if resp.code == '3040' and resp.parameters:
+                    return resp.parameters[0]
+        return None
+
+    def _poll_vop_result(self, dialog, response, hivpp, vop_standard, timeout_seconds=60):
+        """Poll for an asynchronously produced VoP result (FinTS spec E.8.3.1).
+
+        Some banks (Atruvia: Volksbank, GLS, VR) do not return the VoP result
+        inline. Their HIVPP carries neither ``vop_id`` nor ``vop_single_result``,
+        only a ``polling_id`` and ``wait_for_seconds``, accompanied by response
+        codes 3905 ("no challenge created") and 3040 with the touchdown point.
+
+        This re-sends HKVPP with ``polling_id`` **and** ``aufsetzpunkt`` until the
+        bank returns a result. Both are mandatory -- sending only one yields 9210.
+
+        The loop terminates on the presence of ``vop_id`` or
+        ``payment_status_report`` rather than on a specific response code:
+        depending on the server release, Atruvia completes the check with either
+        3090 or 0020/0025, so checking for a code would loop forever on the other
+        variant.
+
+        The wait interval is taken from each response anew (``wait_for_seconds``)
+        instead of using a fixed delay.
+
+        Raises:
+            FinTSClientError: if no result is available within ``timeout_seconds``.
+                Deliberately an exception rather than falling through: without a
+                result there is nothing to approve and the order was not executed,
+                so a caller receiving a warnings-only response could mistake it
+                for success.
+        """
+        from .segments.auth import HKVPP1
+
+        aufsetzpunkt = self._find_vop_aufsetzpunkt(response)
+        deadline = time.monotonic() + timeout_seconds
+        attempt = 0
+
+        while True:
+            attempt += 1
+            wait_seconds = int(hivpp.wait_for_seconds) if hivpp.wait_for_seconds else 2
+
+            if time.monotonic() + wait_seconds > deadline:
+                raise FinTSClientError(
+                    "VoP result not available after {} attempt(s) within {}s "
+                    "(polling_id={!r}). The transfer was NOT executed.".format(
+                        attempt - 1, timeout_seconds, hivpp.polling_id))
+
+            logger.info("VoP polling attempt %d (polling_id=%r, aufsetzpunkt=%r, wait=%ds)",
+                        attempt, hivpp.polling_id, aufsetzpunkt, wait_seconds)
+            time.sleep(wait_seconds)
+
+            # HKVPP only -- no payment order, no HKTAN. The original order is held
+            # by the bank awaiting approval; re-sending it starts a NEW VoP check.
+            poll_response = dialog.send(HKVPP1(
+                supported_reports=PSRD1(psrd=[vop_standard]),
+                polling_id=hivpp.polling_id,
+                aufsetzpunkt=aufsetzpunkt,
+            ))
+            hivpp = poll_response.find_segment_first(HIVPP1, throw=True)
+
+            if hivpp.vop_id or hivpp.payment_status_report:
+                logger.info("VoP result available after %d attempt(s) (vop_id=%r)",
+                            attempt, hivpp.vop_id)
+                return hivpp
+
+            # Not ready yet: the bank may supply a new touchdown point. The
+            # previous one stays valid as long as it does not.
+            next_aufsetzpunkt = self._find_vop_aufsetzpunkt(poll_response)
+            if next_aufsetzpunkt:
+                aufsetzpunkt = next_aufsetzpunkt
+
     def _send_pay_with_possible_retry(self, dialog, command_seg, resume_func):
         """
         This adds VoP under the assumption that TAN will be sent,
@@ -1470,9 +1550,71 @@ class FinTS3PinTanClient(FinTS3Client):
                 if vop_standard:
                     hivpp = response.find_segment_first(HIVPP1, throw=True)
 
+                    # Asynchronous VoP flow: the bank has not checked the payee yet
+                    # and hands us a polling_id instead of a result. Without polling
+                    # this inevitably ends in 3945 ("approval without VoP confirmation
+                    # not possible") and the transfer can never be executed.
+                    #
+                    # `polled` records which flow we are in. This is what keeps the
+                    # change backwards compatible: banks answering inline (e.g.
+                    # Sparkassen, which already fire the pushTAN in step 1) fall
+                    # through to the unchanged branch below and keep their TAN
+                    # detection. Branching on the presence of `vop_id` alone would
+                    # take that path away from them.
+                    polled = False
+                    if not hivpp.vop_id and hivpp.polling_id:
+                        hivpp = self._poll_vop_result(dialog, response, hivpp, vop_standard)
+                        polled = True
+
                     vop_result = hivpp.vop_single_result
+                    # On polled responses vop_single_result is empty (result=None);
+                    # the outcome lives in payment_status_report (pain.002). Read
+                    # defensively instead of dereferencing.
+                    result_code = getattr(vop_result, 'result', None) if vop_result is not None else None
+
+                    # Asynchronous flow: the bank produced its result and now awaits
+                    # confirmation via HKVPA. Hand the caller the HIVPP carrying
+                    # vop_id and the pain.002 so it can decide whether to approve --
+                    # which is the entire point of VoP.
+                    if polled:
+                        return NeedVOPResponse(
+                            vop_result=hivpp,
+                            command_seg=command_seg,
+                            resume_method=resume_func,
+                        )
+
+                    # Look for 3945 ("approval without VoP confirmation not possible")
+                    # in ALL response segments, not only those attached to the TAN
+                    # segment. Commerzbank attaches it elsewhere: the condition below
+                    # then never matched, no NeedVOPResponse was produced, the flow fell
+                    # through to TAN handling, and HKVPA was never sent -- leaving the
+                    # transfer permanently rejected with 3945.
+                    all_codes = [
+                        r.code
+                        for seg in response.find_segments((HIRMG2, HIRMS2))
+                        for r in seg.responses
+                    ]
+
+                    # Some banks (Commerzbank) omit vop_single_result entirely and report
+                    # the outcome only inside payment_status_report (a pain.002 document
+                    # carrying e.g. <GrpSts>RCVC</GrpSts>). result_code is None there, so
+                    # neither branch below can match -- no NeedVOPResponse is produced, no
+                    # HKVPA is ever sent, and the order is rejected with 3945 after the TAN.
+                    #
+                    # A present vop_id together with a status report means the bank has
+                    # completed its check and is waiting for the approval, so hand the
+                    # caller a NeedVOPResponse. Banks that fill vop_single_result (e.g.
+                    # Sparkassen, where a separate HKVPA is answered with 9010) are not
+                    # affected: result_code is set for them and this branch is skipped.
+                    if result_code is None and hivpp.vop_id and hivpp.payment_status_report:
+                        return NeedVOPResponse(
+                            vop_result=hivpp,
+                            command_seg=command_seg,
+                            resume_method=resume_func,
+                        )
+
                      # Not Applicable, No Match, Close Match, or exact match but still requires confirmation
-                    if vop_result.result in ('RVNA', 'RVNM', 'RVMC')  or (vop_result.result == 'RCVC' and '3945' in [res.code for res in response.responses(tan_seg)]): 
+                    if result_code in ('RVNA', 'RVNM', 'RVMC')  or (result_code == 'RCVC' and '3945' in all_codes):
                         return NeedVOPResponse(
                             vop_result=hivpp,
                             command_seg=command_seg,
