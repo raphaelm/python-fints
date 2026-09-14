@@ -1608,7 +1608,14 @@ class FinTS3PinTanClient(FinTS3Client):
             # Fail-safe block all further attempts with this PIN
             if self.pin:
                 self.pin.block()
-            raise FinTSClientPINError("Error during dialog initialization, PIN wrong?")
+            error = FinTSClientPINError(
+                "Error during dialog initialization, PIN wrong? Bank response: {} - {}".format(
+                    response.code, response.text
+                )
+            )
+            error.response_code = response.code
+            error.response_text = response.text
+            raise error
 
         if response.code == '3938':
             # Account locked, e.g. after three wrong password attempts. Theoretically, the bank might allow us to
