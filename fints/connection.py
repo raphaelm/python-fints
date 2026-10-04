@@ -11,6 +11,8 @@ from .types import SegmentSequence
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_TIMEOUT = 60
+
 
 def reduce_message_for_log(msg):
     log_msg = msg
@@ -25,8 +27,9 @@ def reduce_message_for_log(msg):
 
 
 class FinTSHTTPSConnection:
-    def __init__(self, url):
+    def __init__(self, url, timeout=DEFAULT_TIMEOUT):
         self.url = url
+        self.timeout = timeout
         self.session = requests.session()
 
     def send(self, msg: FinTSMessage):
@@ -43,6 +46,7 @@ class FinTSHTTPSConnection:
                 headers={
                     'Content-Type': 'text/plain',
                 },
+                timeout=self.timeout,
             )
         except (requests.RequestException, OSError) as e:
             raise FinTSConnectionError("Could not connect to FinTS endpoint: {}".format(e)) from e

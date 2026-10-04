@@ -39,6 +39,17 @@ of your bank. Logging in with a signature file or chip card is currently not sup
         product_id='Your product ID'  # see above
     )
 
+A single request to the bank times out after 60 seconds, so a bank that accepts the connection and then stops
+answering cannot block your program indefinitely. Pass ``timeout`` in seconds to change that.
+
+.. code-block:: python
+
+    f = FinTS3PinTanClient(
+        *client_args,
+        product_id='Your product ID',
+        timeout=60,
+    )
+
 Since the implementation of PSD2, you will in almost all cases need to be ready to deal with TANs. For a quick start,
 we included a minimal command-line utility to help choose a TAN method:
 
