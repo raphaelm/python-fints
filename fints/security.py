@@ -99,13 +99,14 @@ class PinTanAuthenticationMechanism(AuthenticationMechanism):
         self.pin = pin
         self.pending_signature = None
         self.security_function = None
+        self.security_method_version = 1
 
     def sign_prepare(self, message: FinTSMessage):
         _now = datetime.datetime.now()
         rand = random.SystemRandom()
 
         self.pending_signature = HNSHK4(
-            security_profile=SecurityProfile(SecurityMethod.PIN, 1),
+            security_profile=SecurityProfile(SecurityMethod.PIN, self.security_method_version),
             security_function=self.security_function,
             security_reference=rand.randint(1000000, 9999999),
             security_application_area=SecurityApplicationArea.SHM,
@@ -178,6 +179,7 @@ class PinTanTwoStepAuthenticationMechanism(PinTanAuthenticationMechanism):
         super().__init__(*args, **kwargs)
         self.client = client
         self.security_function = security_function
+        self.security_method_version = 2
 
     def _get_tan(self):
         retval = self.client._pending_tan
