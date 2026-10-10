@@ -1,5 +1,5 @@
 from fints.fields import DataElementField, DataElementGroupField
-from fints.formals import KTI1, Amount1, BatchTransferParameter1
+from fints.formals import KTI1, Amount1, BatchTransferParameter1, ScheduledTransferParameter1
 
 from .base import FinTS3Segment, ParameterSegment
 
@@ -11,6 +11,30 @@ class HKCCS1(FinTS3Segment):
     account = DataElementGroupField(type=KTI1, _d="Kontoverbindung international")
     sepa_descriptor = DataElementField(type='an', max_length=256, _d="SEPA Descriptor")
     sepa_pain_message = DataElementField(type='bin', _d="SEPA pain message")
+
+
+class HKCSE1(FinTS3Segment):
+    """Terminierte SEPA-Überweisung einreichen, version 1
+
+    Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Messages -- Multibankfähige Geschäftsvorfälle """
+    account = DataElementGroupField(type=KTI1, _d="Kontoverbindung international")
+    sepa_descriptor = DataElementField(type='an', max_length=256, _d="SEPA Descriptor")
+    sepa_pain_message = DataElementField(type='bin', _d="SEPA pain message")
+
+
+class HICSE1(FinTS3Segment):
+    """Einreichung terminierter SEPA-Überweisung bestätigen, version 1
+
+    Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Messages -- Multibankfähige Geschäftsvorfälle """
+    order_id = DataElementField(type='an', max_length=99, required=False, _d="Auftragsidentifikation")
+
+
+class HICSES1(ParameterSegment):
+    """Terminierte SEPA-Überweisung einreichen Parameter, version 1
+
+    Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Messages -- Multibankfähige Geschäftsvorfälle """
+    parameter = DataElementGroupField(type=ScheduledTransferParameter1, _d="Parameter terminierte SEPA-Überweisung einreichen")
+
 
 class HKIPZ1(FinTS3Segment):
     """SEPA-instant Einzelüberweisung, version 1
