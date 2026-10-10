@@ -28,7 +28,7 @@ from .security import (
     PinTanTwoStepAuthenticationMechanism,
 )
 from .segments.accounts import HISPA1, HKSPA1
-from .segments.auth import HIPINS1, HKTAB4, HKTAB5, HKTAN2, HKTAN3, HKTAN5, HKTAN6, HKTAN7, HIVPPS1, HIVPP1, PSRD1, HKVPA1
+from .segments.auth import HIPINS1, HKTAB4, HKTAB5, HKTAN2, HKTAN3, HKTAN5, HKTAN6, HKTAN7, HIVPPS1, HIVPP1, HKVPP1, PSRD1, HKVPA1
 from .segments.bank import HIBPA3, HIUPA4, HKKOM4
 from .segments.debit import (
     HKDBS1, HKDBS2, HKDMB1, HKDMC1, HKDME1, HKDME2,
@@ -1263,13 +1263,15 @@ IMPLEMENTED_HKTAN_VERSIONS = {
 
 class FinTS3PinTanClient(FinTS3Client):
 
-    def __init__(self, bank_identifier, user_id, pin, server, customer_id=None, tan_medium=None, *args, **kwargs):
+    def __init__(self, bank_identifier, user_id, pin, server, customer_id=None, tan_medium=None,
+                 force_twostep_tan=None, *args, **kwargs):
         self.pin = Password(pin) if pin is not None else pin
         self._pending_tan = None
         self.connection = FinTSHTTPSConnection(server)
         self.allowed_security_functions = []
         self.selected_security_function = None
         self.selected_tan_medium = tan_medium
+        self.force_twostep_tan = set(force_twostep_tan) if force_twostep_tan else set()
         self._bootstrap_mode = True
         super().__init__(bank_identifier=bank_identifier, user_id=user_id, customer_id=customer_id, *args, **kwargs)
 
@@ -1404,14 +1406,16 @@ class FinTS3PinTanClient(FinTS3Client):
     def _need_twostep_tan_for_segment(self, seg):
         if not self.selected_security_function or self.selected_security_function == '999':
             return False
-        else:
-            hipins = self.bpd.find_segment_first(HIPINS1)
-            if not hipins:
-                return False
-            else:
-                for requirement in hipins.parameter.transaction_tans_required:
-                    if seg.header.type == requirement.transaction:
-                        return requirement.tan_required
+
+        if seg.header.type in self.force_twostep_tan:
+            return True
+
+        hipins = self.bpd.find_segment_first(HIPINS1)
+        if not hipins:
+            return False
+        for requirement in hipins.parameter.transaction_tans_required:
+            if seg.header.type == requirement.transaction:
+                return requirement.tan_required
 
         return False
 
@@ -1453,11 +1457,16 @@ class FinTS3PinTanClient(FinTS3Client):
         - 'RVNM' - no match, no extra info seen
         - 'RVNA' - check not available, reason in single_vop_result.na_reason
         - 'PDNG' - pending, seems related to something not implemented right now.
+
+        VoP polling flow (FinTS spec E.8.3.1):
+        Some banks return HIVPP with no vop_id but a polling_id and code 3040:aufsetzpunkt.
+        The client must poll by re-sending HKVPP with polling_id + aufsetzpunkt (without
+        HKCCS/HKTAN) until the bank returns HIVPP with a vop_id and the actual VoP result.
+        After that, the client sends HKVPA + HKCCS + HKTAN to authorize.
         """
         vop_seg = []
         vop_standard = self._find_vop_format_for_segment(command_seg)
         if vop_standard:
-            from .segments.auth import HKVPP1
             vop_seg = [HKVPP1(supported_reports=PSRD1(psrd=[vop_standard]))]
 
         with dialog:
@@ -1470,9 +1479,52 @@ class FinTS3PinTanClient(FinTS3Client):
                 if vop_standard:
                     hivpp = response.find_segment_first(HIVPP1, throw=True)
 
+                    # Check if VOP polling is required: HIVPP has no vop_id but has polling_id
+                    if not hivpp.vop_id and hivpp.polling_id:
+                        # Extract aufsetzpunkt from HIRMS 3040 response
+                        aufsetzpunkt = None
+                        for hirms_seg in response.find_segments(HIRMS2):
+                            for resp in hirms_seg.responses:
+                                if resp.code == '3040' and resp.parameters:
+                                    aufsetzpunkt = resp.parameters[0]
+
+                        wait_seconds = int(hivpp.wait_for_seconds) if hivpp.wait_for_seconds else 2
+                        logger.info("VoP polling required (polling_id=%r, aufsetzpunkt=%r, wait=%ds)",
+                                    hivpp.polling_id, aufsetzpunkt, wait_seconds)
+
+                        import time
+                        time.sleep(wait_seconds)
+
+                        # Poll: send HKVPP with polling_id + aufsetzpunkt (no HKCCS, no HKTAN)
+                        poll_seg = HKVPP1(
+                            supported_reports=PSRD1(psrd=[vop_standard]),
+                            polling_id=hivpp.polling_id,
+                            aufsetzpunkt=aufsetzpunkt,
+                        )
+                        poll_response = dialog.send(poll_seg)
+                        hivpp = poll_response.find_segment_first(HIVPP1, throw=True)
+                        logger.info("VoP poll result: vop_id=%r", hivpp.vop_id)
+
                     vop_result = hivpp.vop_single_result
-                     # Not Applicable, No Match, Close Match, or exact match but still requires confirmation
-                    if vop_result.result in ('RVNA', 'RVNM', 'RVMC')  or (vop_result.result == 'RCVC' and '3945' in [res.code for res in response.responses(tan_seg)]): 
+                    # Not Applicable, No Match, Close Match, or exact match but still requires confirmation
+                    tan_codes = [res.code for res in response.responses(tan_seg)]
+                    command_codes = [res.code for res in response.responses(command_seg)]
+                    all_codes = []
+                    for seg in response.find_segments((HIRMG2, HIRMS2)):
+                        all_codes.extend(r.code for r in seg.responses)
+
+                    # If we have a vop_id (from initial or polling), return NeedVOPResponse
+                    # so the caller can inspect the result and then call approve_vop_response
+                    if hivpp.vop_id:
+                        return NeedVOPResponse(
+                            vop_result=hivpp,
+                            command_seg=command_seg,
+                            resume_method=resume_func,
+                        )
+
+                    if vop_result and (vop_result.result in ('RVNA', 'RVNM', 'RVMC') or (
+                        vop_result.result == 'RCVC' and '3945' in all_codes
+                    )):
                         return NeedVOPResponse(
                             vop_result=hivpp,
                             command_seg=command_seg,
@@ -1493,6 +1545,20 @@ class FinTS3PinTanClient(FinTS3Client):
                         )
                     if resp.code.startswith('9'):
                         raise Exception("Error response: {!r}".format(response))
+
+                # Some banks (e.g. Consorsbank) attach the 0030 TAN-required
+                # response to the command segment (HKCCS) rather than the
+                # HKTAN segment.  Check command_seg responses as fallback.
+                for resp in response.responses(command_seg):
+                    if resp.code in ('0030', '3955'):
+                        return NeedTANResponse(
+                            command_seg,
+                            response.find_segment_first('HITAN'),
+                            resume_func,
+                            self.is_challenge_structured(),
+                            resp.code == '3955',
+                            hivpp,
+                        )
             else:
                 response = dialog.send(command_seg)
 
@@ -1519,6 +1585,30 @@ class FinTS3PinTanClient(FinTS3Client):
 
             for resp in response.responses(tan_seg):
                 if resp.code in ('0030', '3955'):
+                    return NeedTANResponse(
+                        challenge.command_seg,
+                        response.find_segment_first('HITAN'),
+                        challenge.resume_method,
+                        self.is_challenge_structured(),
+                        resp.code == '3955',
+                        challenge.vop_result,
+                    )
+
+            for resp in response.responses(challenge.command_seg):
+                if resp.code in ('0030', '3955'):
+                    return NeedTANResponse(
+                        challenge.command_seg,
+                        response.find_segment_first('HITAN'),
+                        challenge.resume_method,
+                        self.is_challenge_structured(),
+                        resp.code == '3955',
+                        challenge.vop_result,
+                    )
+
+            for seg in response.find_segments((HIRMG2, HIRMS2)):
+                for resp in seg.responses:
+                    if resp.code not in ('0030', '3955'):
+                        continue
                     return NeedTANResponse(
                         challenge.command_seg,
                         response.find_segment_first('HITAN'),
