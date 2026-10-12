@@ -1,5 +1,6 @@
 from fints.client import FinTS3PinTanClient, TransactionResponse, NeedTANResponse, ResponseStatus, NeedRetryResponse
-from fints.exceptions import FinTSClientPINError, FinTSClientTemporaryAuthError
+from fints.exceptions import FinTSClientPINError, FinTSClientTemporaryAuthError, FinTSSCARequiredError
+from fints.parser import FinTS3Parser
 from decimal import Decimal
 import pytest
 
@@ -71,6 +72,27 @@ def test_pin_locked(fints_server):
 
     with pytest.raises(Exception, match="Refusing"):
         str(client.pin)
+
+
+def test_sca_required_takes_precedence_over_unopened_dialog_error(fints_server):
+    client = FinTS3PinTanClient(
+        '12345678',
+        'test1',
+        '1234',
+        fints_server,
+        product_id="TEST-123", product_version="1.2.3",
+    )
+    client._bootstrap_mode = False
+    dialog = type("Dialog", (), {"open": False})()
+    message = FinTS3Parser().parse_message(
+        b"HIRMG:3:2+9050::Nachricht enthaelt Fehler.'"
+        b"HIRMS:4:2:3+9075::Starke Kundenauthentifizierung notwendig.'"
+    )
+
+    with pytest.raises(FinTSSCARequiredError):
+        client.process_response_message(dialog, message)
+
+    assert not client.pin.blocked
 
 
 def test_resume(fints_client, fints_server):

@@ -1273,6 +1273,21 @@ class FinTS3PinTanClient(FinTS3Client):
         self._bootstrap_mode = True
         super().__init__(bank_identifier=bank_identifier, user_id=user_id, customer_id=customer_id, *args, **kwargs)
 
+    def process_response_message(self, dialog, message: FinTSInstituteMessage, internal_send=True):
+        previous_sca_required_response = getattr(self, "_processing_sca_required_response", False)
+        self._processing_sca_required_response = self._message_has_sca_required_response(message)
+        try:
+            return super().process_response_message(dialog, message, internal_send=internal_send)
+        finally:
+            self._processing_sca_required_response = previous_sca_required_response
+
+    def _message_has_sca_required_response(self, message):
+        for seg in list(message.find_segments(HIRMG2)) + list(message.find_segments(HIRMS2)):
+            for response in seg.responses:
+                if response.code == '9075':
+                    return True
+        return False
+
     def _new_dialog(self, lazy_init=False):
         if self.pin is None:
             enc = None
@@ -1601,7 +1616,16 @@ class FinTS3PinTanClient(FinTS3Client):
             raise FinTSClientError("Error during dialog initialization, could not fetch BPD. Please check that you "
                                    "passed the correct bank identifier to the HBCI URL of the correct bank.")
 
-        if ((not dialog.open and response.code.startswith('9')) and not self._bootstrap_mode)  or response.code in ('9340', '9910', '9930', '9931', '9942'):
+        sca_required_in_message = getattr(self, "_processing_sca_required_response", False)
+        if (
+            (
+                not dialog.open
+                and response.code.startswith('9')
+                and not self._bootstrap_mode
+                and not sca_required_in_message
+            )
+            or response.code in ('9340', '9910', '9930', '9931', '9942')
+        ):
             # Assume all 9xxx errors in a not-yet-open dialog refer to the PIN or authentication
             # During a dialog also listen for the following codes which may explicitly indicate an
             # incorrect pin: 9340, 9910, 9930, 9931, 9942
