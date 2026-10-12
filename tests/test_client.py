@@ -37,9 +37,15 @@ def test_pin_wrong(fints_server):
         fints_server,
         product_id="TEST-123", product_version="1.2.3",
     )
-    with pytest.raises(FinTSClientPINError):
+    with pytest.raises(FinTSClientPINError) as excinfo:
         with client:
             pass
+
+    # The bank's own response is passed on, since the error is raised for
+    # any 9xxx code during initialization and not only for a wrong PIN.
+    assert excinfo.value.response_code == '9910'
+    assert excinfo.value.response_text.startswith('Pin ung')
+    assert '9910' in str(excinfo.value)
 
     assert client.pin.blocked
 
