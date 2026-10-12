@@ -1305,6 +1305,9 @@ class FinTS3PinTanClient(FinTS3Client):
         else:
             self.set_tan_mechanism('999')
             self._ensure_system_id()
+        # Bootstrap phase (anonymous dialog with sf=999) is complete.
+        # Reset so that errors in subsequent authenticated dialogs are properly raised.
+        self._bootstrap_mode = False
         if self.get_current_tan_mechanism():
             # We already got a reply through _ensure_system_id
             return self.get_current_tan_mechanism()
