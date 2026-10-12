@@ -12,7 +12,7 @@ from sepaxml import SepaTransfer
 
 from . import version
 from .camt_parser import camt053_to_dict
-from .connection import FinTSHTTPSConnection
+from .connection import DEFAULT_TIMEOUT, FinTSHTTPSConnection
 from .dialog import FinTSDialog
 from .exceptions import *
 from .formals import (
@@ -1263,10 +1263,11 @@ IMPLEMENTED_HKTAN_VERSIONS = {
 
 class FinTS3PinTanClient(FinTS3Client):
 
-    def __init__(self, bank_identifier, user_id, pin, server, customer_id=None, tan_medium=None, *args, **kwargs):
+    def __init__(self, bank_identifier, user_id, pin, server, customer_id=None, tan_medium=None,
+                 timeout=DEFAULT_TIMEOUT, *args, **kwargs):
         self.pin = Password(pin) if pin is not None else pin
         self._pending_tan = None
-        self.connection = FinTSHTTPSConnection(server)
+        self.connection = FinTSHTTPSConnection(server, timeout=timeout)
         self.allowed_security_functions = []
         self.selected_security_function = None
         self.selected_tan_medium = tan_medium
