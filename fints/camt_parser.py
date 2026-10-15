@@ -2897,6 +2897,32 @@ def _modify_key(clean_mnems, translate=True):
     return clean_mnems
 
 
+def _join_repeated(existing, addition):
+    """Join the text of a repeated element onto what came before.
+
+    Banks split remittance information into several Ustrd elements, one
+    field per line. ING's own CSV export renders those with a space in
+    between ("NR XXXX 1234 MUSTERSTADT DE KAUFUMSATZ 12.01 30.95 ..."),
+    which is what a reader expects, so a space is inserted unless one side
+    already ends or starts with whitespace, as with chunks split mid-field
+    that carry a trailing blank ("CRED: " + "DE00ZZZ123456789").
+    """
+    existing = existing or ''
+    addition = addition or ''
+    if not existing or not addition or existing[-1].isspace() or addition[0].isspace():
+        return existing + addition
+    return existing + ' ' + addition
+
+
+def _first(record, *keys):
+    """The first of several keys that is present, or None."""
+    for key in keys:
+        value = record.get(key)
+        if value is not None:
+            return value
+    return None
+
+
 def _parse_element(element, parent_name='', translate=True):
     data_dict = {}
     for child in element:
@@ -2907,7 +2933,7 @@ def _parse_element(element, parent_name='', translate=True):
                                             child_name,
                                             translate=translate))
         elif child_name in data_dict:
-            data_dict[child_name] += child.text
+            data_dict[child_name] = _join_repeated(data_dict[child_name], child.text)
         else:
             data_dict[child_name] = child.text
 
@@ -2925,26 +2951,38 @@ def _add_backwards_compat_keys(record, currency):
         record["applicant_iban"] = record.get(
             "EntryDetails.TransactionDetails.RelatedParties.DebtorAccount.Identification.IBAN"
         )
-        record["applicant_name"] = record.get(
-            "EntryDetails.TransactionDetails.RelatedParties.Debtor.Party.Name"
+        record["applicant_name"] = _first(
+            record,
+            "EntryDetails.TransactionDetails.RelatedParties.Debtor.Party.Name",
+            "EntryDetails.TransactionDetails.RelatedParties.Debtor.Name",
         )
-        record["recipient_name"] = record.get(
-            "EntryDetails.TransactionDetails.RelatedParties.Creditor.Party.Name"
+        record["recipient_name"] = _first(
+            record,
+            "EntryDetails.TransactionDetails.RelatedParties.Creditor.Party.Name",
+            # camt.052.001.02 (ING) has no Pty wrapper around the name.
+            "EntryDetails.TransactionDetails.RelatedParties.Creditor.Name",
         )
         record["status"] = "C"
     else:
         record["amount"] = Amount(-amt, currency)
-        record["applicant_creditor_id"] = record.get(
-            "EntryDetails.TransactionDetails.RelatedParties.Creditor.Party.Identification.PrivateIdentification.Other.Identification"
+        record["applicant_creditor_id"] = _first(
+            record,
+            "EntryDetails.TransactionDetails.RelatedParties.Creditor.Party.Identification.PrivateIdentification.Other.Identification",
+            "EntryDetails.TransactionDetails.RelatedParties.Creditor.Identification.PrivateIdentification.Other.Identification",
         )
         record["applicant_iban"] = record.get(
             "EntryDetails.TransactionDetails.RelatedParties.CreditorAccount.Identification.IBAN"
         )
-        record["applicant_name"] = record.get(
-            "EntryDetails.TransactionDetails.RelatedParties.Creditor.Party.Name"
+        record["applicant_name"] = _first(
+            record,
+            "EntryDetails.TransactionDetails.RelatedParties.Creditor.Party.Name",
+            # camt.052.001.02 (ING) has no Pty wrapper around the name.
+            "EntryDetails.TransactionDetails.RelatedParties.Creditor.Name",
         )
-        record["recipient_name"] = record.get(
-            "EntryDetails.TransactionDetails.RelatedParties.Debtor.Party.Name"
+        record["recipient_name"] = _first(
+            record,
+            "EntryDetails.TransactionDetails.RelatedParties.Debtor.Party.Name",
+            "EntryDetails.TransactionDetails.RelatedParties.Debtor.Name",
         )
         record["status"] = "D"
 
