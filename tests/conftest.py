@@ -50,6 +50,18 @@ def fints_server():
 
             result = []
 
+            hkidn_user = re.search(rb"'HKIDN:\d+:2\+280:12345678\+([^+]+)\+", message)
+            if hkidn_user:
+                datadict['user'] = hkidn_user.group(1)
+
+            # Some banks require a strong customer authentication for fetching
+            # the transactions
+            hkkaz_sca = re.search(rb"'HKKAZ:(\d+):\d+\+", message)
+            if hkkaz_sca and datadict.get('user') == b'test-sca':
+                result.append(b"HIRMG::2+9050::Nachricht teilweise fehlerhaft.'")
+                result.append("HIRMS::2:{}+9075::Starke Authentifizierung erforderlich.'".format(hkkaz_sca.group(1).decode('us-ascii')).encode('us-ascii'))
+                return b"".join(result)
+
             result.append(b"HIRMG::2+0010::Nachricht entgegengenommen'")
 
             hkvvb = re.search(rb"'HKVVB:(\d+):3\+(\d+)\+(\d+)", message)

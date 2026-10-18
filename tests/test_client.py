@@ -1,5 +1,6 @@
 from fints.client import FinTS3PinTanClient, TransactionResponse, NeedTANResponse, ResponseStatus, NeedRetryResponse
-from fints.exceptions import FinTSClientPINError, FinTSClientTemporaryAuthError
+from fints.exceptions import FinTSClientPINError, FinTSClientTemporaryAuthError, FinTSSCARequiredError
+from datetime import date
 from decimal import Decimal
 import pytest
 
@@ -27,6 +28,22 @@ def test_get_information(fints_client):
         information = fints_client.get_information()
 
     assert information["bank"]["name"] == 'Test Bank'
+
+
+def test_sca_required(fints_server):
+    """A 9075 response to a command raises FinTSSCARequiredError, also for a
+    client that never called get_tan_media()"""
+    client = FinTS3PinTanClient(
+        '12345678',
+        'test-sca',
+        '1234',
+        fints_server,
+        product_id="TEST-123", product_version="1.2.3",
+    )
+    with pytest.raises(FinTSSCARequiredError):
+        with client:
+            accounts = client.get_sepa_accounts()
+            client.get_transactions(accounts[0], date(2026, 10, 1), date(2026, 10, 2))
 
 
 def test_pin_wrong(fints_server):

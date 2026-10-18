@@ -1273,6 +1273,14 @@ class FinTS3PinTanClient(FinTS3Client):
         self._bootstrap_mode = True
         super().__init__(bank_identifier=bank_identifier, user_id=user_id, customer_id=customer_id, *args, **kwargs)
 
+    def __enter__(self):
+        retval = super().__enter__()
+        # The bootstrap (fetch_tan_mechanisms(), get_tan_media()) is done
+        # without a standing dialog: errors like 9075 are not expected anymore
+        # once the standing dialog has been initialized
+        self._bootstrap_mode = False
+        return retval
+
     def _new_dialog(self, lazy_init=False):
         if self.pin is None:
             enc = None
