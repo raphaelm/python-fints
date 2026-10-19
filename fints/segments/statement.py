@@ -98,7 +98,7 @@ class HICAZS1(ParameterSegment):
 
 
 class HKCAZ1(FinTS3Segment):
-    """Kontoumsätze anfordern/Zeitraum, version 5
+    """Kontoumsätze anfordern/Zeitraum, version 1
 
     Source: HBCI Homebanking-Computer-Interface, Schnittstellenspezifikation"""
     account = DataElementGroupField(type=KTI1, _d="Kontoverbindung international")
