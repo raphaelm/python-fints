@@ -18,10 +18,11 @@ from .exceptions import *
 from .formals import (
     CUSTOMER_ID_ANONYMOUS, KTI1, BankIdentifier, DescriptionRequired,
     SynchronizationMode, TANMediaClass4, TANMediaType2,
-    SupportedMessageTypes, StatementFormat, TANUsageOption
+    SupportedMessageTypes, StatementFormat, TANUsageOption,
+    StandingOrderTimeUnit1,
 )
 from .message import FinTSInstituteMessage
-from .models import SEPAAccount, Transaction
+from .models import SEPAAccount, Transaction, VirtualDate
 from .parser import FinTS3Serializer
 from .security import (
     PinTanDummyEncryptionMechanism, PinTanOneStepAuthenticationMechanism,
@@ -38,12 +39,13 @@ from .segments.depot import HKWPD5, HKWPD6
 from .segments.dialog import HIRMG2, HIRMS2, HISYN4, HKSYN3
 from .segments.journal import HKPRO3, HKPRO4
 from .segments.saldo import HKSAL5, HKSAL6, HKSAL7
+from .segments.standing_order import HICDE1, HICDN1, HKCDB1, HKCDE1, HKCDL1, HKCDN1
 from .segments.statement import DKKKU2, HKKAZ5, HKKAZ6, HKKAZ7, HKCAZ1, HKKAU2, HKKAU1, HKEKA3, HKEKA4, HKEKA5
 from .segments.transfer import HKCCM1, HKCCS1, HKIPZ1, HKIPM1
 from .types import SegmentSequence
 from .utils import (
     MT535_Miniparser, Password, SubclassesMixin,
-    compress_datablob, decompress_datablob, mt940_to_array,
+    compress_datablob, decompress_datablob, modify_sepa_transfer_pain, mt940_to_array,
 )
 
 logger = logging.getLogger(__name__)
@@ -83,6 +85,10 @@ class FinTSOperations(Enum):
     SEPA_STANDING_DEBIT_SINGLE_CREATE = ("HKDDE", )
     GET_SEPA_STANDING_DEBITS_SINGLE = ("HKDDB", )
     SEPA_STANDING_DEBIT_SINGLE_DELETE = ("HKDDL", )
+    GET_SEPA_STANDING_ORDERS = ("HKCDB", )
+    SEPA_STANDING_ORDER_CREATE = ("HKCDE", )
+    SEPA_STANDING_ORDER_CHANGE = ("HKCDN", )
+    SEPA_STANDING_ORDER_DELETE = ("HKCDL", )
 
 
 class NeedRetryResponse(SubclassesMixin, metaclass=ABCMeta):
@@ -741,6 +747,372 @@ class FinTS3Client:
 
         return responses
 
+    def get_standing_orders(self, account: SEPAAccount, task_id: str = None):
+        """
+        Retrieve SEPA standing orders (Daueraufträge) of an account.
+
+        :param account: SEPAAccount to retrieve standing orders for.
+        :param task_id: Only retrieve the standing order with this task id (Auftragsidentifikation).
+        :return: List of HICDB objects, each containing the order as SEPA pain.001 message
+        """
+        with self._get_dialog() as dialog:
+            hkcdb = self._find_highest_supported_command(HKCDB1)
+
+            hispas = self.bpd.find_segment_first('HISPAS')
+            supported_formats = list(hispas.parameter.supported_sepa_formats) if hispas else []
+            pain_descriptors = [f for f in supported_formats if 'pain.001' in f] or \
+                ['urn:iso:std:iso:20022:tech:xsd:pain.001.001.03']
+
+            responses = self._fetch_with_touchdowns(
+                dialog,
+                lambda touchdown: hkcdb(
+                    account=hkcdb._fields['account'].type.from_sepa_account(account),
+                    supported_sepa_pain_messages=hkcdb._fields['supported_sepa_pain_messages'].type(
+                        sepa_descriptors=pain_descriptors,
+                    ),
+                    task_id=task_id,
+                    touchdown_point=touchdown,
+                ),
+                lambda responses: responses,
+                'HICDB',
+            )
+
+        return responses
+
+    def get_standing_order_parameters(self):
+        """
+        Return the values the bank allows for creating and changing SEPA standing orders (Daueraufträge), e.g. to
+        only offer allowed values to the user. The values are checked by the bank, not by this library.
+
+        Note: Can only be filled after the first communication with the bank.
+        If in doubt, use a construction like::
+
+            f = FinTS3Client(...)
+            with f:
+                parameters = f.get_standing_order_parameters()
+
+        Returns a nested dictionary::
+
+            create: (None if the bank does not support creating standing orders)
+                months: Allowed intervals in months, e.g. [1, 3, 6, 12]
+                weeks: Allowed intervals in weeks, [] if weekly standing orders are not supported
+                execution_days_month: Allowed days of the month, e.g. [1, 15, 99]. 97, 98 and 99 stand for the
+                    third to last, second to last and last day of the month, the 31st is given as 99.
+                execution_days_week: Allowed days of the week, 1 (Monday) to 7 (Sunday)
+                min_advance_notice: Minimum advance notice before the (next) execution in days
+                max_advance_notice: Maximum advance notice in days
+            change: (None if the bank does not support changing standing orders)
+                Same keys as create, the bank may allow different values for changes.
+
+        """
+        def allowed_values(value, width, all_values):
+            # The bank gives the allowed values as a chain of numbers with fixed width, 0 stands for all values
+            values = [int(value[i:i + width]) for i in range(0, len(value or ''), width)]
+            return list(all_values) if 0 in values else values
+
+        retval = {}
+        for key, command_class in (('create', HKCDE1), ('change', HKCDN1)):
+            try:
+                parameter_segment, _ = self._find_highest_supported_command(
+                    command_class,
+                    return_parameter_segment=True
+                )
+            except FinTSUnsupportedOperation:
+                retval[key] = None
+                continue
+
+            parameter = parameter_segment.parameter
+            retval[key] = {
+                'months': allowed_values(parameter.months, 2, range(1, 13)),
+                'weeks': allowed_values(parameter.weeks, 2, range(1, 53)),
+                'execution_days_month': allowed_values(parameter.execution_days_month, 2, [*range(1, 31), 97, 98, 99]),
+                'execution_days_week': allowed_values(parameter.execution_days_week, 1, range(1, 8)),
+                'min_advance_notice': parameter.min_advance_notice,
+                'max_advance_notice': parameter.max_advance_notice,
+            }
+
+        return retval
+
+    def delete_standing_order(self, account: SEPAAccount, standing_order, execution_date: datetime.date = None):
+        """
+        Delete a SEPA standing order (Dauerauftrag).
+
+        :param account: SEPAAccount the standing order belongs to.
+        :param standing_order: HICDB object of the standing order, as returned by ``get_standing_orders``.
+        :param execution_date: Execution date from which on the standing order will no longer be executed.
+            Only allowed if the bank supports scheduled deletion. If not given, the deletion takes effect immediately.
+        :return: Returns either a NeedRetryResponse or TransactionResponse
+        """
+        with self._get_dialog() as dialog:
+            hicdls, hkcdl = self._find_highest_supported_command(
+                HKCDL1,
+                return_parameter_segment=True
+            )
+
+            if execution_date and not hicdls.parameter.scheduled_deletion_allowed:
+                raise FinTSUnsupportedOperation("Scheduled deletion not allowed by bank.")
+
+            seg = hkcdl(
+                account=hkcdl._fields['account'].type.from_sepa_account(account),
+                sepa_descriptor=standing_order.sepa_descriptor,
+                sepa_pain_message=standing_order.sepa_pain_message,
+                execution_date=execution_date,
+                task_id=standing_order.task_id,
+                standing_order_details=standing_order.standing_order_details,
+            )
+
+            return self._send_with_possible_retry(dialog, seg, self._continue_sepa_transfer)
+
+    def simple_create_standing_order(self, account: SEPAAccount, iban: str, bic: str,
+                                     recipient_name: str, amount: Decimal, account_name: str, reason: str,
+                                     first_execution_date: datetime.date | VirtualDate,
+                                     time_unit: StandingOrderTimeUnit1, interval: int, execution_day: int,
+                                     last_execution_date: datetime.date | VirtualDate = None, endtoend_id='NOTPROVIDED'):
+        """
+        Simple SEPA standing order (Dauerauftrag).
+
+        :param account: SEPAAccount to send the standing order from.
+        :param iban: Recipient's IBAN
+        :param bic: Recipient's BIC (Can be None if domestic)
+        :param recipient_name: Recipient name
+        :param amount: Amount as a ``Decimal``
+        :param account_name: Sender account name
+        :param reason: Transfer reason
+        :param first_execution_date: Date of the first execution (``datetime.date``, or ``VirtualDate`` for days
+            beyond the end of the month, e.g. 2030-04-31)
+        :param time_unit: ``StandingOrderTimeUnit1.MONTHLY`` or ``StandingOrderTimeUnit1.WEEKLY``
+        :param interval: Execute every ``interval`` months or weeks
+        :param execution_day: Day of the month (1-31) or of the week (1-7) to execute on
+        :param last_execution_date: Date of the last execution (``datetime.date`` or ``VirtualDate``, defaults to
+            ``None``, i.e. unlimited)
+        :param endtoend_id: End-to-end-Id (defaults to ``NOTPROVIDED``)
+        :return: Returns either a NeedRetryResponse or NeedVOPResponse or TransactionResponse
+            (with data['task_id'] set, if available). Banks are not required to return the task id
+            (Auftragsidentifikation) of the new standing order here. If ``data['task_id']`` is not set, call
+            ``get_standing_orders`` afterwards to obtain it, e.g. before deleting the standing order.
+        """
+        xml, pain_descriptor = self._build_simple_sepa_transfer_pain(
+            account, iban, bic, recipient_name, amount, account_name, reason, endtoend_id
+        )
+        return self.create_standing_order(
+            account, xml, first_execution_date, time_unit, interval, execution_day,
+            last_execution_date=last_execution_date, pain_descriptor=pain_descriptor,
+        )
+
+    def create_standing_order(self, account: SEPAAccount, pain_message: str | bytes,
+                              first_execution_date: datetime.date | VirtualDate,
+                              time_unit: StandingOrderTimeUnit1, interval: int, execution_day: int,
+                              last_execution_date: datetime.date | VirtualDate = None,
+                              pain_descriptor='urn:iso:std:iso:20022:tech:xsd:pain.001.001.03'):
+        """
+        Custom SEPA standing order (Dauerauftrag).
+
+        :param account: SEPAAccount to send the standing order from.
+        :param pain_message: SEPA PAIN message (``str`` or ``bytes``) containing the transfer details. The
+            requested execution date in the message must be ``1999-01-01``, the schedule is given by the other
+            parameters.
+        :param first_execution_date: Date of the first execution (``datetime.date``, or ``VirtualDate`` for days
+            beyond the end of the month, e.g. 2030-04-31)
+        :param time_unit: ``StandingOrderTimeUnit1.MONTHLY`` or ``StandingOrderTimeUnit1.WEEKLY``
+        :param interval: Execute every ``interval`` months or weeks
+        :param execution_day: Day of the month (1-31) or of the week (1-7) to execute on
+        :param last_execution_date: Date of the last execution (``datetime.date`` or ``VirtualDate``, defaults to
+            ``None``, i.e. unlimited)
+        :param pain_descriptor: URN of the PAIN message schema used.
+        :return: Returns either a NeedRetryResponse or NeedVOPResponse or TransactionResponse
+            (with data['task_id'] set, if available). Banks are not required to return the task id
+            (Auftragsidentifikation) of the new standing order here. If ``data['task_id']`` is not set, call
+            ``get_standing_orders`` afterwards to obtain it, e.g. before deleting the standing order.
+        """
+        with self._get_dialog() as dialog:
+            hicdes, hkcde = self._find_highest_supported_command(
+                HKCDE1,
+                return_parameter_segment=True
+            )
+
+            if isinstance(pain_message, str):
+                pain_message = pain_message.encode()
+
+            seg = hkcde(
+                account=hkcde._fields['account'].type.from_sepa_account(account),
+                sepa_descriptor=pain_descriptor,
+                sepa_pain_message=pain_message,
+                standing_order_details=hkcde._fields['standing_order_details'].type(
+                    first_execution_date=first_execution_date,
+                    time_unit=time_unit,
+                    interval=interval,
+                    execution_day=execution_day,
+                    last_execution_date=last_execution_date,
+                ),
+            )
+
+            if seg.standing_order_details.time_unit == StandingOrderTimeUnit1.WEEKLY and not hicdes.parameter.weeks:
+                raise FinTSUnsupportedOperation("Weekly standing orders not supported by bank.")
+
+            return self._send_pay_with_possible_retry(dialog, seg, self._continue_create_standing_order)
+
+    def _continue_create_standing_order(self, command_seg, response):
+        retval = TransactionResponse(response)
+
+        for seg in response.find_segments(HIRMS2):
+            for resp in seg.responses:
+                retval.set_status_if_higher(_RESPONSE_STATUS_MAPPING.get(resp.code[0], ResponseStatus.UNKNOWN))
+                retval.responses.append(resp)
+
+        for seg in response.find_segments(HICDE1):
+            if seg.task_id:
+                retval.data['task_id'] = seg.task_id
+
+        return retval
+
+    def simple_change_standing_order(self, account: SEPAAccount, standing_order, amount: Decimal = None,
+                                     reason: str = None, recipient_name: str = None, iban: str = None,
+                                     bic: str = None, first_execution_date: datetime.date | VirtualDate = None,
+                                     time_unit: StandingOrderTimeUnit1 = None, interval: int = None,
+                                     execution_day: int = None, last_execution_date: datetime.date | VirtualDate = None,
+                                     remove_last_execution_date: bool = False, execution_date: datetime.date = None,
+                                     endtoend_id: str = None):
+        """
+        Simple change of a SEPA standing order (Dauerauftrag).
+
+        Only the given values are changed, all values that are ``None`` are kept. The SEPA pain message of the
+        standing order is changed accordingly, keeping its schema (see ``modify_sepa_transfer_pain``).
+        Which values may be changed is decided by the bank.
+
+        :param account: SEPAAccount the standing order belongs to.
+        :param standing_order: HICDB object of the standing order, as returned by ``get_standing_orders``.
+        :param amount: New amount as a ``Decimal``
+        :param reason: New transfer reason
+        :param recipient_name: New recipient name
+        :param iban: New recipient IBAN. If no ``bic`` is given, an existing recipient BIC is removed.
+        :param bic: New recipient BIC
+        :param first_execution_date: New date of the first execution (``datetime.date``, or ``VirtualDate`` for
+            days beyond the end of the month, e.g. 2030-04-31)
+        :param time_unit: New time unit, ``StandingOrderTimeUnit1.MONTHLY`` or ``StandingOrderTimeUnit1.WEEKLY``
+        :param interval: New interval (every ``interval`` months or weeks)
+        :param execution_day: New day of the month (1-31) or of the week (1-7) to execute on
+        :param last_execution_date: New date of the last execution (``datetime.date`` or ``VirtualDate``)
+        :param remove_last_execution_date: Remove the date of the last execution, i.e. make the standing order
+            unlimited (defaults to ``False``). Cannot be combined with ``last_execution_date``.
+        :param execution_date: Execution date from which on the change applies. Only allowed if the bank
+            supports scheduled changes. If not given, the change applies from the next execution on.
+        :param endtoend_id: New End-to-end-Id
+        :return: Returns either a NeedRetryResponse or NeedVOPResponse or TransactionResponse
+            (with data['task_id'] and data['task_id_old'] set, if available). Banks may process the change
+            asynchronously, so it can take a while until it is visible in ``get_standing_orders``.
+        """
+        details = standing_order.standing_order_details
+        if remove_last_execution_date:
+            if last_execution_date is not None:
+                raise ValueError("last_execution_date and remove_last_execution_date cannot be combined.")
+        elif last_execution_date is None:
+            last_execution_date = details.last_execution_date
+
+        pain_message = modify_sepa_transfer_pain(
+            standing_order.sepa_pain_message, amount=amount, reason=reason,
+            recipient_name=recipient_name, iban=iban, bic=bic, endtoend_id=endtoend_id,
+        )
+        return self.change_standing_order(
+            account, standing_order, pain_message,
+            first_execution_date if first_execution_date is not None else details.first_execution_date,
+            time_unit if time_unit is not None else details.time_unit,
+            interval if interval is not None else details.interval,
+            execution_day if execution_day is not None else details.execution_day,
+            last_execution_date=last_execution_date,
+            execution_date=execution_date,
+        )
+
+    def change_standing_order(self, account: SEPAAccount, standing_order, pain_message: str | bytes,
+                              first_execution_date: datetime.date | VirtualDate, time_unit: StandingOrderTimeUnit1,
+                              interval: int, execution_day: int, last_execution_date: datetime.date | VirtualDate = None,
+                              execution_date: datetime.date = None):
+        """
+        Custom change of a SEPA standing order (Dauerauftrag).
+
+        :param account: SEPAAccount the standing order belongs to.
+        :param standing_order: HICDB object of the standing order, as returned by ``get_standing_orders``.
+        :param pain_message: Complete new SEPA PAIN message (``str`` or ``bytes``). It must use the same schema
+            as the pain message of the standing order (``standing_order.sepa_descriptor``), and its requested
+            execution date must be ``1999-01-01``.
+        :param first_execution_date: Date of the first execution (``datetime.date``, or ``VirtualDate`` for days
+            beyond the end of the month, e.g. 2030-04-31)
+        :param time_unit: ``StandingOrderTimeUnit1.MONTHLY`` or ``StandingOrderTimeUnit1.WEEKLY``
+        :param interval: Execute every ``interval`` months or weeks
+        :param execution_day: Day of the month (1-31) or of the week (1-7) to execute on
+        :param last_execution_date: Date of the last execution (``datetime.date`` or ``VirtualDate``, defaults to
+            ``None``, i.e. unlimited)
+        :param execution_date: Execution date from which on the change applies. Only allowed if the bank
+            supports scheduled changes. If not given, the change applies from the next execution on.
+        :return: Returns either a NeedRetryResponse or NeedVOPResponse or TransactionResponse
+            (with data['task_id'] and data['task_id_old'] set, if available). The bank may assign a new
+            task id to the changed standing order. Banks may process the change asynchronously, so it can
+            take a while until it is visible in ``get_standing_orders``; in the meantime, the standing order
+            may be missing there completely.
+        """
+        with self._get_dialog() as dialog:
+            hicdns, hkcdn = self._find_highest_supported_command(
+                HKCDN1,
+                return_parameter_segment=True
+            )
+            parameter = hicdns.parameter
+
+            if execution_date and not parameter.max_scheduled_changes:
+                raise FinTSUnsupportedOperation("Scheduled changes not allowed by bank.")
+
+            if isinstance(pain_message, str):
+                pain_message = pain_message.encode()
+
+            seg = hkcdn(
+                account=hkcdn._fields['account'].type.from_sepa_account(account),
+                sepa_descriptor=standing_order.sepa_descriptor,
+                sepa_pain_message=pain_message,
+                execution_date=execution_date,
+                task_id=standing_order.task_id,
+                standing_order_details=hkcdn._fields['standing_order_details'].type(
+                    first_execution_date=first_execution_date,
+                    time_unit=time_unit,
+                    interval=interval,
+                    execution_day=execution_day,
+                    last_execution_date=last_execution_date,
+                ),
+            )
+
+            # If the bank allows more than one scheduled change, changeable details must only be sent
+            # if they are changed.
+            details_changeable = any((
+                parameter.first_execution_date_changeable, parameter.time_unit_changeable,
+                parameter.interval_changeable, parameter.execution_day_changeable,
+                parameter.last_execution_date_changeable,
+            ))
+            old_details = standing_order.standing_order_details
+            details_changed = any(
+                getattr(seg.standing_order_details, name) != getattr(old_details, name)
+                for name in seg.standing_order_details._fields
+            )
+            if parameter.max_scheduled_changes > 1 and details_changeable and not details_changed:
+                seg.standing_order_details = None
+
+            if seg.standing_order_details and seg.standing_order_details.time_unit == StandingOrderTimeUnit1.WEEKLY and not parameter.weeks:
+                raise FinTSUnsupportedOperation("Weekly standing orders not supported by bank.")
+
+            return self._send_pay_with_possible_retry(dialog, seg, self._continue_change_standing_order)
+
+    def _continue_change_standing_order(self, command_seg, response):
+        retval = TransactionResponse(response)
+
+        for seg in response.find_segments(HIRMS2):
+            for resp in seg.responses:
+                retval.set_status_if_higher(_RESPONSE_STATUS_MAPPING.get(resp.code[0], ResponseStatus.UNKNOWN))
+                retval.responses.append(resp)
+
+        for seg in response.find_segments(HICDN1):
+            if seg.task_id:
+                retval.data['task_id'] = seg.task_id
+            if seg.task_id_old:
+                retval.data['task_id_old'] = seg.task_id_old
+
+        return retval
+
     def get_status_protocol(self):
         with self._get_dialog() as dialog:
             hkpro = self._find_highest_supported_command(HKPRO3, HKPRO4)
@@ -854,6 +1226,14 @@ class FinTS3Client:
         :param endtoend_id: End-to-end-Id (defaults to ``NOTPROVIDED``)
         :return: Returns either a NeedRetryResponse or NeedVOPResponse or TransactionResponse
         """
+        xml, pain_descriptor = self._build_simple_sepa_transfer_pain(
+            account, iban, bic, recipient_name, amount, account_name, reason, endtoend_id
+        )
+        return self.sepa_transfer(account, xml, pain_descriptor=pain_descriptor, instant_payment=instant_payment)
+
+    def _build_simple_sepa_transfer_pain(self, account: SEPAAccount, iban: str, bic: str,
+                                         recipient_name: str, amount: Decimal, account_name: str, reason: str,
+                                         endtoend_id='NOTPROVIDED'):
         config = {
             "name": account_name,
             "IBAN": account.iban,
@@ -861,7 +1241,7 @@ class FinTS3Client:
             "batch": False,
             "currency": "EUR",
         }
-        
+
         version = self._find_supported_sepa_version([
             'pain.001.001.09',
             'pain.001.001.03'
@@ -880,7 +1260,7 @@ class FinTS3Client:
             payment["BIC"] = bic
         sepa.add_payment(payment)
         xml = sepa.export().decode()
-        return self.sepa_transfer(account, xml, pain_descriptor="urn:iso:std:iso:20022:tech:xsd:"+version, instant_payment=instant_payment)
+        return xml, "urn:iso:std:iso:20022:tech:xsd:"+version
 
     def sepa_transfer(self, account: SEPAAccount, pain_message: str, multiple=False,
                       control_sum=None, currency='EUR', book_as_single=False,

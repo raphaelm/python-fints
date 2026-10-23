@@ -21,7 +21,8 @@ Limitations
   * Fetching balances
   * Fetching holdings
   * SEPA transfers and debits (only with required TAN and with specific TAN methods)
-* Supports Python 3.9+
+  * SEPA standing orders (fetching, creating, changing and deleting)
+* Supports Python 3.11+
 
 
 Security

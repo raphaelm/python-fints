@@ -1001,6 +1001,86 @@ class QueryScheduledBatchDebitParameter1(DataElementGroup):
     date_range_allowed = DataElementField(type='jn', _d="Zeitraum möglich")
 
 
+@doc_enum
+class StandingOrderTimeUnit1(RepresentableEnum):
+    MONTHLY = 'M'  # doc: Monatlich
+    WEEKLY = 'W'  # doc: Wöchentlich
+
+
+class StandingOrderDetails3(DataElementGroup):
+    """Dauerauftragsdetails, version 3
+
+    Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Data Dictionary """
+    first_execution_date = DataElementField(type='vdat', _d="Erstmals ausführen am")
+    time_unit = CodeField(enum=StandingOrderTimeUnit1, length=1, _d="Zeiteinheit")
+    interval = DataElementField(type='num', max_length=2, _d="Turnus")
+    execution_day = DataElementField(type='num', max_length=2, _d="Ausführungstag")
+    last_execution_date = DataElementField(type='vdat', required=False, _d="Letztmals ausführen am")
+
+
+class StandingOrderSuspension3(DataElementGroup):
+    """Aussetzung, version 3
+
+    Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Data Dictionary """
+    annually_recurring = DataElementField(type='jn', _d="Aussetzung jährlich wiederkehrend")
+    suspension_start = DataElementField(type='dat', required=False, _d="Aussetzen von")
+    suspension_end = DataElementField(type='dat', required=False, _d="Aussetzen bis")
+    number_suspensions = DataElementField(type='num', max_length=2, required=False, _d="Anzahl Aussetzungen")
+    different_amount = DataElementGroupField(type=Amount1, required=False, _d="Abweichender Betrag")
+
+
+class QueryStandingOrdersParameter1(DataElementGroup):
+    """Parameter SEPA-Dauerauftragsbestand, version 1
+
+    Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Data Dictionary """
+    max_number_responses_allowed = DataElementField(type='jn', _d="Eingabe Anzahl Einträge erlaubt")
+
+
+class DeleteStandingOrderParameter1(DataElementGroup):
+    """Parameter SEPA-Dauerauftrag löschen, version 1
+
+    Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Data Dictionary """
+    min_advance_notice = DataElementField(type='num', max_length=4, _d="Minimale Vorlaufzeit")
+    max_advance_notice = DataElementField(type='num', max_length=4, _d="Maximale Vorlaufzeit")
+    scheduled_deletion_allowed = DataElementField(type='jn', _d="Löschung terminierbar")
+    send_task_data_required = DataElementField(type='jn', _d="Senden der Auftragsdaten erforderlich")
+
+
+class CreateStandingOrderParameter1(DataElementGroup):
+    """Parameter SEPA-Dauerauftrag einrichten, version 1
+
+    Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Data Dictionary """
+    max_purpose_lines = DataElementField(type='num', max_length=2, _d="Maximale Anzahl Verwendungszweckzeilen")
+    min_advance_notice = DataElementField(type='num', max_length=4, _d="Minimale Vorlaufzeit")
+    max_advance_notice = DataElementField(type='num', max_length=4, _d="Maximale Vorlaufzeit")
+    months = DataElementField(type='dig', max_length=24, _d="Turnus in Monaten")
+    execution_days_month = DataElementField(type='dig', max_length=64, _d="Ausführungstage pro Monat")
+    weeks = DataElementField(type='dig', max_length=104, required=False, _d="Turnus in Wochen")
+    execution_days_week = DataElementField(type='dig', max_length=7, required=False, _d="Ausführungstage pro Woche")
+
+
+class ChangeStandingOrderParameter1(DataElementGroup):
+    """Parameter SEPA-Dauerauftrag ändern, version 1
+
+    Source: FinTS Financial Transaction Services, Schnittstellenspezifikation, Data Dictionary """
+    max_scheduled_changes = DataElementField(type='num', length=1, _d="Anzahl terminierter Änderungen")
+    min_advance_notice = DataElementField(type='num', max_length=4, _d="Minimale Vorlaufzeit")
+    max_advance_notice = DataElementField(type='num', max_length=4, _d="Maximale Vorlaufzeit")
+    creditor_account_changeable = DataElementField(type='jn', _d="CreditorAccount/Agent änderbar")
+    creditor_changeable = DataElementField(type='jn', _d="Creditor änderbar")
+    amount_changeable = DataElementField(type='jn', _d="InstructedAmount änderbar")
+    purpose_changeable = DataElementField(type='jn', _d="RemittanceInformation änderbar")
+    first_execution_date_changeable = DataElementField(type='jn', _d="Erstes Ausführungsdatum änderbar")
+    time_unit_changeable = DataElementField(type='jn', _d="Zeiteinheit änderbar")
+    interval_changeable = DataElementField(type='jn', _d="Turnus änderbar")
+    execution_day_changeable = DataElementField(type='jn', _d="Ausführungstag änderbar")
+    last_execution_date_changeable = DataElementField(type='jn', _d="Letztes Ausführungsdatum änderbar")
+    months = DataElementField(type='dig', max_length=24, _d="Turnus in Monaten")
+    execution_days_month = DataElementField(type='dig', max_length=64, _d="Ausführungstage pro Monat")
+    weeks = DataElementField(type='dig', max_length=104, required=False, _d="Turnus in Wochen")
+    execution_days_week = DataElementField(type='dig', max_length=7, required=False, _d="Ausführungstage pro Woche")
+
+
 class QueryCreditCardStatements2(DataElementGroup):
     """Parameter Kreditkartenumsätze anfordern, version 2
 

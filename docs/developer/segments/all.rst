@@ -102,6 +102,16 @@ fints.segments.saldo module
     :show-inheritance:
     :exclude-members: print_nested, naive_parse, find_subclass, is_unset
 
+fints.segments.standing_order module
+------------------------------------
+
+.. automodule:: fints.segments.standing_order
+    :members:
+    :inherited-members:
+    :undoc-members:
+    :show-inheritance:
+    :exclude-members: print_nested, naive_parse, find_subclass, is_unset
+
 fints.segments.statement module
 -------------------------------
 

@@ -167,6 +167,61 @@ def fints_server():
                             result.append("HIRMS::2:{}+0030::Auftragsfreigabe erforderlich'".format(hktan.group(1).decode('us-ascii')).encode('us-ascii'))
                             result.append("HITAN::{}:{}+2++{}+{}'".format(hktan.group(2).decode('us-ascii'), hktan.group(1).decode('us-ascii'), ref, tanmsg).encode('us-ascii'))
 
+            hkcdb = re.search(rb"'HKCDB:(\d+):1\+", message)
+            if hkcdb:
+                segno = hkcdb.group(1).decode('us-ascii')
+                standing_orders = [
+                    ('ORDER1', 'Max Vermieter', 'DE02120300000000202051', '850.00', 'Miete', '20250101:M:1:1++J+J+J'),
+                    ('ORDER2', 'Sportverein', 'DE02500105170137075030', '25.50', 'Beitrag', '20250215:M:3:15:20270431+N:20251101:20251130::0,:EUR+N+N+J'),
+                ]
+                for task_id, name, iban, amount, reason, details in standing_orders:
+                    pain = (
+                        '<?xml version="1.0" encoding="UTF-8"?>'
+                        '<Document xmlns="urn:iso:std:iso:20022:tech:xsd:pain.001.001.03"><CstmrCdtTrfInitn>'
+                        '<PmtInf><DbtrAcct><Id><IBAN>DE111234567800000001</IBAN></Id></DbtrAcct>'
+                        '<CdtTrfTxInf><PmtId><EndToEndId>NOTPROVIDED</EndToEndId></PmtId>'
+                        '<Amt><InstdAmt Ccy="EUR">{}</InstdAmt></Amt>'
+                        '<Cdtr><Nm>{}</Nm></Cdtr><CdtrAcct><Id><IBAN>{}</IBAN></Id></CdtrAcct>'
+                        '<RmtInf><Ustrd>{}</Ustrd></RmtInf></CdtTrfTxInf>'
+                        '</PmtInf></CstmrCdtTrfInitn></Document>'
+                    ).format(amount, name, iban, reason).encode('utf-8')
+                    result.append(
+                        "HICDB::1:{}+DE111234567800000001:GENODE23X42+urn?:iso?:std?:iso?:20022?:tech?:xsd?:pain.001.001.03+@{}@".format(
+                            segno, len(pain)).encode('us-ascii')
+                        + pain
+                        + "+{}+{}'".format(task_id, details).encode('us-ascii')
+                    )
+
+            hkcdl = re.search(rb"'HKCDL:(\d+):1\+", message)
+            if hkcdl:
+                segno = hkcdl.group(1).decode('us-ascii')
+                task_id = re.search(rb"\+(ORDER\d+)\+", message).group(1).decode('us-ascii')
+                result.append("HIRMS::2:{}+0020::SEPA-Dauerauftrag {} gelöscht'".format(segno, task_id).encode('iso-8859-1'))
+
+            hkcde = re.search(rb"'HKCDE:(\d+):1\+.*@\d+@(.*</Document>)\+([^']+)'", message, re.DOTALL)
+            if hkcde:
+                segno = hkcde.group(1).decode('us-ascii')
+                details = hkcde.group(3).decode('us-ascii').replace(':', '?:')
+                if re.search(rb"<ReqdExctnDt>(<Dt>)?1999-01-01", hkcde.group(2)):
+                    result.append("HIRMS::2:{}+0020::SEPA-Dauerauftrag eingerichtet {}'".format(segno, details).encode('iso-8859-1'))
+                    result.append("HICDE::1:{}+ORDER3'".format(segno).encode('us-ascii'))
+                else:
+                    result.append("HIRMS::2:{}+9150::Ausführungsdatum darf nicht belegt werden'".format(segno).encode('iso-8859-1'))
+
+            hkcdn = re.search(rb"'HKCDN:(\d+):1\+.*@\d+@(.*</Document>)\+([^']*)'", message, re.DOTALL)
+            if hkcdn:
+                segno = hkcdn.group(1).decode('us-ascii')
+                pain = hkcdn.group(2).decode('utf-8')
+                fields = hkcdn.group(3).decode('us-ascii').split('+') + ['', '']
+                task_id, details = fields[1], fields[2].replace(':', '?:')
+                amount = re.search(r"<InstdAmt[^>]*>([^<]+)</InstdAmt>", pain).group(1)
+                if set(re.findall(r"<CtrlSum>([^<]+)</CtrlSum>", pain)) <= {amount}:
+                    result.append("HIRMS::2:{}+0020::SEPA-Dauerauftrag {} geändert {} {}'".format(
+                        segno, task_id, amount, details).encode('iso-8859-1'))
+                    result.append("HICDN::1:{}+{}B+{}'".format(segno, task_id, task_id).encode('us-ascii'))
+                else:
+                    result.append("HIRMS::2:{}+9010::Auftrag inkonsistent'".format(segno).encode('iso-8859-1'))
+
             hktan = re.search(rb"'HKTAN:(\d+):(\d+)\+2\+\+\+\+([^+]+)\+", message)
             if hktan:
                 segno = hktan.group(1).decode('us-ascii')

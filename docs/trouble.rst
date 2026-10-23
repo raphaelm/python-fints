@@ -123,6 +123,7 @@ the problem.
                 "Fetch status protocol",
                 "Make a simple transfer",
                 "Fetch statements as PDF",
+                "Fetch standing orders",
             ]
 
             print("Choose an operation")
@@ -209,5 +210,10 @@ the problem.
                     with open(output_pdf, 'wb') as file:
                         file.write(res.data)
                     print("Written to", output_pdf)
+                elif choice == 12:
+                    res = f.get_standing_orders(account)
+                    while isinstance(res, NeedTANResponse):
+                        res = ask_for_tan(res)
+                    print(res)
             except FinTSUnsupportedOperation as e:
                 print("This operation is not supported by this bank:", e)

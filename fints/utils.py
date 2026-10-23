@@ -1,4 +1,5 @@
 import base64
+import decimal
 import json
 import re
 import threading
@@ -11,8 +12,10 @@ except ImportError:
     from enum import Enum, EnumMeta as EnumType
 
 import mt940.models
+from lxml import etree
+from sepaxml.utils import make_msg_id
 
-from .models import Holding
+from .models import Amount, Holding, SEPATransferPayment
 
 
 def mt940_to_array(data):
@@ -20,6 +23,138 @@ def mt940_to_array(data):
     data = data.replace("-0000", "+0000")
     transactions = mt940.models.Transactions()
     return transactions.parse(data)
+
+
+def modify_sepa_transfer_pain(pain_message, amount=None, reason=None, recipient_name=None, iban=None, bic=None,
+                              endtoend_id=None):
+    """
+    Change values of a SEPA pain.001 credit transfer message with exactly one payment, e.g. one returned by
+    ``get_standing_orders``.
+
+    Only the given values are changed, the schema and all other values of the message are kept. The message
+    gets a new message id and creation timestamp, and the control sums are updated to a new amount. If the IBAN
+    is changed without giving a BIC, an existing BIC of the recipient is removed.
+
+    :param pain_message: pain.001 message as ``bytes`` or ``str``
+    :param amount: New amount as a ``Decimal``
+    :param reason: New transfer reason
+    :param recipient_name: New recipient name
+    :param iban: New recipient IBAN
+    :param bic: New recipient BIC
+    :param endtoend_id: New End-to-end-Id
+    :return: The changed pain.001 message as ``bytes``
+    """
+    if isinstance(pain_message, str):
+        pain_message = pain_message.encode('utf-8')
+    root = etree.fromstring(pain_message)
+    namespace = etree.QName(root).namespace
+
+    def find(node, path):
+        # Namespace-agnostic, since the pain.001 version depends on the bank
+        return node.xpath('./' + '/'.join('*[local-name()="{}"]'.format(p) for p in path.split('/')))
+
+    def new_element(parent, tag, index=None):
+        element = etree.Element('{{{}}}{}'.format(namespace, tag) if namespace else tag)
+        if index is None:
+            parent.append(element)
+        else:
+            parent.insert(index, element)
+        return element
+
+    transactions = root.xpath('//*[local-name()="CdtTrfTxInf"]')
+    if len(transactions) != 1:
+        raise ValueError("Only pain messages with exactly one payment are supported.")
+    tx = transactions[0]
+
+    if amount is not None:
+        amount = "{:.2f}".format(decimal.Decimal(amount))
+        find(tx, 'Amt/InstdAmt')[0].text = amount
+        for ctrl_sum in root.xpath('//*[local-name()="CtrlSum"]'):
+            ctrl_sum.text = amount
+
+    if reason is not None:
+        purpose = find(tx, 'RmtInf/Ustrd')
+        if purpose:
+            purpose[0].text = reason
+        else:
+            new_element(new_element(tx, 'RmtInf'), 'Ustrd').text = reason
+
+    if recipient_name is not None:
+        find(tx, 'Cdtr/Nm')[0].text = recipient_name
+
+    if iban is not None:
+        find(tx, 'CdtrAcct/Id/IBAN')[0].text = iban
+        if bic is None:
+            for creditor_agent in find(tx, 'CdtrAgt'):
+                tx.remove(creditor_agent)
+
+    if bic is not None:
+        creditor_agent = find(tx, 'CdtrAgt')
+        if creditor_agent:
+            institution = find(creditor_agent[0], 'FinInstnId')[0]
+            for element in list(institution):
+                institution.remove(element)
+        else:
+            creditor = find(tx, 'Cdtr')[0]
+            institution = new_element(new_element(tx, 'CdtrAgt', tx.index(creditor)), 'FinInstnId')
+        # pain.001.001.03 and the older German schemas use <BIC>, later versions use <BICFI>
+        version = re.search(r'pain\.001\.(\d{3})\.(\d{2})', namespace or '')
+        use_bicfi = version is not None and version.group(1) == '001' and int(version.group(2)) >= 4
+        new_element(institution, 'BICFI' if use_bicfi else 'BIC').text = bic
+
+    if endtoend_id is not None:
+        find(tx, 'PmtId/EndToEndId')[0].text = endtoend_id
+
+    for message_id in root.xpath('//*[local-name()="GrpHdr"]/*[local-name()="MsgId"]'):
+        message_id.text = make_msg_id()
+    for creation_time in root.xpath('//*[local-name()="GrpHdr"]/*[local-name()="CreDtTm"]'):
+        creation_time.text = datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
+
+    return etree.tostring(root, xml_declaration=True, encoding='UTF-8')
+
+
+def parse_sepa_transfer_pain(pain_message):
+    """
+    Read the payment of a SEPA pain.001 credit transfer message with exactly one payment, e.g. one returned by
+    ``get_standing_orders``. This is the counterpart to ``modify_sepa_transfer_pain``.
+
+    :param pain_message: pain.001 message as ``bytes`` or ``str``
+    :return: ``SEPATransferPayment`` object. Values that are missing in the message are ``None``.
+    """
+    if isinstance(pain_message, str):
+        pain_message = pain_message.encode('utf-8')
+    root = etree.fromstring(pain_message)
+
+    def find(node, path):
+        # Namespace-agnostic, since the pain.001 version depends on the bank
+        return node.xpath('./' + '/'.join('*[local-name()="{}"]'.format(p) for p in path.split('/')))
+
+    def text(node, path):
+        found = find(node, path)
+        return found[0].text.strip() if found and found[0].text else None
+
+    transactions = root.xpath('//*[local-name()="CdtTrfTxInf"]')
+    if len(transactions) != 1:
+        raise ValueError("Only pain messages with exactly one payment are supported.")
+    tx = transactions[0]
+
+    instructed_amount = find(tx, 'Amt/InstdAmt')
+    if instructed_amount and instructed_amount[0].text:
+        amount = Amount(decimal.Decimal(instructed_amount[0].text.strip()), instructed_amount[0].get('Ccy'))
+    else:
+        amount = None
+
+    purposes = [e.text.strip() for e in find(tx, 'RmtInf/Ustrd') if e.text]
+
+    return SEPATransferPayment(
+        recipient_name=text(tx, 'Cdtr/Nm'),
+        iban=text(tx, 'CdtrAcct/Id/IBAN'),
+        # pain.001.001.03 and the older German schemas use <BIC>, later versions use <BICFI>
+        bic=text(tx, 'CdtrAgt/FinInstnId/BIC') or text(tx, 'CdtrAgt/FinInstnId/BICFI'),
+        amount=amount,
+        reason=' '.join(purposes) or None,
+        endtoend_id=text(tx, 'PmtId/EndToEndId'),
+    )
 
 
 def classproperty(f):

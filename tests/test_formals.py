@@ -362,3 +362,32 @@ def test_find_by_class():
     assert list(m.find_segments(HNHBS1))[0].__class__ == HNHBS1
 
     assert m.find_segment_first(HNHBS1).header.type == 'HNHBS'
+
+
+def test_virtual_date():
+    import datetime
+    from fints.models import VirtualDate
+    from fints.parser import FinTS3Parser, FinTS3Serializer
+    from fints.segments.standing_order import HICDB1  # noqa: F401, registers the segment class
+
+    class A(Container):
+        a = DataElementField(type='vdat')
+
+    i1 = A.naive_parse(['20250431'])
+    assert i1.a == VirtualDate(2025, 4, 31)
+    assert i1.a.to_date() == datetime.date(2025, 4, 30)
+    assert str(i1.a) == '2025-04-31'
+
+    i1.a = datetime.date(2025, 2, 28)
+    assert i1.a == VirtualDate(2025, 2, 28)
+
+    with pytest.raises(ValueError):
+        A.naive_parse(['20251301'])
+    with pytest.raises(ValueError):
+        A.naive_parse(['20250432'])
+
+    # Virtual dates must survive a parse/serialize roundtrip unchanged
+    message = b"HICDB:5:1:3+DE11:GENO+urn+@2@ab+ORDER1+20250131:M:1:31:20270431'"
+    seg = FinTS3Parser().parse_message(message).segments[0]
+    assert seg.standing_order_details.last_execution_date == VirtualDate(2027, 4, 31)
+    assert FinTS3Serializer().serialize_message(seg) == message
