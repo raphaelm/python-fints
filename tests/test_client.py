@@ -227,3 +227,44 @@ def test_get_transactions(fints_client):
 
         assert len(transactions) == 3
         assert transactions[0].data['amount'].amount == Decimal('182.34')
+
+
+class _ClosedDialog:
+    open = False
+
+
+def _response_3920(*security_functions):
+    from fints.formals import Response
+    return Response(code='3920', reference_element=None,
+                    text='Zugelassene Ein- und Zwei-Schritt-Verfahren für den Benutzer.',
+                    parameters=list(security_functions))
+
+
+def test_3920_replaces_onestep_placeholder(fints_client):
+    # Commerzbank photoTAN (#212): fetch_tan_mechanisms() sets '999' as a placeholder,
+    # then the bank allows a two-step method *and* '999'. The client must not stay at '999'.
+    fints_client.fetch_tan_mechanisms()
+    fints_client.set_tan_mechanism('999')
+
+    fints_client._process_response(_ClosedDialog(), None, _response_3920('942', '999'))
+
+    assert fints_client.get_current_tan_mechanism() == '942'
+    assert fints_client.is_challenge_structured() in (True, False)
+
+
+def test_3920_keeps_onestep_if_only_onestep_allowed(fints_client):
+    fints_client.fetch_tan_mechanisms()
+    fints_client.set_tan_mechanism('999')
+
+    fints_client._process_response(_ClosedDialog(), None, _response_3920('999'))
+
+    assert fints_client.get_current_tan_mechanism() == '999'
+
+
+def test_3920_keeps_explicitly_chosen_twostep(fints_client):
+    fints_client.fetch_tan_mechanisms()
+    fints_client.set_tan_mechanism('962')
+
+    fints_client._process_response(_ClosedDialog(), None, _response_3920('942', '962', '999'))
+
+    assert fints_client.get_current_tan_mechanism() == '962'
