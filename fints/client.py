@@ -1579,7 +1579,9 @@ class FinTS3PinTanClient(FinTS3Client):
     def _process_response(self, dialog, segment, response):
         if response.code == '3920' and not self.bank_identifier == ING_BANK_IDENTIFIER:
             self.allowed_security_functions = list(response.parameters)
-            if self.selected_security_function is None or not self.selected_security_function in self.allowed_security_functions:
+            # '999' counts as "not chosen yet": fetch_tan_mechanisms() sets it as a placeholder, and some banks
+            # (e.g. Commerzbank photoTAN) list '999' among the allowed functions next to a two-step one (#212).
+            if self.selected_security_function in (None, '999') or self.selected_security_function not in self.allowed_security_functions:
                 # Select the first available twostep security_function that we support
                 for security_function, parameter in self.get_tan_mechanisms().items():
                     if security_function == '999':

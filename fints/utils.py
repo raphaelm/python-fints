@@ -291,7 +291,7 @@ def minimal_interactive_cli_bootstrap(client):
     """
     # Fetch available TAN mechanisms by the bank, if we don't know it already. If the client was created with cached data,
     # the function is already set.
-    if not client.get_current_tan_mechanism():
+    if client.get_current_tan_mechanism() in (None, '999'):
         client.fetch_tan_mechanisms()
         mechanisms = list(client.get_tan_mechanisms().items())
         if len(mechanisms) > 1:
